@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+ * Layer 1 — Primitive tokens (raw values, never used directly in UI)
+ * ------------------------------------------------------------------ */
+:root {
+  --green-950: #0b3a21;
+  --green-900: #0f4c2b;
+  --green-800: #135e36; /* brand: Deep Forest Green */
+  --green-700: #1d7444;
+  --sprout-500: #6cc24a; /* brand: Sprout Light Green */
+  --sprout-400: #8fd270;
+  --sprout-200: #cdeabd;
+  --sprout-100: #e4f4da;
+  --sprout-50: #f1f9ec;
+  --cream-50: #faf8f2; /* brand: Warm Cream */
+  --cream-100: #f3efe3;
+  --cream-200: #e9e3d2;
+  --white: #ffffff;
+  --slate-200: #e2e8f0;
+  --ink-900: #17271e;
+  --ink-700: #34463b;
+  --ink-500: #56685d;
+  --sun-500: #e8a33d;
+  --sun-100: #fcf0dc;
+  --berry-600: #c2410c;
+  --berry-50: #fff1ea;
+}
+
+/* ------------------------------------------------------------------
+ * Layer 2 — Semantic tokens (exposed to Tailwind as utilities)
+ * e.g. bg-shinme-primary, text-shinme-ink, border-shinme-border
+ * ------------------------------------------------------------------ */
+@theme inline {
+  --color-shinme-primary: var(--green-800);
+  --color-shinme-primary-hover: var(--green-900);
+  --color-shinme-primary-deep: var(--green-950);
+  --color-shinme-primary-soft: var(--green-700);
+  --color-shinme-accent: var(--sprout-500);
+  --color-shinme-accent-soft: var(--sprout-200);
+  --color-shinme-leaf: var(--sprout-100);
+  --color-shinme-leaf-faint: var(--sprout-50);
+  --color-shinme-bg: var(--cream-50);
+  --color-shinme-bg-deep: var(--cream-100);
+  --color-shinme-line: var(--cream-200);
+  --color-shinme-surface: var(--white);
+  --color-shinme-border: var(--slate-200);
+  --color-shinme-ink: var(--ink-900);
+  --color-shinme-ink-soft: var(--ink-700);
+  --color-shinme-muted: var(--ink-500);
+  --color-shinme-warn: var(--sun-500);
+  --color-shinme-warn-soft: var(--sun-100);
+  --color-shinme-danger: var(--berry-600);
+  --color-shinme-danger-soft: var(--berry-50);
+
+  --font-sans: var(--font-nunito), var(--font-noto-jp), system-ui, sans-serif;
+  --font-jp: var(--font-noto-jp), var(--font-nunito), sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px rgb(19 94 54 / 0.05), 0 8px 24px -12px rgb(19 94 54 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(19 94 54 / 0.06), 0 18px 40px -18px rgb(19 94 54 / 0.35);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ------------------------------------------------------------------
+ * Layer 3 — Component tokens & base styles
+ * ------------------------------------------------------------------ */
+:root {
+  --navbar-h: 4.5rem;
+  --sidebar-w: 16.5rem;
+  --ruby-rt-size: 0.5em;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--navbar-h) + 1rem);
+}
+
+@layer base {
+  body {
+    background: var(--color-shinme-bg);
+    color: var(--color-shinme-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Japanese text: Noto Sans JP first, strict kinsoku line breaking. */
+  :lang(ja) {
+    font-family: var(--font-jp);
+    line-break: strict;
+  }
+
+  ruby {
+    ruby-position: over;
+    ruby-align: center;
+  }
+
+  rt {
+    font-family: var(--font-jp);
+    font-size: var(--ruby-rt-size);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: inherit;
+    opacity: 0.78;
+    user-select: none;
+  }
+
+  ::selection {
+    background: var(--sprout-200);
+    color: var(--green-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sprout-500);
+    outline-offset: 2px;
+  }
+
+  input,
+  textarea,
+  select {
+    caret-color: var(--green-800);
+  }
+
+  * {
+    scrollbar-color: var(--cream-200) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes leaf-pop {
+  0% {
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    transform: scale(1.12) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

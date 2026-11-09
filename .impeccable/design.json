@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T00:54:15.000Z",
+  "title": "Design System: Shinme Japanese Language Center",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Forest Green",
+        "canonical": "#135E36",
+        "tonalRamp": ["#0B3A21", "#0F4C2B", "#135E36", "#1D7444", "#2B9158", "#45B275", "#8FD270", "#E4F4DA"]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Sprout Green",
+        "canonical": "#6CC24A",
+        "tonalRamp": ["#255914", "#3B7E22", "#52A432", "#6CC24A", "#8FD270", "#B2E29B", "#CDEABD", "#F1F9EC"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Warm Cream",
+        "canonical": "#FAF8F2",
+        "tonalRamp": ["#17271E", "#34463B", "#56685D", "#899A8F", "#CBD5CE", "#E9E3D2", "#F3EFE3", "#FAF8F2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Hero Display", "purpose": "Banner and main furigana headline" },
+      "headline": { "displayName": "Section Headline", "purpose": "Major content headings" },
+      "body": { "displayName": "Body Sans", "purpose": "Standard UI and paragraph text" }
+    },
+    "shadows": [
+      { "name": "card-rest", "value": "0 1px 2px rgb(19 94 54 / 0.05), 0 8px 24px -12px rgb(19 94 54 / 0.18)", "purpose": "Default surface elevation" },
+      { "name": "lifted-focus", "value": "0 2px 4px rgb(19 94 54 / 0.06), 0 18px 40px -18px rgb(19 94 54 / 0.35)", "purpose": "Modals, floating bars, and hover highlights" }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Organic leaf-pop and panel slide-in transitions" }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard call-to-action button in deep forest green",
+      "html": "<button class=\"ds-btn-primary\">Đăng ký tư vấn</button>",
+      "css": ".ds-btn-primary { background: #135E36; color: #FFFFFF; font-weight: 700; border-radius: 9999px; padding: 12px 24px; border: none; cursor: pointer; transition: background 0.2s; } .ds-btn-primary:hover { background: #0F4C2B; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Living Sprout (新芽)",
+    "overview": "Shinme's visual identity embodies growth, warmth, and steady progress in Japanese language mastery. Soft warm cream background, deep forest green authority, and sprout green progress highlights.",
+    "keyCharacteristics": [
+      "Warm & Organic Grounding (#FAF8F2)",
+      "Deep Forest Authority (#135E36)",
+      "Sprout Accent (#6CC24A)",
+      "CJK & Furigana Elegance via <ruby>"
+    ],
+    "rules": [
+      { "name": "The Sprout Rarity Rule", "body": "Sprout green (#6CC24A) is an accent of growth, reserved for badges and progress bars.", "section": "colors" },
+      { "name": "The Furigana Room Rule", "body": "Japanese text with furigana must have minimum 1.8x line-height to avoid overlapping.", "section": "typography" }
+    ],
+    "dos": [
+      "Do always use <FuriganaText /> for Japanese kanji with readings.",
+      "Do maintain bilingual typography respect (Noto Sans JP + Nunito)."
+    ],
+    "donts": [
+      "Don't use cold gray #808080; use tinted sage #56685D.",
+      "Don't truncate Japanese words with awkward line breaks."
+    ]
+  }
+}
+

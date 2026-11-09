@@ -1,0 +1,112 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { GraduationCap, Menu, X } from "lucide-react";
+import { ShinmeLogo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "#ve-shinme", label: "Về Shinme" },
+  { href: "#lo-trinh", label: "Lộ trình khóa học" },
+  { href: "#sensei", label: "Đội ngũ Sensei" },
+  { href: "#thi-thu", label: "Thi thử Mini" },
+  { href: "#blog", label: "Blog" },
+];
+
+export function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-40 bg-shinme-bg transition-shadow duration-300",
+        scrolled && "shadow-[0_1px_0_var(--color-shinme-line),0_10px_24px_-20px_rgb(19_94_54/0.5)]",
+      )}
+    >
+      <nav
+        aria-label="Điều hướng chính"
+        className="mx-auto flex h-[var(--navbar-h)] max-w-7xl items-center gap-6 px-5 lg:px-8"
+      >
+        <Link href="/" aria-label="Shinme — Trang chủ" className="shrink-0 rounded-lg">
+          <ShinmeLogo priority />
+        </Link>
+
+        <ul className="ml-auto hidden items-center gap-1 lg:flex">
+          {NAV_LINKS.map((l) => (
+            <li key={l.href}>
+              <a
+                href={l.href}
+                className="rounded-full px-3.5 py-2 text-[0.95rem] font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <Button asChild size="md" className="ml-auto hidden sm:inline-flex lg:ml-2">
+          <Link href="/portal">
+            <GraduationCap />
+            Cổng Học Viên / Sensei
+            <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
+              LMS
+            </span>
+          </Link>
+        </Button>
+
+        <button
+          type="button"
+          className="ml-auto grid size-11 place-items-center rounded-full text-shinme-primary hover:bg-shinme-leaf sm:ml-0 lg:hidden"
+          aria-expanded={open}
+          aria-controls="mobile-nav"
+          aria-label={open ? "Đóng menu" : "Mở menu"}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X className="size-6" /> : <Menu className="size-6" />}
+        </button>
+      </nav>
+
+      {open && (
+        <div id="mobile-nav" className="border-t border-shinme-line bg-shinme-bg px-5 pb-6 pt-2 lg:hidden">
+          <ul className="flex flex-col">
+            {NAV_LINKS.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-3 text-lg font-bold text-shinme-ink hover:bg-shinme-leaf"
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <Button asChild size="lg" className="mt-3 w-full">
+            <Link href="/portal">
+              <GraduationCap />
+              Cổng Học Viên / Sensei (LMS)
+            </Link>
+          </Button>
+        </div>
+      )}
+    </header>
+  );
+}
+
