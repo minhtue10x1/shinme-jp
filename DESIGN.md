@@ -106,7 +106,9 @@ The palette balances serene nature tones with crisp readability.
 - **Headline** (ExtraBold 800, clamp 1.5rem–2.25rem, 1.3 line-height): Section titles and primary headers.
 - **Title** (Bold 700, 1.25rem, 1.4 line-height): Course titles, sensei names, and dialog headings.
 - **Body** (Medium 500, 1rem, 1.6 line-height): Descriptive text, outcomes, and articles.
+- **Interface Medium** (Bold 700, 0.95rem): Primary navigation links, button controls, and sensei quotes.
 - **Label** (Bold 700–800, 0.75rem, 0.02em tracking): Metadata badges, timestamps, and lesson tags.
+- **Micro / Caption** (Black 900, 0.65rem–0.7rem): Micro pill indicators, audio duration tags, and file extension tags.
 
 ### Named Rules
 **The Furigana Room Rule.** Any text with Japanese furigana annotations (`<ruby>`) must have extra line spacing (minimum 1.8x line-height) to prevent ruby readings from touching text on preceding lines.

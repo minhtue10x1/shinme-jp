@@ -23,8 +23,8 @@ export const ROLES: Record<RoleId, RoleUser> = {
     name: "Lê Hoàng Nam",
     nameJa: "レ・ホアン・ナム",
     avatarText: "Nam",
-    tagline: "Học viên · Lớp Sơ cấp N4-K12",
-    className: "N4-K12 (Tối 2-4-6)",
+    tagline: "Học viên · Lớp N3-Tối 246",
+    className: "N3-Tối 246 (Sensei Tanaka)",
   },
   sensei: {
     id: "ss-tanaka",
@@ -33,8 +33,8 @@ export const ROLES: Record<RoleId, RoleUser> = {
     name: "Tanaka Yuki",
     nameJa: "田中[たなか] 由紀[ゆき]",
     avatarText: "田",
-    tagline: "Sensei · Trưởng bộ môn Kaiwa",
-    className: "Phụ trách: N4-K12, Kaiwa-K15",
+    tagline: "Sensei · Trưởng bộ môn Kaiwa & Giảng viên N3",
+    className: "Phụ trách: N3-Tối 246, Kaiwa Sơ Trung Cấp",
   },
   admin: {
     id: "adm-shinme",
@@ -43,6 +43,7 @@ export const ROLES: Record<RoleId, RoleUser> = {
     name: "Nguyễn Thu Hà (Admin)",
     avatarText: "Ad",
     tagline: "Quản trị viên & Giáo vụ trung tâm",
+    className: "Toàn bộ 3 lớp học",
   },
 };
 
