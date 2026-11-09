@@ -457,14 +457,26 @@ const ANN_EVENT = "shinme:announcements-changed";
 const RES_EVENT = "shinme:resources-changed";
 const CLASS_EVENT = "shinme:class-changed";
 
+let annCacheRaw: string | null = null;
+let annCacheVal: ClassAnnouncement[] = INITIAL_ANNOUNCEMENTS;
+
 export function readAnnouncements(): ClassAnnouncement[] {
   if (typeof window === "undefined") return INITIAL_ANNOUNCEMENTS;
   try {
     const raw = window.localStorage.getItem(ANNOUNCEMENTS_KEY);
-    return raw ? JSON.parse(raw) : INITIAL_ANNOUNCEMENTS;
+    if (!raw) return INITIAL_ANNOUNCEMENTS;
+    if (raw !== annCacheRaw) {
+      annCacheRaw = raw;
+      annCacheVal = JSON.parse(raw) as ClassAnnouncement[];
+    }
+    return annCacheVal;
   } catch {
     return INITIAL_ANNOUNCEMENTS;
   }
+}
+
+export function getAnnouncementsServerSnapshot(): ClassAnnouncement[] {
+  return INITIAL_ANNOUNCEMENTS;
 }
 
 export function saveAnnouncement(ann: Omit<ClassAnnouncement, "id" | "createdAt">): ClassAnnouncement {
@@ -491,14 +503,26 @@ export function togglePinAnnouncement(id: string) {
   window.dispatchEvent(new Event(ANN_EVENT));
 }
 
+let resCacheRaw: string | null = null;
+let resCacheVal: ClassResource[] = INITIAL_RESOURCES;
+
 export function readResources(): ClassResource[] {
   if (typeof window === "undefined") return INITIAL_RESOURCES;
   try {
     const raw = window.localStorage.getItem(RESOURCES_KEY);
-    return raw ? JSON.parse(raw) : INITIAL_RESOURCES;
+    if (!raw) return INITIAL_RESOURCES;
+    if (raw !== resCacheRaw) {
+      resCacheRaw = raw;
+      resCacheVal = JSON.parse(raw) as ClassResource[];
+    }
+    return resCacheVal;
   } catch {
     return INITIAL_RESOURCES;
   }
+}
+
+export function getResourcesServerSnapshot(): ClassResource[] {
+  return INITIAL_RESOURCES;
 }
 
 export function saveResource(res: Omit<ClassResource, "id" | "uploadedAt">): ClassResource {
@@ -563,3 +587,4 @@ export function subscribeActiveClass(cb: () => void) {
     window.removeEventListener(CLASS_EVENT, cb);
   };
 }
+

@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import {
   deleteAnnouncement,
   getActiveClassId,
+  getAnnouncementsServerSnapshot,
   MOCK_CLASSES,
   readAnnouncements,
   saveAnnouncement,
@@ -42,7 +43,7 @@ export function AnnouncementFeed() {
   const announcements = useSyncExternalStore(
     subscribeAnnouncements,
     readAnnouncements,
-    () => []
+    getAnnouncementsServerSnapshot
   );
 
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -350,3 +351,4 @@ export function AnnouncementFeed() {
     </div>
   );
 }
+

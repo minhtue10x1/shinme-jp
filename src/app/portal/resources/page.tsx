@@ -35,6 +35,7 @@ import { ClassSelector } from "@/components/portal/class-selector";
 import {
   deleteResource,
   getActiveClassId,
+  getResourcesServerSnapshot,
   MOCK_CLASSES,
   readResources,
   saveResource,
@@ -65,7 +66,7 @@ export default function ResourcesPage() {
   const resources = useSyncExternalStore(
     subscribeResources,
     readResources,
-    () => []
+    getResourcesServerSnapshot
   );
 
   const [activeTab, setActiveTab] = useState<ResourceCategory>("ALL");
