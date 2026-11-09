@@ -96,8 +96,8 @@ function StudentDashboard() {
                 </div>
 
                 <Button asChild size="sm" variant="onDark">
-                  <Link href="/portal/exam/jlpt-n4-mock-01">
-                    Vào làm bài ngay <ArrowRight className="size-3.5" />
+                  <Link href="/portal/tests/n3-mock-test-01/take">
+                    Vào phòng thi ngay <ArrowRight className="size-3.5" />
                   </Link>
                 </Button>
               </div>
@@ -269,10 +269,15 @@ function SenseiDashboard() {
             Quản lý lớp giảng dạy, bảng tin học viên và kho tài liệu số hóa
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/portal/gradebook">
+              <Award /> Sổ điểm & Phân tích
+            </Link>
+          </Button>
           <Button asChild size="sm">
-            <Link href="/portal/resources">
-              <BookOpen /> Tải lên tài liệu
+            <Link href="/portal/tests/create">
+              <Sparkles /> Tạo đề thi JLPT mới
             </Link>
           </Button>
         </div>

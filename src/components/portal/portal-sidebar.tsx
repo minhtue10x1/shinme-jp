@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  BarChart3,
   BookOpen,
   CalendarDays,
   FileCheck2,
@@ -32,6 +33,8 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/portal", label: "Tổng quan & Lớp học", icon: LayoutDashboard, roles: ["student", "sensei", "admin"] },
+  { href: "/portal/tests", label: "Khảo thí & Đề thi JLPT", icon: GraduationCap, roles: ["student", "sensei", "admin"] },
+  { href: "/portal/gradebook", label: "Sổ điểm & Phân tích", icon: BarChart3, roles: ["sensei", "admin", "student"] },
   { href: "/portal/resources", label: "Tài liệu lớp học", icon: FolderLock, roles: ["student", "sensei", "admin"] },
   { href: "/portal/assignments", label: "Bài tập & Mondai", icon: FileCheck2, roles: ["student", "sensei", "admin"] },
   { href: "/portal/materials", label: "Kho học liệu chung", icon: BookOpen, roles: ["student", "sensei", "admin"] },
@@ -88,7 +91,10 @@ export function PortalSidebar() {
         <p className="px-3 text-[0.7rem] font-bold uppercase tracking-wider text-white/40">Chức năng</p>
         <ul className="mt-2 space-y-1">
           {visible.map((item) => {
-            const active = pathname === item.href;
+            const active =
+              item.href === "/portal"
+                ? pathname === "/portal"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <li key={item.href}>
