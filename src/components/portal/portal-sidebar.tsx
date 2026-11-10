@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Menu,
   Sparkles,
+  UserCheck,
   Users2,
   X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/portal", label: "Tổng quan & Lớp học", icon: LayoutDashboard, roles: ["student", "sensei", "admin"] },
+  { href: "/portal/profile", label: "Hồ sơ cá nhân", icon: UserCheck, roles: ["student", "sensei", "admin"] },
   { href: "/portal/tests", label: "Khảo thí & Đề thi JLPT", icon: GraduationCap, roles: ["student", "sensei", "admin"] },
   { href: "/portal/gradebook", label: "Sổ điểm & Phân tích", icon: BarChart3, roles: ["sensei", "admin", "student"] },
   { href: "/portal/resources", label: "Tài liệu lớp học", icon: FolderLock, roles: ["student", "sensei", "admin"] },

@@ -30,9 +30,23 @@ export async function getUserProfile(uid: string): Promise<UserProfileDoc | null
   return snap.exists() ? (snap.data() as UserProfileDoc) : null;
 }
 
-export async function saveUserProfile(user: UserProfileDoc): Promise<void> {
-  const ref = doc(db, "users", user.uid);
-  await setDoc(ref, user, { merge: true });
+export async function getAllUsers(): Promise<UserProfileDoc[]> {
+  const ref = collection(db, "users");
+  const snap = await getDocs(ref);
+  return snap.docs.map((d) => d.data() as UserProfileDoc);
+}
+
+export async function updateUserClassByAdmin(
+  uid: string,
+  classId: string,
+  className: string
+): Promise<void> {
+  const ref = doc(db, "users", uid);
+  await updateDoc(ref, {
+    classId,
+    className,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 /* =====================================================================
