@@ -60,10 +60,29 @@ export default function LoginPage() {
         });
       }
     } catch (err: unknown) {
-      console.error(err);
-      toast.error("Không thể đăng nhập bằng Google", {
-        description: "Vui lòng thử lại hoặc đảm bảo popup trình duyệt không bị chặn.",
-      });
+      console.error("Google Login Error:", err);
+      const firebaseError = err as { code?: string; message?: string };
+      const code = firebaseError?.code || "";
+
+      if (code === "auth/popup-closed-by-user") {
+        toast.info("Đã đóng cửa sổ đăng nhập Google.");
+      } else if (code === "auth/popup-blocked") {
+        toast.error("Trình duyệt đã chặn cửa sổ Popup", {
+          description: "Vui lòng kiểm tra thanh địa chỉ (URL) và cấp quyền hiển thị popup cho trang web.",
+        });
+      } else if (code === "auth/unauthorized-domain") {
+        toast.error("Tên miền chưa được cấp phép", {
+          description: "Domain này chưa nằm trong danh sách Authorized Domains của Firebase Auth.",
+        });
+      } else if (code === "auth/operation-not-allowed") {
+        toast.error("Chưa kích hoạt Google Login", {
+          description: "Phương thức đăng nhập Google chưa được kích hoạt trong Firebase Console.",
+        });
+      } else {
+        toast.error("Không thể đăng nhập bằng Google", {
+          description: firebaseError?.message || "Vui lòng thử lại hoặc đảm bảo kết nối mạng ổn định.",
+        });
+      }
     } finally {
       setIsGoogleLoading(false);
     }
