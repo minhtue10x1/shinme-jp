@@ -61,15 +61,21 @@ export function Navbar() {
           ))}
         </ul>
 
-        <Button asChild size="md" className="ml-auto hidden sm:inline-flex lg:ml-2">
-          <Link href="/portal">
-            <GraduationCap />
-            Cổng Học Viên / Sensei
-            <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
-              LMS
-            </span>
-          </Link>
-        </Button>
+        <div className="ml-auto hidden items-center gap-2 sm:inline-flex lg:ml-2">
+          <Button asChild variant="outline" size="md">
+            <Link href="/login">Đăng nhập</Link>
+          </Button>
+
+          <Button asChild size="md">
+            <Link href="/portal">
+              <GraduationCap />
+              Cổng LMS
+              <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
+                Portal
+              </span>
+            </Link>
+          </Button>
+        </div>
 
         <button
           type="button"

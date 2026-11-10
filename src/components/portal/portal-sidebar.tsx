@@ -116,7 +116,14 @@ export function PortalSidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-4 space-y-1">
+        <Link
+          href="/login"
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-shinme-accent transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Sparkles className="size-3.5" />
+          Đăng nhập tài khoản thật
+        </Link>
         <Link
           href="/"
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-white/60 transition-colors hover:bg-white/5 hover:text-white"

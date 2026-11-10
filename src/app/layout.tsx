@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Nunito } from "next/font/google";
 import { Toaster } from "sonner";
+import { RoleProvider } from "@/lib/role-context";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi" className={`${nunito.variable} ${notoJp.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        {children}
+        <RoleProvider>
+          {children}
+        </RoleProvider>
         <Toaster
           position="top-center"
           toastOptions={{

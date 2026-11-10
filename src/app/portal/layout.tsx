@@ -11,17 +11,15 @@ export const metadata: Metadata = {
 
 export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
-    <RoleProvider>
-      <div className="flex min-h-screen flex-col bg-shinme-bg">
-        <DemoRoleSwitcher />
-        <div className="flex flex-1">
-          <Suspense fallback={<aside className="hidden w-[var(--sidebar-w)] bg-shinme-primary-deep lg:block" />}>
-            <PortalSidebar />
-          </Suspense>
-          <main className="flex-1 overflow-x-hidden p-5 sm:p-8 lg:p-10">{children}</main>
-        </div>
+    <div className="flex min-h-screen flex-col bg-shinme-bg">
+      <DemoRoleSwitcher />
+      <div className="flex flex-1">
+        <Suspense fallback={<aside className="hidden w-[var(--sidebar-w)] bg-shinme-primary-deep lg:block" />}>
+          <PortalSidebar />
+        </Suspense>
+        <main className="flex-1 overflow-x-hidden p-5 sm:p-8 lg:p-10">{children}</main>
       </div>
-    </RoleProvider>
+    </div>
   );
 }
 
