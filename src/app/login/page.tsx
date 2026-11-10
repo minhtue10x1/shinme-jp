@@ -5,10 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Lock, Mail, User, ShieldCheck, Sparkles, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { loginWithGoogle, loginWithEmail, registerWithEmail } from "@/lib/auth-service";
+import { ArrowLeft, Lock, Mail, User, ShieldCheck, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  checkOrLoginWithGoogle,
+  completeGoogleRegistration,
+  cancelGoogleRegistration,
+  loginWithEmail,
+  registerWithEmail,
+  type GoogleLoginCheckResult,
+} from "@/lib/auth-service";
 import { useRole } from "@/lib/role-context";
+import type { User as FirebaseUser } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,16 +29,36 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // 1. Đăng nhập 1-chạm qua Google (Gmail OAuth2)
+  // Modal State for New Google User Confirmation
+  const [newGoogleUser, setNewGoogleUser] = useState<{
+    user: FirebaseUser;
+    email: string;
+    displayName: string;
+    targetJLPT: "N5" | "N4" | "N3" | "N2" | "N1" | "KAIWA";
+  } | null>(null);
+
+  // 1. Đăng nhập qua Google (Gmail OAuth2) với cơ chế hỏi xác nhận tạo mới nếu chưa có tài khoản
   const handleGoogleLogin = async () => {
     try {
       setIsGoogleLoading(true);
-      const { profile } = await loginWithGoogle();
-      setUserProfile(profile);
-      toast.success(`Chào mừng ${profile.fullName}!`, {
-        description: `Đăng nhập thành công bằng tài khoản Google (${profile.email}).`,
-      });
-      router.push("/portal");
+      const result: GoogleLoginCheckResult = await checkOrLoginWithGoogle();
+
+      if (result.status === "EXISTING_USER") {
+        // Đã có tài khoản -> Vào thẳng LMS
+        setUserProfile(result.profile);
+        toast.success(`Chào mừng trở lại, ${result.profile.fullName}!`, {
+          description: `Đăng nhập thành công bằng tài khoản Google.`,
+        });
+        router.push("/portal");
+      } else {
+        // Gmail này chưa có tài khoản -> Mở Modal hỏi xác nhận
+        setNewGoogleUser({
+          user: result.user,
+          email: result.email,
+          displayName: result.displayName || "Học viên Shinme",
+          targetJLPT: "N3",
+        });
+      }
     } catch (err: unknown) {
       console.error(err);
       toast.error("Không thể đăng nhập bằng Google", {
@@ -39,6 +67,37 @@ export default function LoginPage() {
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  // Xác nhận tạo tài khoản mới bằng Gmail
+  const handleConfirmGoogleRegistration = async () => {
+    if (!newGoogleUser) return;
+    try {
+      setIsLoading(true);
+      const profile = await completeGoogleRegistration(
+        newGoogleUser.user,
+        newGoogleUser.displayName,
+        newGoogleUser.targetJLPT
+      );
+      setUserProfile(profile);
+      setNewGoogleUser(null);
+      toast.success("Tạo tài khoản học viên mới thành công!", {
+        description: `Chào mừng bạn đến với Shinme. Tài khoản liên kết với ${profile.email}.`,
+      });
+      router.push("/portal");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể hoàn tất tạo tài khoản. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Hủy đăng ký bằng Gmail
+  const handleCancelGoogleRegistration = async () => {
+    await cancelGoogleRegistration();
+    setNewGoogleUser(null);
+    toast.info("Đã hủy quá trình đăng ký tài khoản mới.");
   };
 
   // 2. Đăng nhập / Đăng ký bằng Email & Mật khẩu
@@ -251,6 +310,87 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+
+      {/* NEW GOOGLE USER REGISTRATION CONFIRMATION DIALOG */}
+      {newGoogleUser && (
+        <Dialog open={true} onOpenChange={(open) => !open && handleCancelGoogleRegistration()}>
+          <DialogContent className="max-w-md p-6 sm:p-8">
+            <div className="space-y-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-[#135E36]">
+                <Sparkles className="h-6 w-6 text-[#6CC24A]" />
+              </div>
+
+              <div>
+                <DialogTitle className="text-xl font-extrabold text-slate-900">
+                  Xác nhận tạo tài khoản mới bằng Gmail
+                </DialogTitle>
+                <DialogDescription className="mt-1.5 text-xs text-slate-600">
+                  Địa chỉ email <strong className="font-bold text-slate-900">{newGoogleUser.email}</strong> chưa có tài khoản trong hệ thống Shinme. Bạn có muốn sử dụng email này để đăng ký tài khoản Học viên mới?
+                </DialogDescription>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-[#FAF8F2] p-4">
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">
+                    Họ và tên hiển thị:
+                  </label>
+                  <input
+                    type="text"
+                    value={newGoogleUser.displayName}
+                    onChange={(e) =>
+                      setNewGoogleUser({ ...newGoogleUser, displayName: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 focus:border-[#135E36] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">
+                    Mục tiêu trình độ JLPT của bạn:
+                  </label>
+                  <select
+                    value={newGoogleUser.targetJLPT}
+                    onChange={(e) =>
+                      setNewGoogleUser({
+                        ...newGoogleUser,
+                        targetJLPT: e.target.value as "N5" | "N4" | "N3" | "N2" | "N1" | "KAIWA",
+                      })
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#135E36] focus:outline-none"
+                  >
+                    <option value="N5">JLPT N5 (Sơ cấp 1)</option>
+                    <option value="N4">JLPT N4 (Sơ cấp 2)</option>
+                    <option value="N3">JLPT N3 (Trung cấp)</option>
+                    <option value="N2">JLPT N2 (Trung thượng cấp)</option>
+                    <option value="N1">JLPT N1 (Cao cấp)</option>
+                    <option value="KAIWA">Giao tiếp Kaiwa chuyên sâu</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCancelGoogleRegistration}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Hủy bỏ
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmGoogleRegistration}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a] disabled:opacity-50"
+                >
+                  {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#6CC24A]" />}
+                  Đồng ý tạo tài khoản
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
   type User,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -14,42 +13,70 @@ import type { RoleId } from "@/lib/role-context";
 
 const googleProvider = new GoogleAuthProvider();
 
+export type GoogleLoginCheckResult =
+  | { status: "EXISTING_USER"; user: User; profile: UserProfileDoc }
+  | { status: "NEW_USER_NEEDS_CONFIRMATION"; user: User; email: string; displayName: string; photoURL?: string };
+
 /**
- * Đăng nhập 1-chạm qua Google (Gmail OAuth2)
- * Tự động tạo hồ sơ học viên trên Firestore nếu là tài khoản mới lần đầu đăng nhập.
+ * Bước 1: Mở popup Google Auth và kiểm tra xem Gmail này đã có tài khoản trong hệ thống chưa
  */
-export async function loginWithGoogle(): Promise<{ user: User; profile: UserProfileDoc }> {
+export async function checkOrLoginWithGoogle(): Promise<GoogleLoginCheckResult> {
   const result = await signInWithPopup(auth, googleProvider);
   const user = result.user;
 
-  // Lấy hoặc tạo hồ sơ trong Firestore
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
 
-  let profile: UserProfileDoc;
-
   if (userSnap.exists()) {
-    profile = userSnap.data() as UserProfileDoc;
-  } else {
-    // Tài khoản mới đăng nhập lần đầu -> Mặc định gán vai trò Student
-    const shortCode = `HV-${Date.now().toString(36).slice(-4).toUpperCase()}`;
-    profile = {
-      uid: user.uid,
-      email: user.email || "",
-      role: "student",
-      code: shortCode,
-      fullName: user.displayName || "Học viên Shinme",
-      avatarText: (user.displayName || "H").slice(0, 2),
-      avatarUrl: user.photoURL || undefined,
-      classId: "cls-n3-246",
-      className: "N3-Tối 246 (Sensei Tanaka)",
-      targetJLPT: "N3",
-      createdAt: new Date().toISOString(),
+    return {
+      status: "EXISTING_USER",
+      user,
+      profile: userSnap.data() as UserProfileDoc,
     };
-    await setDoc(userRef, profile);
   }
 
-  return { user, profile };
+  // Gmail này chưa từng có trong hệ thống -> Yêu cầu xác nhận tạo mới
+  return {
+    status: "NEW_USER_NEEDS_CONFIRMATION",
+    user,
+    email: user.email || "",
+    displayName: user.displayName || "",
+    photoURL: user.photoURL || undefined,
+  };
+}
+
+/**
+ * Bước 2: Khi người dùng bấm "Đồng ý tạo tài khoản mới bằng Gmail này"
+ */
+export async function completeGoogleRegistration(
+  user: User,
+  fullName: string,
+  targetJLPT: "N5" | "N4" | "N3" | "N2" | "N1" | "KAIWA" = "N3"
+): Promise<UserProfileDoc> {
+  const shortCode = `HV-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  const profile: UserProfileDoc = {
+    uid: user.uid,
+    email: user.email || "",
+    role: "student",
+    code: shortCode,
+    fullName: fullName.trim() || user.displayName || "Học viên Shinme",
+    avatarText: (fullName.trim() || user.displayName || "HV").slice(0, 2).toUpperCase(),
+    avatarUrl: user.photoURL || undefined,
+    classId: "cls-n3-246",
+    className: "N3-Tối 246 (Sensei Tanaka)",
+    targetJLPT,
+    createdAt: new Date().toISOString(),
+  };
+
+  await setDoc(doc(db, "users", user.uid), profile);
+  return profile;
+}
+
+/**
+ * Hủy tạo tài khoản mới -> Đăng xuất phiên Google để giữ hệ thống sạch sẽ
+ */
+export async function cancelGoogleRegistration(): Promise<void> {
+  await signOut(auth);
 }
 
 /**
