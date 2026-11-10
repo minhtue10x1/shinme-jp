@@ -6,6 +6,7 @@ import { GraduationCap, Menu, X } from "lucide-react";
 import { ShinmeLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRole } from "@/lib/role-context";
 
 const NAV_LINKS = [
   { href: "#ve-shinme", label: "Về Shinme" },
@@ -16,6 +17,7 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
+  const { firebaseUser, isLoadingAuth } = useRole();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -62,19 +64,23 @@ export function Navbar() {
         </ul>
 
         <div className="ml-auto hidden items-center gap-2 sm:inline-flex lg:ml-2">
-          <Button asChild variant="outline" size="md">
-            <Link href="/login">Đăng nhập</Link>
-          </Button>
-
-          <Button asChild size="md">
-            <Link href="/portal">
-              <GraduationCap />
-              Cổng LMS
-              <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
-                Portal
-              </span>
-            </Link>
-          </Button>
+          {isLoadingAuth ? (
+            <div className="h-11 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
+          ) : firebaseUser ? (
+            <Button asChild size="md">
+              <Link href="/portal">
+                <GraduationCap />
+                Cổng LMS
+                <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
+                  Portal
+                </span>
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="md">
+              <Link href="/login">Đăng nhập</Link>
+            </Button>
+          )}
         </div>
 
         <button
@@ -104,12 +110,22 @@ export function Navbar() {
               </li>
             ))}
           </ul>
-          <Button asChild size="lg" className="mt-3 w-full">
-            <Link href="/portal">
-              <GraduationCap />
-              Cổng Học Viên / Sensei (LMS)
-            </Link>
-          </Button>
+          {isLoadingAuth ? (
+            <div className="mt-3 h-13 w-full rounded-full bg-shinme-leaf/50 animate-pulse" />
+          ) : firebaseUser ? (
+            <Button asChild size="lg" className="mt-3 w-full">
+              <Link href="/portal" onClick={() => setOpen(false)}>
+                <GraduationCap />
+                Cổng Học Viên / Sensei (LMS)
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="lg" className="mt-3 w-full">
+              <Link href="/login" onClick={() => setOpen(false)}>
+                Đăng nhập
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </header>
