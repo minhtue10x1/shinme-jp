@@ -29,6 +29,8 @@ export function readLeads(): Lead[] {
   }
 }
 
+import { saveLeadDoc } from "@/lib/db/services";
+
 export function saveLead(lead: Omit<Lead, "id" | "createdAt">): Lead {
   const full: Lead = {
     ...lead,
@@ -38,6 +40,21 @@ export function saveLead(lead: Omit<Lead, "id" | "createdAt">): Lead {
   const next = [full, ...readLeads()].slice(0, 50);
   window.localStorage.setItem(KEY, JSON.stringify(next));
   window.dispatchEvent(new Event(EVENT));
+
+  // Asynchronously sync to Cloud Firestore in the background
+  saveLeadDoc({
+    id: full.id,
+    fullName: full.fullName,
+    phone: full.phone,
+    currentLevel: full.level,
+    targetGoal: full.goal,
+    status: "Chưa liên hệ",
+    notes: full.note || (full.testScore ? `Điểm thi thử Mini: ${full.testScore}/5` : undefined),
+    createdAt: full.createdAt,
+  }).catch((err) => {
+    console.warn("Could not sync lead to Firestore:", err);
+  });
+
   return full;
 }
 

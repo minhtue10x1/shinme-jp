@@ -38,3 +38,4 @@ jobs:
 
       - name: Deploy to Firebase Hosting (shinme-dev)
         run: npx firebase-tools deploy --only hosting:shinme-dev --project shinme-jp --token "${{ secrets.FIREBASE_TOKEN }}"
+

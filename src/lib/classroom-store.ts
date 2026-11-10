@@ -479,6 +479,8 @@ export function getAnnouncementsServerSnapshot(): ClassAnnouncement[] {
   return INITIAL_ANNOUNCEMENTS;
 }
 
+import { saveAnnouncementDoc } from "@/lib/db/services";
+
 export function saveAnnouncement(ann: Omit<ClassAnnouncement, "id" | "createdAt">): ClassAnnouncement {
   const full: ClassAnnouncement = {
     ...ann,
@@ -488,6 +490,24 @@ export function saveAnnouncement(ann: Omit<ClassAnnouncement, "id" | "createdAt"
   const list = [full, ...readAnnouncements()];
   window.localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(list));
   window.dispatchEvent(new Event(ANN_EVENT));
+
+  // Asynchronously sync to Cloud Firestore
+  saveAnnouncementDoc({
+    id: full.id,
+    classId: full.classId,
+    className: full.className,
+    title: full.title,
+    titleJa: full.titleJa,
+    content: full.content,
+    authorName: full.authorName,
+    authorRole: full.authorRole,
+    category: full.category,
+    isPinned: full.isPinned,
+    createdAt: full.createdAt,
+  }).catch((err) => {
+    console.warn("Could not sync announcement to Firestore:", err);
+  });
+
   return full;
 }
 

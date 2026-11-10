@@ -502,11 +502,19 @@ export function getTestsServerSnapshot(): JLPTTest[] {
   return INITIAL_TESTS;
 }
 
+import { saveTestDoc, saveTestSubmission } from "@/lib/db/services";
+
 export function saveTest(test: JLPTTest): JLPTTest {
   const existing = readTests().filter((t) => t.id !== test.id);
   const next = [test, ...existing];
   window.localStorage.setItem(TESTS_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event(TESTS_EVENT));
+
+  // Asynchronously sync to Cloud Firestore
+  saveTestDoc(test).catch((err) => {
+    console.warn("Could not sync test to Firestore:", err);
+  });
+
   return test;
 }
 
@@ -556,6 +564,12 @@ export function saveAttempt(attempt: Omit<StudentTestAttempt, "id" | "submittedA
   const next = [full, ...readAttempts()];
   window.localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event(ATTEMPTS_EVENT));
+
+  // Asynchronously sync student exam attempt to Cloud Firestore
+  saveTestSubmission(full).catch((err) => {
+    console.warn("Could not sync test submission to Firestore:", err);
+  });
+
   return full;
 }
 

@@ -1,17 +1,8 @@
 {
   "projects": {
-    "default": "shinme-jp",
-    "shinme": "shinme-jp",
-    "demo": "jlpt-sim-10x1"
+    "default": "jlpt-sim-10x1"
   },
   "targets": {
-    "shinme-jp": {
-      "hosting": {
-        "shinme-dev": [
-          "shinme-dev"
-        ]
-      }
-    },
     "jlpt-sim-10x1": {
       "hosting": {
         "shinme-demo": [
@@ -21,3 +12,4 @@
     }
   }
 }
+
