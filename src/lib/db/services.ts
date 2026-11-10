@@ -116,3 +116,4 @@ export async function getLeads(): Promise<LeadDoc[]> {
   const snap = await getDocs(ref);
   return snap.docs.map((d) => d.data() as LeadDoc);
 }
+

@@ -113,3 +113,4 @@ export type LeadDoc = {
   notes?: string;
   createdAt: string;
 };
+
