@@ -12,6 +12,23 @@ export default function LeadsPage() {
   const { role } = useRole();
   const leads = useSyncExternalStore(subscribeLeads, getLeadsSnapshot, getLeadsServerSnapshot);
 
+  if (role !== "admin") {
+    return (
+      <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-8 text-center space-y-4">
+        <div className="mx-auto grid size-12 place-items-center rounded-full bg-shinme-warn-soft text-[#8a5a12]">
+          <Users className="size-6" />
+        </div>
+        <h2 className="text-xl font-bold text-shinme-ink">Quyền truy cập hạn chế</h2>
+        <p className="text-sm text-shinme-muted max-w-md mx-auto">
+          Chức năng Quản lý Khách tư vấn (Leads) chỉ dành cho vai trò <strong>Quản trị viên (Admin)</strong>.
+        </p>
+        <Button asChild size="sm">
+          <Link href="/portal">Quay về Tổng quan</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">

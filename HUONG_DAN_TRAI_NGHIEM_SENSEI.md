@@ -58,3 +58,4 @@ Sensei vào trang chính **Bảng điều khiển** ([shinme-demo.web.app/portal
 
 > 🌿 **Góp ý & Nhận xét**:  
 > Bản demo này được thiết kế theo đúng quy chuẩn lớp học tiếng Nhật của Shinme. Trong quá trình bấm thử, nếu Sensei thấy cần điều chỉnh cỡ chữ, cách bố trí bài thi hay bổ sung dạng bài tập nào cho tiện giảng dạy, xin vui lòng gửi phản hồi lại để đội ngũ cập nhật ngay ạ!
+
