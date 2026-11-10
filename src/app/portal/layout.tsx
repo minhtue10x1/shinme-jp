@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
-import { DemoRoleSwitcher } from "@/components/portal/demo-role-switcher";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
 import { RoleProvider } from "@/lib/role-context";
 
@@ -12,7 +11,6 @@ export const metadata: Metadata = {
 export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-shinme-bg">
-      <DemoRoleSwitcher />
       <div className="flex flex-1">
         <Suspense fallback={<aside className="hidden w-[var(--sidebar-w)] bg-shinme-primary-deep lg:block" />}>
           <PortalSidebar />

@@ -120,11 +120,11 @@ export function PortalSidebar() {
 
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
-          href="/login"
+          href="/portal/profile"
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-shinme-accent transition-colors hover:bg-white/10 hover:text-white"
         >
-          <Sparkles className="size-3.5" />
-          Đăng nhập tài khoản thật
+          <UserCheck className="size-3.5" />
+          Hồ sơ & Tài khoản
         </Link>
         <Link
           href="/"
@@ -179,7 +179,7 @@ export function PortalSidebar() {
 
       {/* Desktop sidebar */}
       <aside aria-label="Thanh điều hướng LMS" className="hidden w-[var(--sidebar-w)] shrink-0 lg:block">
-        <div className="sticky top-11 h-[calc(100vh-2.75rem)]">{sidebarContent}</div>
+        <div className="sticky top-0 h-screen">{sidebarContent}</div>
       </aside>
     </>
   );
