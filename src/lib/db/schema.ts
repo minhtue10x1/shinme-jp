@@ -114,3 +114,22 @@ export type LeadDoc = {
   createdAt: string;
 };
 
+/* =====================================================================
+ * 7. MATERIALS COLLECTION: `materials`
+ * ===================================================================== */
+export type MaterialDoc = {
+  id: string;
+  title: string;
+  titleJa?: string;
+  classId: string; // "ALL" hoặc ID lớp
+  className: string;
+  format: "PDF" | "Audio" | "Slide" | "Doc";
+  category: "Giáo trình chính" | "Kanji & Từ vựng" | "Nghe hiểu Chokai" | "Ngữ pháp & Đề thi" | "Tài liệu bổ trợ";
+  lesson: string;
+  fileUrl: string;
+  fileName: string;
+  size?: string;
+  uploadedBy: string;
+  createdAt: string;
+};
+

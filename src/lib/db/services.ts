@@ -11,7 +11,13 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 import type {
   UserProfileDoc,
   ClassDoc,
@@ -19,6 +25,7 @@ import type {
   TestSubmissionDoc,
   AnnouncementDoc,
   LeadDoc,
+  MaterialDoc,
 } from "@/lib/db/schema";
 
 /* =====================================================================
@@ -33,6 +40,13 @@ export async function getUserProfile(uid: string): Promise<UserProfileDoc | null
 export async function getAllUsers(): Promise<UserProfileDoc[]> {
   const ref = collection(db, "users");
   const snap = await getDocs(ref);
+  return snap.docs.map((d) => d.data() as UserProfileDoc);
+}
+
+export async function getUsersByClass(classId: string): Promise<UserProfileDoc[]> {
+  const ref = collection(db, "users");
+  const q = query(ref, where("classId", "==", classId));
+  const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as UserProfileDoc);
 }
 
@@ -61,6 +75,11 @@ export async function getClasses(): Promise<ClassDoc[]> {
 export async function saveClass(cls: ClassDoc): Promise<void> {
   const ref = doc(db, "classes", cls.id);
   await setDoc(ref, cls, { merge: true });
+}
+
+export async function deleteClass(classId: string): Promise<void> {
+  const ref = doc(db, "classes", classId);
+  await deleteDoc(ref);
 }
 
 /* =====================================================================
@@ -129,5 +148,69 @@ export async function getLeads(): Promise<LeadDoc[]> {
   const ref = collection(db, "leads");
   const snap = await getDocs(ref);
   return snap.docs.map((d) => d.data() as LeadDoc);
+}
+
+/* =====================================================================
+ * MATERIALS SERVICE
+ * ===================================================================== */
+export async function getMaterials(classId?: string): Promise<MaterialDoc[]> {
+  const ref = collection(db, "materials");
+  const snap = await getDocs(ref);
+  const list = snap.docs.map((d) => d.data() as MaterialDoc);
+  if (!classId || classId === "ALL") return list;
+  return list.filter((m) => m.classId === classId || m.classId === "ALL");
+}
+
+export async function saveMaterialDoc(material: MaterialDoc): Promise<void> {
+  const ref = doc(db, "materials", material.id);
+  await setDoc(ref, material, { merge: true });
+}
+
+export async function deleteMaterialDoc(materialId: string, fileUrl?: string): Promise<void> {
+  const ref = doc(db, "materials", materialId);
+  await deleteDoc(ref);
+  if (fileUrl && fileUrl.includes("firebasestorage.googleapis.com")) {
+    try {
+      const storageFileRef = storageRef(storage, fileUrl);
+      await deleteObject(storageFileRef);
+    } catch {
+      /* ignore file deletion errors if file was already removed */
+    }
+  }
+}
+
+export async function uploadMaterialFile(
+  file: File,
+  folder = "materials",
+  onProgress?: (percent: number) => void
+): Promise<{ url: string; sizeFormatted: string }> {
+  // Format size: KB / MB
+  const sizeKb = file.size / 1024;
+  const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${Math.round(sizeKb)} KB`;
+
+  // Clean filename and make unique
+  const timestamp = Date.now();
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${folder}/${timestamp}_${cleanName}`;
+  const fileStorageRef = storageRef(storage, path);
+
+  const uploadTask = uploadBytesResumable(fileStorageRef, file);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        if (onProgress) onProgress(percent);
+      },
+      (error) => {
+        reject(error);
+      },
+      async () => {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve({ url: downloadUrl, sizeFormatted });
+      }
+    );
+  });
 }
 
