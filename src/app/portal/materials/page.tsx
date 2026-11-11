@@ -228,7 +228,7 @@ export default function MaterialsPage() {
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">Kho học liệu & Giáo trình</h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Tài liệu số hóa, slide giảng dạy, audio chokai lưu trữ trực tiếp trên Firestore & Cloud Storage
+            Tài liệu số hóa, slide giảng dạy, bảng từ vựng và audio chokai dành cho các lớp học
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -385,7 +385,7 @@ export default function MaterialsPage() {
             Tải lên tài liệu lớp học
           </DialogTitle>
           <DialogDescription className="text-xs text-shinme-muted">
-            Lưu trữ trực tiếp trên Cloud Storage & gán cho học viên theo từng lớp học
+            Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học
           </DialogDescription>
 
           <form onSubmit={handleUploadSubmit} className="mt-4 space-y-4">
@@ -520,7 +520,7 @@ export default function MaterialsPage() {
             {isUploading && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-shinme-primary">
-                  <span>Đang tải file lên Cloud Storage...</span>
+                  <span>Đang lưu tài liệu...</span>
                   <span className="tabular">{uploadPercent}%</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-shinme-line">

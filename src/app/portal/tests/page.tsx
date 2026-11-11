@@ -104,7 +104,7 @@ export default function TestsHubPage() {
             <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
               Trung tâm Khảo thí & Đề thi JLPT
             </h1>
-            <Badge tone="leaf">Dữ liệu Firestore</Badge>
+            <Badge tone="leaf">Ngân hàng đề JLPT</Badge>
           </div>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
             {role === "student"

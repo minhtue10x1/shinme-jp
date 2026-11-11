@@ -129,7 +129,7 @@ export function AnnouncementFeed() {
       await loadData();
     } catch (err) {
       console.error("Create announcement error:", err);
-      toast.error("Lỗi khi đăng thông báo lên Firestore.");
+      toast.error("Lỗi khi đăng thông báo. Vui lòng thử lại.");
     }
   };
 
@@ -286,7 +286,7 @@ export function AnnouncementFeed() {
                   <Megaphone className="size-5 text-shinme-primary" /> Đăng thông báo lớp học
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Thông báo sẽ xuất hiện trên bảng tin của học viên theo thời gian thực từ Firestore.
+                  Thông báo sẽ xuất hiện ngay lập tức trên bảng tin của học viên trong lớp.
                 </DialogDescription>
               </div>
 

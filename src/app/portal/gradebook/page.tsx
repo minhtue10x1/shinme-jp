@@ -265,7 +265,7 @@ export default function GradebookPage() {
             <h1 className="text-2xl font-black text-shinme-ink">
               {role === "student" ? "Bảng Điểm Cá Nhân & Lịch Sử Thi" : "Bảng Điểm Bài Kiểm Tra (Sensei Gradebook)"}
             </h1>
-            <Badge tone="leaf">Dữ liệu Firestore</Badge>
+            <Badge tone="leaf">Kết quả chính thức</Badge>
           </div>
           <p className="text-sm font-semibold text-shinme-muted">
             {role === "student"
@@ -307,7 +307,7 @@ export default function GradebookPage() {
               Lịch sử {studentHistory.length} bài thi đã hoàn thành
             </h2>
             <p className="text-xs text-shinme-muted mt-1">
-              Điểm số được lưu trữ tự động trên Cloud Firestore sau mỗi lần nộp bài
+              Điểm số được lưu trữ tự động sau mỗi lần nộp bài kiểm tra
             </p>
 
             {studentHistory.length === 0 ? (
@@ -458,7 +458,7 @@ export default function GradebookPage() {
                   Danh sách điểm học viên ({gradebookRows.length})
                 </h2>
                 <p className="text-xs text-shinme-muted">
-                  Hiển thị điểm cao nhất và thời gian nộp bài từ Firestore
+                  Hiển thị điểm cao nhất và thời gian nộp bài của học viên
                 </p>
               </div>
             </div>

@@ -397,7 +397,7 @@ export default function UsersManagementPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-shinme-muted space-y-3">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
-          <p className="text-sm font-semibold">Đang tải danh sách người dùng từ Firestore...</p>
+          <p className="text-sm font-semibold">Đang tải danh sách người dùng...</p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-12 text-center">

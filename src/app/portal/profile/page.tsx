@@ -111,7 +111,7 @@ export default function ProfilePage() {
   const handleUpdateSelfProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firebaseUser) {
-      toast.info("Bạn đang ở chế độ Demo Switcher. Vui lòng đăng nhập tài khoản thật để lưu vào Firestore!");
+      toast.info("Vui lòng đăng nhập tài khoản để cập nhật hồ sơ!");
       return;
     }
 

@@ -210,7 +210,7 @@ export default function ClassesPage() {
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">Lớp học & Lịch đào tạo</h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Dữ liệu trực tiếp từ Firestore · Quản lý danh sách lớp, sĩ số và học viên chính thức
+            Quản lý danh sách lớp học, lịch giảng dạy và sĩ số học viên
           </p>
         </div>
         <div className="flex items-center gap-3">

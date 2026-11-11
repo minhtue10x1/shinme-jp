@@ -290,7 +290,7 @@ export default function SenseiTestCreatePage() {
       await saveTestDoc(newTest as any);
       saveTest(newTest);
       toast.success("Đã xuất bản đề thi thành công!", {
-        description: `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã được lưu vào Firestore cho lớp ${targetClass.shortName}.`,
+        description: `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã được lưu vào ngân hàng đề cho lớp ${targetClass.shortName}.`,
       });
       router.push("/portal/tests");
     } catch (err) {
