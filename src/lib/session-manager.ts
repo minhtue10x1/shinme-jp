@@ -108,3 +108,4 @@ export function setupSessionActivityListeners(onExpire: () => void): () => void 
     window.clearInterval(intervalId);
   };
 }
+

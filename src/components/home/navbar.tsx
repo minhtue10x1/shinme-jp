@@ -17,7 +17,7 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
-  const { firebaseUser, isLoadingAuth } = useRole();
+  const { firebaseUser, user, isLoadingAuth } = useRole();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -55,7 +55,7 @@ export function Navbar() {
             <li key={l.href}>
               <a
                 href={l.href}
-                className="rounded-full px-3.5 py-2 text-[0.95rem] font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
+                className="rounded-full px-3.5 py-2 text-sm font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
               >
                 {l.label}
               </a>
@@ -63,19 +63,27 @@ export function Navbar() {
           ))}
         </ul>
 
-        <div className="ml-auto hidden items-center gap-2 sm:inline-flex lg:ml-2">
+        <div className="ml-auto hidden items-center gap-3 sm:inline-flex lg:ml-2">
           {isLoadingAuth ? (
             <div className="h-11 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
-            <Button asChild size="md">
-              <Link href="/portal">
-                <GraduationCap />
-                Cổng LMS
-                <span className="rounded-full bg-white/15 px-1.5 py-px text-[0.7rem] font-extrabold tracking-wide">
-                  Portal
+            <div className="flex items-center gap-2.5">
+              <div className="hidden items-center gap-1.5 text-xs font-bold text-shinme-ink-soft md:flex">
+                <span className="font-jp text-shinme-primary font-bold">こんにちは,</span>
+                <span className="max-w-[130px] truncate font-black text-shinme-ink" title={user.name}>
+                  {user.name}
                 </span>
-              </Link>
-            </Button>
+              </div>
+              <Button asChild size="md">
+                <Link href="/portal">
+                  <GraduationCap />
+                  Cổng LMS
+                  <span className="rounded-full bg-white/15 px-1.5 py-px text-xs font-extrabold tracking-wide">
+                    Portal
+                  </span>
+                </Link>
+              </Button>
+            </div>
           ) : (
             <Button asChild size="md">
               <Link href="/login">Đăng nhập</Link>
@@ -113,12 +121,23 @@ export function Navbar() {
           {isLoadingAuth ? (
             <div className="mt-3 h-13 w-full rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
-            <Button asChild size="lg" className="mt-3 w-full">
-              <Link href="/portal" onClick={() => setOpen(false)}>
-                <GraduationCap />
-                Cổng Học Viên / Sensei (LMS)
-              </Link>
-            </Button>
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2.5 rounded-2xl bg-shinme-leaf px-3.5 py-2.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-shinme-accent font-black text-xs text-shinme-primary-deep shadow-sm">
+                  {user.avatarText || "HV"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-jp text-shinme-primary font-bold">こんにちは,</p>
+                  <p className="truncate text-xs font-black text-shinme-ink">{user.name}</p>
+                </div>
+              </div>
+              <Button asChild size="lg" className="w-full">
+                <Link href="/portal" onClick={() => setOpen(false)}>
+                  <GraduationCap />
+                  Cổng Học Viên / Sensei (LMS)
+                </Link>
+              </Button>
+            </div>
           ) : (
             <Button asChild size="lg" className="mt-3 w-full">
               <Link href="/login" onClick={() => setOpen(false)}>
