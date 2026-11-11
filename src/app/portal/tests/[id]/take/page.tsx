@@ -1,10 +1,6 @@
 import React, { Suspense } from "react";
 import { TestTakeClient } from "@/components/portal/test-take-client";
 
-export function generateStaticParams() {
-  return [{ id: "n3-mock-test-01" }, { id: "n3-unit26-quiz" }];
-}
-
 export default async function StudentExamTakePage({
   params,
 }: {

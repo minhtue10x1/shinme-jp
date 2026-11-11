@@ -18,6 +18,7 @@ export type RoleUser = {
   avatarText: string;
   avatarUrl?: string;
   tagline: string;
+  classId?: string;
   className?: string;
   email?: string;
 };
@@ -95,6 +96,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
               avatarText: data.avatarText || (data.fullName ? data.fullName.slice(0, 2) : "HV"),
               avatarUrl: data.avatarUrl,
               tagline: data.role === "sensei" ? "Giảng viên Shinme" : data.role === "admin" ? "Quản trị viên Shinme" : "Học viên Shinme",
+              classId: data.classId || "cls-n3-246",
               className: data.className || "Lớp N3-Tối 246",
               email: data.email,
             });
@@ -139,6 +141,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       avatarText: profile.avatarText,
       avatarUrl: profile.avatarUrl,
       tagline: profile.role === "sensei" ? "Giảng viên Shinme" : profile.role === "admin" ? "Quản trị viên Shinme" : "Học viên Shinme",
+      classId: profile.classId || "cls-n3-246",
       className: profile.className || "Lớp N3-Tối 246",
       email: profile.email,
     });

@@ -85,6 +85,12 @@ export async function deleteClass(classId: string): Promise<void> {
 /* =====================================================================
  * TESTS & EXAMS SERVICE
  * ===================================================================== */
+export async function getAllTests(): Promise<JLPTTestDoc[]> {
+  const ref = collection(db, "tests");
+  const snap = await getDocs(ref);
+  return snap.docs.map((d) => d.data() as JLPTTestDoc);
+}
+
 export async function getTestsByClass(classId: string): Promise<JLPTTestDoc[]> {
   const ref = collection(db, "tests");
   const q = classId === "ALL" 
@@ -105,6 +111,11 @@ export async function saveTestDoc(test: JLPTTestDoc): Promise<void> {
   await setDoc(ref, test, { merge: true });
 }
 
+export async function deleteTestDoc(testId: string): Promise<void> {
+  const ref = doc(db, "tests", testId);
+  await deleteDoc(ref);
+}
+
 /* =====================================================================
  * TEST SUBMISSIONS SERVICE
  * ===================================================================== */
@@ -117,6 +128,19 @@ export async function getSubmissionsByTest(testId: string): Promise<TestSubmissi
   const ref = collection(db, "test_submissions");
   const q = query(ref, where("testId", "==", testId));
   const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as TestSubmissionDoc);
+}
+
+export async function getSubmissionsByStudent(studentId: string): Promise<TestSubmissionDoc[]> {
+  const ref = collection(db, "test_submissions");
+  const q = query(ref, where("studentId", "==", studentId));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as TestSubmissionDoc);
+}
+
+export async function getAllSubmissions(): Promise<TestSubmissionDoc[]> {
+  const ref = collection(db, "test_submissions");
+  const snap = await getDocs(ref);
   return snap.docs.map((d) => d.data() as TestSubmissionDoc);
 }
 

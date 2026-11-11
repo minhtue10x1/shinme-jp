@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,8 @@ import {
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { MOCK_CLASSES } from "@/lib/classroom-store";
+import { getClasses, saveTestDoc } from "@/lib/db/services";
+import type { ClassDoc } from "@/lib/db/schema";
 import {
   saveTest,
   type MondaiType,
@@ -171,6 +173,16 @@ function createTemplateQuestion(
 
 export default function SenseiTestCreatePage() {
   const router = useRouter();
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+
+  useEffect(() => {
+    getClasses().then((res) => {
+      if (res && res.length > 0) {
+        setClasses(res);
+        setClassId(res[0].id);
+      }
+    }).catch(console.error);
+  }, []);
 
   // Test Metadata State
   const [title, setTitle] = useState(
@@ -242,14 +254,16 @@ export default function SenseiTestCreatePage() {
     toast.info("Đã xóa câu hỏi khỏi đề thi.");
   };
 
-  const handleSaveTest = (e: React.FormEvent) => {
+  const handleSaveTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       toast.error("Vui lòng nhập tên bài kiểm tra.");
       return;
     }
     const targetClass =
-      MOCK_CLASSES.find((c) => c.id === classId) ?? MOCK_CLASSES[0];
+      classes.find((c) => c.id === classId) ??
+      MOCK_CLASSES.find((c) => c.id === classId) ??
+      MOCK_CLASSES[0];
 
     const newTest: JLPTTest = {
       id: `test-${Date.now().toString(36)}`,
@@ -258,23 +272,29 @@ export default function SenseiTestCreatePage() {
       titleJa: titleJa.trim() || "日本語[にほんご]テスト",
       classId: targetClass.id,
       className: targetClass.name,
-      level: targetClass.level,
+      level: targetClass.level as any,
       durationMinutes: Number(durationMinutes) || 20,
       deadline,
       maxAttempts: Number(maxAttempts) || 0,
       passScore: Number(passScore) || 60,
       totalPoints,
       shuffleQuestions,
-      createdBy: `${targetClass.sensei} Sensei`,
+      createdBy: `${(targetClass as any).senseiName || (targetClass as any).sensei || "Sensei"}`,
       createdAt: new Date().toISOString().slice(0, 10),
       questions,
     };
 
-    saveTest(newTest);
-    toast.success("Đã xuất bản đề thi thành công!", {
-      description: `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã sẵn sàng cho lớp ${targetClass.shortName}.`,
-    });
-    router.push("/portal/tests");
+    try {
+      await saveTestDoc(newTest as any);
+      saveTest(newTest);
+      toast.success("Đã xuất bản đề thi thành công!", {
+        description: `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã được lưu vào Firestore cho lớp ${targetClass.shortName}.`,
+      });
+      router.push("/portal/tests");
+    } catch (err) {
+      console.error("Save test error:", err);
+      toast.error("Lỗi khi lưu đề thi vào cơ sở dữ liệu.");
+    }
   };
 
   return (
@@ -421,7 +441,7 @@ export default function SenseiTestCreatePage() {
                 onChange={(e) => setClassId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:border-[#135E36] focus:outline-none"
               >
-                {MOCK_CLASSES.map((cls) => (
+                {(classes.length > 0 ? classes : MOCK_CLASSES).map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     {cls.name} ({cls.level})
                   </option>

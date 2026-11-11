@@ -35,6 +35,8 @@ import {
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { useRole } from "@/lib/role-context";
+import { getTestById, saveTestSubmission } from "@/lib/db/services";
+import type { JLPTTestDoc, TestSubmissionDoc } from "@/lib/db/schema";
 import {
   readTests,
   getTestsServerSnapshot,
@@ -62,15 +64,29 @@ function formatMMSS(totalSeconds: number): string {
 }
 
 export function TestTakeClient({ testId }: { testId: string }) {
-  const { user: currentUser } = useRole();
+  const { user: currentUser, firebaseUser } = useRole();
   const tests = useSyncExternalStore(
     subscribeTests,
     readTests,
     getTestsServerSnapshot
   );
 
+  const [firestoreTest, setFirestoreTest] = useState<JLPTTestDoc | null>(null);
+
+  useEffect(() => {
+    getTestById(testId)
+      .then((res) => {
+        if (res) {
+          setFirestoreTest(res);
+          setOrderedQuestions(res.questions);
+          setRemainingSeconds(res.durationMinutes * 60);
+        }
+      })
+      .catch(console.error);
+  }, [testId]);
+
   const test: JLPTTest =
-    tests.find((t) => t.id === testId) ?? tests[0];
+    (firestoreTest as any) ?? tests.find((t) => t.id === testId) ?? tests[0];
 
   const storageKey = `shinme:exam-session:${test.id}`;
 
@@ -181,7 +197,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
   ]);
 
   const handleSubmitExam = useCallback(
-    (isAutoSubmit = false) => {
+    async (isAutoSubmit = false) => {
       if (submittedResult) return;
 
       // Stop audio if playing
@@ -207,17 +223,27 @@ export function TestTakeClient({ testId }: { testId: string }) {
         test.durationMinutes * 60 - remainingSeconds
       );
 
-      saveAttempt({
+      const subPayload: TestSubmissionDoc = {
+        id: `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
         testId: test.id,
-        studentId: "std-01",
+        studentId: firebaseUser?.uid || currentUser.id || "std-01",
         studentCode: currentUser.code || "HV-202601",
-        studentName: currentUser.name || "Lê Hoàng Nam",
+        studentName: currentUser.name || "Học viên Shinme",
         score: earned,
         totalPoints: total,
         passed,
         durationSeconds: elapsedSeconds,
         answers,
-      });
+        submittedAt: new Date().toISOString(),
+      };
+
+      try {
+        await saveTestSubmission(subPayload);
+      } catch (err) {
+        console.error("Failed to save submission to Firestore:", err);
+      }
+
+      saveAttempt(subPayload as any);
 
       try {
         window.localStorage.removeItem(storageKey);
