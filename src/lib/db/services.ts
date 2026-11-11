@@ -160,6 +160,18 @@ export async function saveAnnouncementDoc(ann: AnnouncementDoc): Promise<void> {
   await setDoc(ref, ann, { merge: true });
 }
 
+export async function deleteAnnouncementDoc(annId: string): Promise<void> {
+  const ref = doc(db, "announcements", annId);
+  await deleteDoc(ref);
+}
+
+export async function togglePinAnnouncementDoc(annId: string, currentPinned: boolean): Promise<void> {
+  const ref = doc(db, "announcements", annId);
+  await updateDoc(ref, {
+    isPinned: !currentPinned,
+  });
+}
+
 /* =====================================================================
  * LEADS SERVICE
  * ===================================================================== */

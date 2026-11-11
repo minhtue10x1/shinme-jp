@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
   Bell,
@@ -19,18 +19,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
-  deleteAnnouncement,
   getActiveClassId,
-  getAnnouncementsServerSnapshot,
-  MOCK_CLASSES,
-  readAnnouncements,
-  saveAnnouncement,
   subscribeActiveClass,
-  subscribeAnnouncements,
-  togglePinAnnouncement,
-  type ClassAnnouncement,
 } from "@/lib/classroom-store";
 import { useRole } from "@/lib/role-context";
+import {
+  getAnnouncements,
+  saveAnnouncementDoc,
+  deleteAnnouncementDoc,
+  togglePinAnnouncementDoc,
+  getClasses,
+} from "@/lib/db/services";
+import type { AnnouncementDoc, ClassDoc } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 export function AnnouncementFeed() {
@@ -40,24 +40,43 @@ export function AnnouncementFeed() {
     () => getActiveClassId(role),
     () => "cls-n3-246"
   );
-  const announcements = useSyncExternalStore(
-    subscribeAnnouncements,
-    readAnnouncements,
-    getAnnouncementsServerSnapshot
-  );
+
+  const [announcements, setAnnouncements] = useState<AnnouncementDoc[]>([]);
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [titleJa, setTitleJa] = useState("");
-  const [category, setCategory] = useState<ClassAnnouncement["category"]>("BTVN & Luyện thi");
+  const [category, setCategory] = useState<AnnouncementDoc["category"]>("BTVN & Luyện thi");
   const [targetClassId, setTargetClassId] = useState(activeClassId);
   const [content, setContent] = useState("");
   const [isPinned, setIsPinned] = useState(false);
 
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [annList, classList] = await Promise.all([
+        getAnnouncements(),
+        getClasses(),
+      ]);
+      setAnnouncements(annList);
+      setClasses(classList);
+    } catch (err) {
+      console.error("Load announcements error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   // Filter announcements:
-  // If student: only show announcements for their assigned class (cls-n3-246) or ALL
+  // If student: only show announcements for their assigned class (user.classId) or ALL
   // If sensei/admin: show announcements for the currently selected class or ALL
-  const relevantClassId = role === "student" ? "cls-n3-246" : activeClassId;
+  const relevantClassId = role === "student" ? (user.classId || "cls-n3-246") : activeClassId;
   const filtered = announcements.filter(
     (a) => a.classId === relevantClassId || a.classId === "ALL"
   );
@@ -68,133 +87,157 @@ export function AnnouncementFeed() {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleCreateAnnouncement = (e: React.FormEvent) => {
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
       toast.error("Vui lòng nhập đầy đủ tiêu đề và nội dung.");
       return;
     }
 
-    const cls = MOCK_CLASSES.find((c) => c.id === targetClassId);
+    const cls = classes.find((c) => c.id === targetClassId);
     const className = targetClassId === "ALL" ? "Toàn bộ lớp học" : cls?.name ?? "Lớp học";
 
-    saveAnnouncement({
+    const newAnn: AnnouncementDoc = {
+      id: `ann-${Date.now().toString(36)}`,
       classId: targetClassId,
       className,
       title: title.trim(),
       titleJa: titleJa.trim() || undefined,
       content: content.trim(),
-      authorName: user.name,
+      authorName: user.name || "Sensei Shinme",
       authorRole: role === "sensei" ? "Sensei" : "Admin",
       category,
       isPinned,
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    toast.success("Đã đăng thông báo thành công!", {
-      description: isPinned ? "Thông báo đã được ghim lên đầu bảng tin." : "Học viên sẽ thấy thông báo này trên bảng tin.",
-    });
+    try {
+      await saveAnnouncementDoc(newAnn);
+      toast.success("Đã đăng thông báo thành công!", {
+        description: isPinned ? "Thông báo đã được ghim lên đầu bảng tin." : "Học viên sẽ thấy thông báo này trên bảng tin.",
+      });
 
-    setTitle("");
-    setTitleJa("");
-    setContent("");
-    setIsPinned(false);
-    setIsComposerOpen(false);
+      setTitle("");
+      setTitleJa("");
+      setContent("");
+      setIsPinned(false);
+      setIsComposerOpen(false);
+      await loadData();
+    } catch (err) {
+      console.error("Create announcement error:", err);
+      toast.error("Lỗi khi đăng thông báo lên Firestore.");
+    }
   };
 
-  const handleTogglePin = (id: string, currentPinned: boolean) => {
-    togglePinAnnouncement(id);
-    toast.info(currentPinned ? "Đã gỡ ghim thông báo" : "Đã ghim thông báo lên đầu bảng tin");
+  const handleTogglePin = async (id: string, currentPinned: boolean) => {
+    try {
+      await togglePinAnnouncementDoc(id, currentPinned);
+      toast.info(currentPinned ? "Đã gỡ ghim thông báo." : "Đã ghim thông báo lên đầu bảng tin.");
+      await loadData();
+    } catch (err) {
+      console.error("Toggle pin error:", err);
+      toast.error("Lỗi khi cập nhật ghim.");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteAnnouncement(id);
-    toast.success("Đã xóa thông báo.");
+  const handleDelete = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa thông báo này?")) return;
+    try {
+      await deleteAnnouncementDoc(id);
+      toast.success("Đã xóa thông báo.");
+      await loadData();
+    } catch (err) {
+      console.error("Delete announcement error:", err);
+      toast.error("Lỗi khi xóa thông báo.");
+    }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">
       {/* Feed Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-xl bg-shinme-leaf text-shinme-primary">
-            <Megaphone className="size-4" />
-          </span>
-          <div>
-            <h2 className="text-lg font-black text-shinme-ink">Bảng tin lớp học (Classroom Feed)</h2>
-            <p className="text-xs text-shinme-muted">
-              {role === "student"
-                ? "Thông báo quan trọng từ Sensei Tanaka và trung tâm"
-                : "Đăng thông báo, dặn dò BTVN và ghim tin quan trọng"}
-            </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-xl bg-shinme-leaf text-shinme-primary">
+              <Megaphone className="size-4" />
+            </span>
+            <h2 className="text-lg font-black text-shinme-ink">Bảng tin & Thông báo lớp học</h2>
+            <Badge tone="leaf">{filtered.length} Tin</Badge>
           </div>
+          <p className="mt-1 text-xs text-shinme-muted">
+            Dặn dò học vụ, lịch thi thử, bài tập về nhà và cập nhật từ Sensei
+          </p>
         </div>
 
         {role !== "student" && (
           <Button size="sm" onClick={() => setIsComposerOpen(true)}>
-            <Plus /> Đăng thông báo mới
+            <Plus className="size-4" /> Soạn thông báo mới
           </Button>
         )}
       </div>
 
       {/* Announcements List */}
-      {sorted.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-8 text-center">
-          <p className="font-bold text-shinme-ink">Chưa có thông báo nào cho lớp này.</p>
-          <p className="mt-1 text-xs text-shinme-muted">
-            Sensei có thể đăng thông báo đầu tiên bằng nút &quot;Đăng thông báo mới&quot; phía trên.
-          </p>
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-shinme-bg animate-pulse" />
+          ))}
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="py-8 text-center text-xs text-shinme-muted">
+          Chưa có thông báo nào cho lớp học này.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {sorted.map((item) => (
             <article
               key={item.id}
               className={cn(
-                "rounded-2xl border bg-shinme-surface p-5 shadow-[var(--shadow-card)] transition-all",
+                "relative rounded-2xl border p-5 transition-all",
                 item.isPinned
-                  ? "border-shinme-accent/60 bg-gradient-to-r from-shinme-leaf-faint/80 to-shinme-surface"
-                  : "border-shinme-border"
+                  ? "border-shinme-primary/30 bg-shinme-leaf-faint/40 shadow-xs"
+                  : "border-shinme-border bg-shinme-surface hover:border-shinme-primary/20"
               )}
             >
-              <div className="flex flex-wrap items-start justify-between gap-2 border-b border-shinme-line pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-shinme-line/60 pb-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {item.isPinned && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-shinme-accent px-2.5 py-0.5 text-xs font-black text-shinme-primary-deep shadow-xs">
-                      <Pin className="size-3 fill-current" /> ĐÃ GHIM
+                    <span className="inline-flex items-center gap-1 rounded-full bg-shinme-primary px-2.5 py-0.5 text-xs font-black text-white">
+                      <Pin className="size-3 fill-white" /> Đã ghim
                     </span>
                   )}
                   <Badge tone={item.category === "BTVN & Luyện thi" ? "warn" : "leaf"}>
                     {item.category}
                   </Badge>
-                  <span className="text-xs font-bold text-shinme-muted">
-                    Lớp: <strong className="text-shinme-ink">{item.className}</strong>
+                  <span className="rounded bg-shinme-bg px-2 py-0.5 font-mono text-xs font-bold text-shinme-muted">
+                    {item.classId === "ALL" ? "Toàn trung tâm" : item.className.split(" ")[0]}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="tabular text-xs text-shinme-muted">
+                <div className="flex items-center gap-3">
+                  <time className="text-xs text-shinme-muted">
                     {new Date(item.createdAt).toLocaleDateString("vi-VN", {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
                     })}
-                  </span>
+                  </time>
 
                   {role !== "student" && (
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => handleTogglePin(item.id, item.isPinned)}
-                        title={item.isPinned ? "Gỡ ghim" : "Ghim lên đầu"}
-                        className="grid size-7 place-items-center rounded-lg text-shinme-muted hover:bg-shinme-bg hover:text-shinme-primary transition-colors"
+                        className="rounded-lg p-1.5 text-shinme-muted hover:bg-shinme-bg hover:text-shinme-primary"
+                        title={item.isPinned ? "Bỏ ghim" : "Ghim lên đầu"}
                       >
                         {item.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(item.id)}
+                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50"
                         title="Xóa thông báo"
-                        className="grid size-7 place-items-center rounded-lg text-shinme-muted hover:bg-shinme-danger-soft hover:text-shinme-danger transition-colors"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -220,7 +263,7 @@ export function AnnouncementFeed() {
                     Người đăng: <strong>{item.authorName} ({item.authorRole})</strong>
                   </span>
                 </div>
-                <span className="text-[0.7rem] text-shinme-muted">Shinme Portal Notification</span>
+                <span className="text-xs text-shinme-muted">Thông báo chính thức Shinme</span>
               </div>
             </article>
           ))}
@@ -237,7 +280,7 @@ export function AnnouncementFeed() {
                   <Megaphone className="size-5 text-shinme-primary" /> Đăng thông báo lớp học
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Thông báo sẽ xuất hiện trên bảng tin của học viên theo thời gian thực.
+                  Thông báo sẽ xuất hiện trên bảng tin của học viên theo thời gian thực từ Firestore.
                 </DialogDescription>
               </div>
 
@@ -250,12 +293,12 @@ export function AnnouncementFeed() {
                   onChange={(e) => setTargetClassId(e.target.value)}
                   className="h-11 w-full rounded-xl border-2 border-shinme-border bg-shinme-surface px-3 text-sm font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                 >
-                  {MOCK_CLASSES.map((c) => (
+                  <option value="ALL">Toàn bộ tất cả các lớp học</option>
+                  {classes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
-                  <option value="ALL">Toàn bộ tất cả các lớp học</option>
                 </select>
               </div>
 
@@ -351,4 +394,3 @@ export function AnnouncementFeed() {
     </div>
   );
 }
-
