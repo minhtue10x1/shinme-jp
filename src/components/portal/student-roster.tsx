@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { Award, CheckCircle2, Mail, Phone, Search, TrendingUp, Users } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Users, Search, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   getActiveClassId,
-  MOCK_CLASSES,
-  MOCK_ROSTERS,
   subscribeActiveClass,
-  type StudentRoster,
 } from "@/lib/classroom-store";
 import { useRole } from "@/lib/role-context";
-import { cn } from "@/lib/utils";
+import { getAllUsers, getAllSubmissions, getClasses } from "@/lib/db/services";
+import type { UserProfileDoc, TestSubmissionDoc, ClassDoc } from "@/lib/db/schema";
 
 export function StudentRosterList() {
   const { role } = useRole();
@@ -21,16 +19,45 @@ export function StudentRosterList() {
     () => "cls-n3-246"
   );
 
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [users, setUsers] = useState<UserProfileDoc[]>([]);
+  const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const currentClass = MOCK_CLASSES.find((c) => c.id === activeClassId) || MOCK_CLASSES[0];
-  const roster: StudentRoster[] = MOCK_ROSTERS[currentClass.id] || MOCK_ROSTERS["cls-n3-246"];
+  useEffect(() => {
+    Promise.all([getClasses(), getAllUsers(), getAllSubmissions()])
+      .then(([cList, uList, sList]) => {
+        setClasses(cList);
+        setUsers(uList);
+        setSubmissions(sList);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  const filtered = roster.filter(
-    (std) =>
-      std.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      std.code.toLowerCase().includes(search.toLowerCase())
+  const currentClass =
+    classes.find((c) => c.id === activeClassId) || classes[0] || {
+      id: "cls-n3-246",
+      shortName: "Lớp học",
+    };
+
+  // Filter students belonging to active class
+  const classStudents = users.filter(
+    (u) =>
+      u.role === "student" &&
+      (u.classId === activeClassId || (!u.classId && activeClassId === "cls-n3-246"))
   );
+
+  // Search filter
+  const filtered = classStudents.filter((std) => {
+    const q = search.toLowerCase();
+    return (
+      std.fullName.toLowerCase().includes(q) ||
+      std.code.toLowerCase().includes(q) ||
+      std.email.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="space-y-4 rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">
@@ -43,10 +70,10 @@ export function StudentRosterList() {
             <h2 className="text-lg font-black text-shinme-ink">
               Danh sách học viên: {currentClass.shortName}
             </h2>
-            <Badge tone="leaf">{roster.length} Học viên</Badge>
+            <Badge tone="leaf">{classStudents.length} Học viên</Badge>
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            Theo dõi tiến độ làm BTVN, điểm thi thử và tỷ lệ chuyên cần từng học viên
+            Theo dõi tiến độ làm bài thi thử, điểm số và mục tiêu JLPT của từng học viên
           </p>
         </div>
 
@@ -62,78 +89,84 @@ export function StudentRosterList() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[36rem] text-left text-sm">
-          <thead className="border-b border-shinme-line text-xs font-extrabold uppercase text-shinme-muted">
-            <tr>
-              <th className="py-2.5 px-3">Mã HV</th>
-              <th className="py-2.5 px-3">Học viên</th>
-              <th className="py-2.5 px-3">Tiến độ bài tập</th>
-              <th className="py-2.5 px-3 text-center">Điểm TB</th>
-              <th className="py-2.5 px-3 text-center">Chuyên cần</th>
-              <th className="py-2.5 px-3 text-right">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-shinme-line">
-            {filtered.map((std) => (
-              <tr key={std.id} className="hover:bg-shinme-leaf-faint/50 transition-colors">
-                <td className="py-3 px-3 font-mono text-xs font-black text-shinme-primary">
-                  {std.code}
-                </td>
-                <td className="py-3 px-3">
-                  <p className="font-black text-shinme-ink">{std.fullName}</p>
-                  <p className="text-xs text-shinme-muted">{std.email}</p>
-                </td>
-                <td className="py-3 px-3">
-                  <div className="w-36">
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-shinme-muted">
-                        {std.completedAssignments}/{std.totalAssignments} bài
-                      </span>
-                      <span className="text-shinme-primary tabular">{std.progressPercent}%</span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-shinme-bg overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-shinme-accent"
-                        style={{ width: `${std.progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td className="py-3 px-3 text-center">
-                  <span className="inline-flex items-center gap-1 font-mono text-sm font-black text-shinme-ink tabular">
-                    <Award className="size-3.5 text-shinme-warn" /> {std.averageScore}
-                  </span>
-                </td>
-                <td className="py-3 px-3 text-center">
-                  <span
-                    className={cn(
-                      "font-mono text-xs font-bold tabular",
-                      std.attendancePercent >= 95 ? "text-shinme-primary" : "text-shinme-danger"
-                    )}
-                  >
-                    {std.attendancePercent}%
-                  </span>
-                </td>
-                <td className="py-3 px-3 text-right">
-                  <Badge
-                    tone={
-                      std.status === "Đang học"
-                        ? "leaf"
-                        : std.status === "Cảnh báo"
-                        ? "danger"
-                        : "neutral"
-                    }
-                  >
-                    {std.status}
-                  </Badge>
-                </td>
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 rounded-xl bg-shinme-bg animate-pulse" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="py-8 text-center text-xs text-shinme-muted">
+          {classStudents.length === 0
+            ? "Chưa có học viên nào được gán vào lớp học này."
+            : "Không tìm thấy học viên phù hợp."}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[36rem] text-left text-sm">
+            <thead className="border-b border-shinme-line text-xs font-extrabold uppercase text-shinme-muted">
+              <tr>
+                <th className="py-2.5 px-3">Mã HV</th>
+                <th className="py-2.5 px-3">Học viên</th>
+                <th className="py-2.5 px-3 text-center">Mục tiêu JLPT</th>
+                <th className="py-2.5 px-3 text-center">Đã làm (Bài thi)</th>
+                <th className="py-2.5 px-3 text-center">Điểm TB</th>
+                <th className="py-2.5 px-3 text-right">Trạng thái</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-shinme-line text-xs">
+              {filtered.map((std) => {
+                const stdSubs = submissions.filter(
+                  (s) =>
+                    s.studentId === std.uid ||
+                    s.studentCode === std.code ||
+                    s.studentName.toLowerCase() === std.fullName.toLowerCase()
+                );
+                const avgScore =
+                  stdSubs.length > 0
+                    ? Math.round(
+                        stdSubs.reduce((sum, s) => sum + s.score, 0) / stdSubs.length
+                      )
+                    : null;
+
+                return (
+                  <tr key={std.uid} className="hover:bg-shinme-leaf-faint/50 transition-colors">
+                    <td className="py-3 px-3 font-mono font-bold text-shinme-primary">
+                      {std.code}
+                    </td>
+                    <td className="py-3 px-3">
+                      <p className="font-bold text-shinme-ink">{std.fullName}</p>
+                      <p className="text-shinme-muted">{std.email}</p>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="rounded bg-shinme-bg px-2 py-0.5 font-mono font-extrabold text-shinme-primary">
+                        {std.targetJLPT || "N3"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-center font-mono font-bold text-shinme-ink">
+                      {stdSubs.length} bài
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {avgScore !== null ? (
+                        <span className="font-mono font-bold text-shinme-primary">
+                          {avgScore}đ
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Chưa thi</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <Badge tone={stdSubs.length > 0 ? "leaf" : "neutral"}>
+                        {stdSubs.length > 0 ? "Đang theo học" : "Mới nhập học"}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
-

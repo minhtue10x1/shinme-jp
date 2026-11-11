@@ -1,30 +1,47 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { Check, ChevronDown, GraduationCap, School, ShieldAlert, Sparkles, Users } from "lucide-react";
-import { FuriganaText } from "@/components/furigana-text";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Check, School, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   getActiveClassId,
-  MOCK_CLASSES,
   setActiveClassId,
   subscribeActiveClass,
-  type JapaneseClass,
 } from "@/lib/classroom-store";
 import { useRole } from "@/lib/role-context";
+import { getClasses } from "@/lib/db/services";
+import type { ClassDoc } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 export function ClassSelector() {
-  const { role } = useRole();
+  const { role, user } = useRole();
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+
+  useEffect(() => {
+    getClasses().then(setClasses).catch(console.error);
+  }, []);
+
   const activeClassId = useSyncExternalStore(
     subscribeActiveClass,
     () => getActiveClassId(role),
     () => "cls-n3-246"
   );
 
-  // Student is strictly locked to N3-Tối 246
+  // Student view: locked to their assigned class
   if (role === "student") {
-    const studentClass = MOCK_CLASSES.find((c) => c.id === "cls-n3-246")!;
+    const studentClass =
+      classes.find((c) => c.id === user.classId) ||
+      classes.find((c) => c.name.includes("N3")) ||
+      classes[0] || {
+        id: "cls-n3-246",
+        level: "N3",
+        name: user.className || "N3-Tối 246 (Sensei Tanaka)",
+        schedule: "Thứ 2 · 4 · 6",
+        time: "19:00 – 21:00",
+        room: "Phòng 204",
+        senseiName: "Tanaka Yuki",
+      };
+
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-shinme-border bg-shinme-surface px-4 py-3 shadow-[var(--shadow-card)]">
         <div className="flex items-center gap-3">
@@ -45,21 +62,23 @@ export function ClassSelector() {
 
         <div className="flex items-center gap-2 text-xs font-semibold text-shinme-muted">
           <span className="inline-flex items-center gap-1 text-shinme-primary font-bold">
-            <School className="size-3.5" /> Giảng viên: {studentClass.sensei}
+            <School className="size-3.5" /> Giảng viên: {studentClass.senseiName}
           </span>
         </div>
       </div>
     );
   }
 
-  // Sensei: can switch between their classes (N3 and Kaiwa)
-  // Admin: can switch all 3 classes
+  // Sensei & Admin: can switch between classes
   const allowedClasses =
-    role === "sensei"
-      ? MOCK_CLASSES.filter((c) => c.senseiId === "ss-tanaka")
-      : MOCK_CLASSES;
+    role === "sensei" && classes.some((c) => c.senseiName.includes(user.name) || c.senseiId === user.id)
+      ? classes.filter((c) => c.senseiName.includes(user.name) || c.senseiId === user.id)
+      : classes;
 
-  const currentClass = MOCK_CLASSES.find((c) => c.id === activeClassId) || allowedClasses[0];
+  const currentClass =
+    classes.find((c) => c.id === activeClassId) || allowedClasses[0] || classes[0];
+
+  if (!currentClass) return null;
 
   return (
     <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
@@ -95,7 +114,6 @@ export function ClassSelector() {
                 >
                   {active && <Check className="size-3 stroke-[3]" />}
                   <span>{cls.shortName}</span>
-                  <span className="opacity-70 text-[0.7rem]">({cls.studentsCount} HV)</span>
                 </button>
               );
             })}
@@ -105,4 +123,3 @@ export function ClassSelector() {
     </div>
   );
 }
-

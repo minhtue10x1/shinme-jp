@@ -1,24 +1,19 @@
 "use client";
 
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 import {
-  AlertCircle,
   ArrowRight,
   Award,
   BookOpen,
   Calendar,
   CheckCircle2,
   Clock,
-  FileCheck2,
   GraduationCap,
   Heart,
-  Megaphone,
-  School,
   Sparkles,
   TrendingUp,
-  UserCheck,
   Users,
   Users2,
 } from "lucide-react";
@@ -28,10 +23,19 @@ import { Button } from "@/components/ui/button";
 import { AnnouncementFeed } from "@/components/portal/announcement-feed";
 import { ClassSelector } from "@/components/portal/class-selector";
 import { StudentRosterList } from "@/components/portal/student-roster";
-import { getActiveClassId, MOCK_CLASSES, subscribeActiveClass } from "@/lib/classroom-store";
-import { MOCK_ASSIGNMENTS } from "@/data/portal-data";
+import {
+  getActiveClassId,
+  subscribeActiveClass,
+} from "@/lib/classroom-store";
 import { getLeadsServerSnapshot, getLeadsSnapshot, subscribeLeads } from "@/lib/leads";
 import { useRole } from "@/lib/role-context";
+import {
+  getClasses,
+  getAllUsers,
+  getAllSubmissions,
+  getAllTests,
+} from "@/lib/db/services";
+import type { ClassDoc, UserProfileDoc, TestSubmissionDoc, JLPTTestDoc } from "@/lib/db/schema";
 
 export default function PortalDashboard() {
   const { role } = useRole();
@@ -45,10 +49,61 @@ export default function PortalDashboard() {
  * 1. STUDENT VIEW
  * ===================================================================== */
 function StudentDashboard() {
-  const { user } = useRole();
-  const todo = MOCK_ASSIGNMENTS.filter((a) => a.studentStatus === "todo");
-  const graded = MOCK_ASSIGNMENTS.filter((a) => a.studentStatus === "graded");
-  const assignedClass = MOCK_CLASSES.find((c) => c.id === "cls-n3-246")!;
+  const { user, firebaseUser } = useRole();
+
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
+  const [tests, setTests] = useState<JLPTTestDoc[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getClasses(), getAllSubmissions(), getAllTests()])
+      .then(([cList, sList, tList]) => {
+        setClasses(cList);
+        setSubmissions(sList);
+        setTests(tList);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const assignedClass =
+    classes.find((c) => c.id === user.classId) ||
+    classes.find((c) => c.name.includes("N3")) ||
+    classes[0] || {
+      id: "cls-n3-246",
+      shortName: "N3-Tối 246",
+      name: "N3-Tối 246 (Sensei Tanaka)",
+      completedSessions: 26,
+      totalSessions: 40,
+      currentLesson: "Bài 26: Ngữ pháp Soumatome",
+    };
+
+  // Student's test submissions
+  const mySubmissions = submissions.filter(
+    (s) =>
+      s.studentId === user.id ||
+      s.studentCode === user.code ||
+      (firebaseUser && s.studentId === firebaseUser.uid)
+  );
+
+  const avgScore =
+    mySubmissions.length > 0
+      ? (
+          mySubmissions.reduce((sum, s) => sum + s.score, 0) /
+          mySubmissions.length
+        ).toFixed(1)
+      : null;
+
+  const passedCount = mySubmissions.filter((s) => s.passed).length;
+  const progressPercent = Math.min(
+    100,
+    Math.round((assignedClass.completedSessions / (assignedClass.totalSessions || 40)) * 100)
+  );
+
+  const upcomingTest = tests.find(
+    (t) => t.classId === assignedClass.id || t.classId === "ALL"
+  );
 
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
@@ -61,7 +116,7 @@ function StudentDashboard() {
           <div className="space-y-3 z-10">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-black text-shinme-accent">
-                <Sparkles className="size-3.5" /> Lộ trình N3 · Giai đoạn Lá non (若葉)
+                <Sparkles className="size-3.5" /> Lộ trình JLPT · Cổng Học Viên Shinme
               </span>
               <span className="rounded-full bg-shinme-accent px-2.5 py-0.5 text-xs font-black text-shinme-primary-deep">
                 {assignedClass.shortName}
@@ -74,37 +129,37 @@ function StudentDashboard() {
 
             <p className="max-w-[48ch] text-sm leading-relaxed text-white/80">
               <FuriganaText text="日本語[にほんご]で未来[みらい]をひらく" className="font-bold text-shinme-accent mr-1" />
-              — Hôm nay lớp chúng ta học tiếp ngữ pháp Bài 26. Hãy kiểm tra các thông báo mới từ Sensei Tanaka bên dưới nhé!
+              — Chào mừng bạn đến với Cổng học tập Shinme. Hãy theo dõi thông báo và làm các bài kiểm tra được giao nhé!
             </p>
 
-            {/* Upcoming test deadline card */}
-            {assignedClass.upcomingTest && (
+            {/* Upcoming test banner */}
+            {upcomingTest && (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/10 p-4 border border-white/15">
                 <div className="flex items-center gap-3">
                   <span className="grid size-10 place-items-center rounded-xl bg-shinme-accent text-shinme-primary-deep">
                     <Clock className="size-5" />
                   </span>
                   <div>
-                    <span className="text-[0.7rem] font-bold uppercase tracking-wider text-shinme-accent">
-                      Hạn chót sắp tới:
+                    <span className="text-xs font-bold uppercase tracking-wider text-shinme-accent">
+                      Bài kiểm tra cần làm:
                     </span>
-                    <p className="text-sm font-black text-white">{assignedClass.upcomingTest.title}</p>
+                    <p className="text-sm font-black text-white">{upcomingTest.title}</p>
                     <p className="text-xs text-white/70">
-                      Hạn nộp: <strong className="text-shinme-accent font-bold">{assignedClass.upcomingTest.dueDate}</strong> · Thời gian: {assignedClass.upcomingTest.duration}
+                      Thời gian: {upcomingTest.durationMinutes} phút · Điểm đạt: {upcomingTest.passScore}/{upcomingTest.totalPoints}đ
                     </p>
                   </div>
                 </div>
 
                 <Button asChild size="sm" variant="onDark">
-                  <Link href="/portal/tests/n3-mock-test-01/take">
-                    Vào phòng thi ngay <ArrowRight className="size-3.5" />
+                  <Link href={`/portal/tests/${upcomingTest.id}/take`}>
+                    Vào phòng thi <ArrowRight className="size-3.5" />
                   </Link>
                 </Button>
               </div>
             )}
           </div>
 
-          {/* Mascot Chibi Avatar with Speech Bubble */}
+          {/* Mascot Avatar */}
           <div className="relative mx-auto flex flex-col items-center justify-center md:mx-0">
             <div className="relative size-36 overflow-hidden rounded-full border-4 border-white/30 shadow-lg sm:size-40">
               <Image
@@ -135,20 +190,29 @@ function StudentDashboard() {
           <p className="tabular mt-3 text-3xl font-black text-shinme-primary">
             {assignedClass.completedSessions}/{assignedClass.totalSessions}
           </p>
-          <p className="mt-1 text-xs font-semibold text-shinme-muted">buổi · 65% lộ trình N3</p>
+          <p className="mt-1 text-xs font-semibold text-shinme-muted">buổi · {progressPercent}% lộ trình</p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-shinme-bg-deep">
-            <div className="h-full w-[65%] rounded-full bg-shinme-accent" />
+            <div
+              className="h-full rounded-full bg-shinme-accent"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Chuyên cần</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Bài thi đã làm</span>
             <CheckCircle2 className="size-4 text-shinme-primary" />
           </div>
-          <p className="tabular mt-3 text-3xl font-black text-shinme-primary">100%</p>
-          <p className="mt-1 text-xs font-semibold text-shinme-muted">26/26 buổi có mặt đầy đủ</p>
-          <p className="mt-3 text-xs font-bold text-shinme-accent">Rất chăm chỉ! いつも頑張ってるね！</p>
+          <p className="tabular mt-3 text-3xl font-black text-shinme-primary">
+            {mySubmissions.length}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-shinme-muted">
+            {passedCount} bài đạt chuẩn (Goukaku)
+          </p>
+          <p className="mt-3 text-xs font-bold text-shinme-accent">
+            {mySubmissions.length > 0 ? "Tiếp tục phát huy nhé!" : "Hãy làm bài test đầu tiên!"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
@@ -156,91 +220,23 @@ function StudentDashboard() {
             <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Điểm trung bình</span>
             <Award className="size-4 text-shinme-warn" />
           </div>
-          <p className="tabular mt-3 text-3xl font-black text-shinme-ink">9.0/10</p>
-          <p className="mt-1 text-xs font-semibold text-shinme-muted">Xếp hạng: Top 2 lớp {assignedClass.shortName}</p>
-          <p className="mt-3 text-xs font-semibold text-shinme-muted">Đã hoàn thành 22/25 bài</p>
+          <p className="tabular mt-3 text-3xl font-black text-shinme-ink">
+            {avgScore !== null ? `${avgScore}đ` : "--"}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-shinme-muted">
+            {avgScore !== null ? "Tính trên các bài thi đã nộp" : "Chưa có điểm"}
+          </p>
+          <Link
+            href="/portal/gradebook"
+            className="mt-3 block text-xs font-bold text-shinme-primary hover:underline"
+          >
+            Xem chi tiết bảng điểm →
+          </Link>
         </div>
       </div>
 
-      {/* Two columns: Announcements Feed & Quick Links */}
-      <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-        <div className="space-y-6">
-          <AnnouncementFeed />
-        </div>
-
-        <div className="space-y-6">
-          {/* Quick Access to Class Resources */}
-          <div className="rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between border-b border-shinme-line pb-4">
-              <h2 className="text-base font-black text-shinme-ink flex items-center gap-2">
-                <BookOpen className="size-4 text-shinme-primary" /> Tài liệu mới lớp bạn
-              </h2>
-              <Link href="/portal/resources" className="text-xs font-bold text-shinme-primary hover:underline">
-                Xem tất cả →
-              </Link>
-            </div>
-            <ul className="mt-4 space-y-3">
-              <li className="rounded-xl bg-shinme-bg p-3.5 border border-shinme-line">
-                <span className="rounded bg-shinme-leaf px-2 py-0.5 text-[0.65rem] font-black text-shinme-primary uppercase">
-                  PDF · Soumatome
-                </span>
-                <p className="mt-1 text-xs font-black text-shinme-ink">
-                  120 Mẫu ngữ pháp then chốt N3 (Chặn tải xuống)
-                </p>
-                <Link
-                  href="/portal/resources"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-shinme-primary hover:underline"
-                >
-                  Mở đọc trực tuyến →
-                </Link>
-              </li>
-              <li className="rounded-xl bg-shinme-bg p-3.5 border border-shinme-line">
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-[0.65rem] font-black text-amber-800 uppercase">
-                  Audio · Bài 26
-                </span>
-                <p className="mt-1 text-xs font-black text-shinme-ink">
-                  Hội thoại ga tàu & phỏng vấn công sở (MP3)
-                </p>
-                <Link
-                  href="/portal/resources"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-shinme-primary hover:underline"
-                >
-                  Mở máy nghe Choukai →
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Pending assignments */}
-          <div className="rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between border-b border-shinme-line pb-4">
-              <h2 className="text-base font-black text-shinme-ink flex items-center gap-2">
-                <FileCheck2 className="size-4 text-shinme-primary" /> Bài tập về nhà ({todo.length})
-              </h2>
-              <Link href="/portal/assignments" className="text-xs font-bold text-shinme-primary hover:underline">
-                Tất cả →
-              </Link>
-            </div>
-            <ul className="mt-3 divide-y divide-shinme-line">
-              {todo.slice(0, 2).map((a) => (
-                <li key={a.id} className="py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-black text-shinme-ink">{a.title}</p>
-                      <p className="mt-0.5 text-[0.7rem] text-shinme-danger font-semibold">
-                        Hạn: {a.dueDate}
-                      </p>
-                    </div>
-                    <Button asChild size="sm" className="h-7 text-xs px-2.5">
-                      <Link href="/portal/assignments">Làm</Link>
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Announcements Feed */}
+      <AnnouncementFeed />
     </div>
   );
 }
@@ -255,7 +251,37 @@ function SenseiDashboard() {
     () => getActiveClassId(role),
     () => "cls-n3-246"
   );
-  const currentClass = MOCK_CLASSES.find((c) => c.id === activeClassId) || MOCK_CLASSES[0];
+
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [users, setUsers] = useState<UserProfileDoc[]>([]);
+  const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
+
+  useEffect(() => {
+    Promise.all([getClasses(), getAllUsers(), getAllSubmissions()])
+      .then(([cList, uList, sList]) => {
+        setClasses(cList);
+        setUsers(uList);
+        setSubmissions(sList);
+      })
+      .catch(console.error);
+  }, []);
+
+  const currentClass =
+    classes.find((c) => c.id === activeClassId) ||
+    classes[0] || {
+      id: "cls-n3-246",
+      shortName: "Lớp học",
+      name: "Lớp học Shinme",
+      completedSessions: 0,
+      totalSessions: 30,
+      currentLesson: "Bài học đang diễn ra",
+    };
+
+  const classStudents = users.filter(
+    (u) =>
+      u.role === "student" &&
+      (u.classId === activeClassId || (!u.classId && activeClassId === "cls-n3-246"))
+  );
 
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
@@ -266,18 +292,18 @@ function SenseiDashboard() {
             Kính chào <FuriganaText text={user.nameJa ?? user.name} className="font-jp" /> Sensei!
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Quản lý lớp giảng dạy, bảng tin học viên và kho tài liệu số hóa
+            Quản lý lớp giảng dạy, bảng điểm học viên và kho tài liệu số hóa
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" variant="outline">
             <Link href="/portal/gradebook">
-              <Award /> Sổ điểm & Phân tích
+              <Award className="size-4" /> Bảng điểm lớp
             </Link>
           </Button>
           <Button asChild size="sm">
             <Link href="/portal/tests/create">
-              <Sparkles /> Tạo đề thi JLPT mới
+              <Sparkles className="size-4" /> Tạo đề thi JLPT mới
             </Link>
           </Button>
         </div>
@@ -287,12 +313,13 @@ function SenseiDashboard() {
       <ClassSelector />
 
       {/* Class KPI Row */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Sĩ số lớp hiện tại</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">{currentClass.studentsCount}</p>
+          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">{classStudents.length}</p>
           <p className="mt-1 text-xs text-shinme-muted">{currentClass.shortName}</p>
         </div>
+
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tiến độ bài học</p>
           <p className="tabular mt-2 text-3xl font-black text-shinme-primary">
@@ -300,11 +327,7 @@ function SenseiDashboard() {
           </p>
           <p className="mt-1 text-xs text-shinme-muted">buổi giảng dạy</p>
         </div>
-        <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Bài tập cần chấm</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-danger">8</p>
-          <p className="mt-1 text-xs text-shinme-muted">Bài nộp tuần này</p>
-        </div>
+
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Bài đang học</p>
           <p className="mt-2 text-sm font-black text-shinme-ink truncate">{currentClass.currentLesson}</p>
@@ -327,8 +350,19 @@ function SenseiDashboard() {
  * 3. ADMIN VIEW
  * ===================================================================== */
 function AdminDashboard() {
-  const { role } = useRole();
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [users, setUsers] = useState<UserProfileDoc[]>([]);
   const leads = useSyncExternalStore(subscribeLeads, getLeadsSnapshot, getLeadsServerSnapshot);
+
+  useEffect(() => {
+    Promise.all([getClasses(), getAllUsers()]).then(([cList, uList]) => {
+      setClasses(cList);
+      setUsers(uList);
+    }).catch(console.error);
+  }, []);
+
+  const totalStudents = users.filter((u) => u.role === "student").length;
+  const totalSenseis = users.filter((u) => u.role === "sensei").length;
 
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
@@ -339,7 +373,7 @@ function AdminDashboard() {
         </div>
         <Button asChild size="sm">
           <Link href="/portal/leads">
-            <Users2 /> Xem danh sách Leads ({leads.length})
+            <Users2 className="size-4" /> Xem danh sách Leads ({leads.length})
           </Link>
         </Button>
       </div>
@@ -350,14 +384,14 @@ function AdminDashboard() {
       {/* Center KPIs */}
       <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng học viên đang học</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">35</p>
-          <p className="mt-1 text-xs text-shinme-muted">3 lớp đang vận hành</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng học viên đăng ký</p>
+          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">{totalStudents}</p>
+          <p className="mt-1 text-xs text-shinme-muted">{classes.length} lớp đang vận hành</p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Sensei hoạt động</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">4</p>
-          <p className="mt-1 text-xs text-shinme-muted">2 bản xứ · 2 Việt Nam</p>
+          <p className="tabular mt-2 text-3xl font-black text-shinme-primary">{totalSenseis}</p>
+          <p className="mt-1 text-xs text-shinme-muted">Giáo viên trên hệ thống</p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Khách tư vấn mới</p>
@@ -365,9 +399,9 @@ function AdminDashboard() {
           <p className="mt-1 text-xs text-shinme-muted">Đăng ký từ trang chủ / Test</p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tỉ lệ hoàn thành BTVN</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-ink">91.4%</p>
-          <p className="mt-1 text-xs text-shinme-muted">Toàn trung tâm tuần này</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng số lớp học</p>
+          <p className="tabular mt-2 text-3xl font-black text-shinme-ink">{classes.length}</p>
+          <p className="mt-1 text-xs text-shinme-muted">N5 · N4 · N3 · Kaiwa</p>
         </div>
       </div>
 
