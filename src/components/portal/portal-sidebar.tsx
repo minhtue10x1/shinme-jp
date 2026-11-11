@@ -38,9 +38,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/portal/users", label: "Quản lý Người dùng & Giáo viên", icon: Users2, roles: ["admin"] },
   { href: "/portal/tests", label: "Khảo thí & Đề thi JLPT", icon: GraduationCap, roles: ["student", "sensei", "admin"] },
   { href: "/portal/gradebook", label: "Sổ điểm kiểm tra", icon: BarChart3, roles: ["sensei", "admin", "student"] },
-  { href: "/portal/resources", label: "Tài liệu lớp học", icon: FolderLock, roles: ["student", "sensei", "admin"] },
   { href: "/portal/assignments", label: "Bài tập & Mondai", icon: FileCheck2, roles: ["student", "sensei", "admin"] },
-  { href: "/portal/materials", label: "Kho học liệu chung", icon: BookOpen, roles: ["student", "sensei", "admin"] },
+  { href: "/portal/materials", label: "Kho học liệu & Tài liệu", icon: BookOpen, roles: ["student", "sensei", "admin"] },
   { href: "/portal/classes", label: "Lớp học & Lịch", icon: CalendarDays, roles: ["student", "sensei", "admin"] },
   { href: "/portal/leads", label: "Khách tư vấn (Leads)", icon: Users2, roles: ["admin"] },
 ];

@@ -82,10 +82,8 @@ type RoleContextValue = {
 
 const RoleContext = createContext<RoleContextValue | null>(null);
 
-const STORAGE_KEY = "shinme:demo-role";
-
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<RoleId>("student");
+  const [role, setRoleState] = useState<RoleId>("guest");
   const [customUser, setCustomUser] = useState<RoleUser | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -143,15 +141,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setFirebaseUser(null);
-        // Fallback to local demo role state if not logged in
-        try {
-          const saved = window.localStorage.getItem(STORAGE_KEY) as RoleId | null;
-          if (saved && (saved === "guest" || saved === "student" || saved === "sensei" || saved === "admin")) {
-            setRoleState(saved);
-          }
-        } catch {
-          /* ignore */
-        }
+        setCustomUser(null);
+        setRoleState("guest");
       }
       setIsLoadingAuth(false);
     });
@@ -179,12 +170,6 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const setRole = (next: RoleId) => {
     setRoleState(next);
-    setCustomUser(null);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
   };
 
   const setUserProfile = (profile: UserProfileDoc) => {
@@ -214,7 +199,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     await logoutUser();
     setFirebaseUser(null);
     setCustomUser(null);
-    setRole("student");
+    setRole("guest");
   };
 
   const activeUser = customUser || ROLES[role];
