@@ -70,8 +70,12 @@ export function AnnouncementFeed() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (role !== "guest") {
+      loadData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [role]);
 
   // Filter announcements:
   // If student: only show announcements for their assigned class (user.classId) or ALL
@@ -151,6 +155,8 @@ export function AnnouncementFeed() {
       toast.error("Lỗi khi xóa thông báo.");
     }
   };
+
+  if (role === "guest") return null;
 
   return (
     <div className="space-y-4 rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">

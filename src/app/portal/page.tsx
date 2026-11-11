@@ -121,9 +121,6 @@ function GuestDashboard() {
           </p>
         </div>
       </div>
-
-      {/* Center Announcements */}
-      <AnnouncementFeed />
     </div>
   );
 }
