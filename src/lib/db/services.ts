@@ -26,6 +26,8 @@ import type {
   AnnouncementDoc,
   LeadDoc,
   MaterialDoc,
+  AssignmentDoc,
+  AssignmentSubmissionInfo,
 } from "@/lib/db/schema";
 
 /* =====================================================================
@@ -249,4 +251,59 @@ export async function uploadMaterialFile(
     );
   });
 }
+
+/* =====================================================================
+ * ASSIGNMENTS SERVICE (`assignments`)
+ * ===================================================================== */
+export async function getAssignments(classId?: string): Promise<AssignmentDoc[]> {
+  const colRef = collection(db, "assignments");
+  const snap = await getDocs(colRef);
+  let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as AssignmentDoc));
+  if (classId && classId !== "ALL") {
+    list = list.filter((a) => a.classId === "ALL" || a.classId === classId);
+  }
+  // Sort by createdAt desc or dueDate
+  return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+}
+
+export async function saveAssignment(assignment: AssignmentDoc): Promise<void> {
+  const ref = doc(db, "assignments", assignment.id);
+  await setDoc(ref, assignment, { merge: true });
+}
+
+export async function deleteAssignment(id: string): Promise<void> {
+  const ref = doc(db, "assignments", id);
+  await deleteDoc(ref);
+}
+
+export async function submitAssignmentAnswer(
+  assignmentId: string,
+  studentId: string,
+  submission: Partial<AssignmentSubmissionInfo>
+): Promise<void> {
+  const ref = doc(db, "assignments", assignmentId);
+  await updateDoc(ref, {
+    [`submissions.${studentId}`]: {
+      ...submission,
+      status: submission.status || "submitted",
+      submittedAt: submission.submittedAt || new Date().toISOString(),
+    },
+  });
+}
+
+export async function gradeAssignmentSubmission(
+  assignmentId: string,
+  studentId: string,
+  grading: Partial<AssignmentSubmissionInfo>
+): Promise<void> {
+  const ref = doc(db, "assignments", assignmentId);
+  await updateDoc(ref, {
+    [`submissions.${studentId}.score`]: grading.score,
+    [`submissions.${studentId}.maxScore`]: grading.maxScore,
+    [`submissions.${studentId}.feedback`]: grading.feedback,
+    [`submissions.${studentId}.status`]: "graded",
+    [`submissions.${studentId}.gradedAt`]: new Date().toISOString(),
+  });
+}
+
 

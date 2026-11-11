@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
-import { MOCK_CLASSES } from "@/lib/classroom-store";
 import { getClasses, saveTestDoc } from "@/lib/db/services";
 import type { ClassDoc } from "@/lib/db/schema";
 import {
@@ -261,9 +260,12 @@ export default function SenseiTestCreatePage() {
       return;
     }
     const targetClass =
-      classes.find((c) => c.id === classId) ??
-      MOCK_CLASSES.find((c) => c.id === classId) ??
-      MOCK_CLASSES[0];
+      classes.find((c) => c.id === classId) ?? classes[0];
+
+    if (!targetClass) {
+      toast.error("Vui lòng chọn lớp học hợp lệ.");
+      return;
+    }
 
     const newTest: JLPTTest = {
       id: `test-${Date.now().toString(36)}`,
@@ -441,9 +443,9 @@ export default function SenseiTestCreatePage() {
                 onChange={(e) => setClassId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:border-[#135E36] focus:outline-none"
               >
-                {(classes.length > 0 ? classes : MOCK_CLASSES).map((cls) => (
+                {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
-                    {cls.name} ({cls.level})
+                    {cls.code} — {cls.shortName || cls.name} ({cls.level})
                   </option>
                 ))}
               </select>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
   Check,
@@ -36,7 +36,6 @@ import {
   deleteResource,
   getActiveClassId,
   getResourcesServerSnapshot,
-  MOCK_CLASSES,
   readResources,
   saveResource,
   subscribeActiveClass,
@@ -44,6 +43,8 @@ import {
   type ClassResource,
   type ResourceCategory,
 } from "@/lib/classroom-store";
+import { getClasses } from "@/lib/db/services";
+import type { ClassDoc } from "@/lib/db/schema";
 import { useRole } from "@/lib/role-context";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +74,11 @@ export default function ResourcesPage() {
   const [search, setSearch] = useState("");
   const [selectedResource, setSelectedResource] = useState<ClassResource | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [classesList, setClassesList] = useState<ClassDoc[]>([]);
+
+  useEffect(() => {
+    getClasses().then(setClassesList).catch(console.error);
+  }, []);
 
   // Upload Form State
   const [upTitle, setUpTitle] = useState("");
@@ -111,8 +117,8 @@ export default function ResourcesPage() {
       return;
     }
 
-    const targetCls = MOCK_CLASSES.find((c) => c.id === upTargetClass);
-    const className = upTargetClass === "ALL" ? "Toàn bộ lớp học" : targetCls?.name ?? "Lớp học";
+    const targetCls = classesList.find((c) => c.id === upTargetClass);
+    const className = upTargetClass === "ALL" ? "Toàn bộ lớp học" : (targetCls?.name || targetCls?.code || "Lớp học");
 
     saveResource({
       classId: upTargetClass,
@@ -334,9 +340,9 @@ export default function ResourcesPage() {
                     onChange={(e) => setUpTargetClass(e.target.value)}
                     className="h-10 w-full rounded-xl border-2 border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                   >
-                    {MOCK_CLASSES.map((c) => (
+                    {classesList.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {c.code} — {c.shortName || c.name}
                       </option>
                     ))}
                     <option value="ALL">Toàn bộ lớp học</option>

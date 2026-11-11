@@ -133,3 +133,36 @@ export type MaterialDoc = {
   createdAt: string;
 };
 
+/* =====================================================================
+ * 8. ASSIGNMENTS COLLECTION: `assignments`
+ * ===================================================================== */
+export type AssignmentSubmissionInfo = {
+  score?: number;
+  maxScore?: number;
+  feedback?: string;
+  studentAnswer?: string;
+  studentName?: string;
+  studentCode?: string;
+  submittedAt?: string;
+  gradedAt?: string;
+  status: "todo" | "submitted" | "graded";
+};
+
+export type AssignmentDoc = {
+  id: string;
+  code: string;
+  title: string;
+  titleJa?: string;
+  classId: string; // or "ALL"
+  className: string;
+  level: "N5" | "N4" | "N3" | "N2" | "N1" | "KAIWA";
+  type: "Kanji" | "Ngữ pháp" | "Đọc hiểu" | "Kaiwa" | "Tổng hợp";
+  dueDate: string;
+  questionsCount: number;
+  maxScore: number;
+  description?: string;
+  createdBy: string;
+  createdAt: string;
+  submissions?: Record<string, AssignmentSubmissionInfo>;
+};
+
