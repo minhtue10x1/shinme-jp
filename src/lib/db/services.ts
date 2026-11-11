@@ -137,6 +137,14 @@ export async function updateUserRole(uid: string, newRole: RoleId): Promise<void
   await updateDoc(userRef, updates);
 }
 
+export async function updateUserAvatar(uid: string, avatarUrl: string): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  await updateDoc(userRef, {
+    avatarUrl: avatarUrl || "",
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 /* =====================================================================
  * CLASSES SERVICE
  * ===================================================================== */

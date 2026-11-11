@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { FuriganaText } from "@/components/furigana-text";
 import { ShinmeWordmark } from "@/components/brand/logo";
+import { UserAvatar } from "@/components/user-avatar";
 import { useRole, type RoleId } from "@/lib/role-context";
 import { cn } from "@/lib/utils";
 
@@ -81,13 +82,18 @@ export function PortalSidebar() {
 
         {/* Current user tile */}
         <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-shinme-accent font-black text-shinme-primary-deep">
-            {user.avatarText}
-          </span>
+          <UserAvatar
+            src={user.avatarUrl}
+            fallbackText={user.avatarText}
+            alt={user.name}
+            size="md"
+            className="rounded-xl"
+            fallbackClassName="rounded-xl bg-shinme-accent text-shinme-primary-deep"
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className="truncate text-sm font-black">{user.name}</p>
-              <span className={cn("rounded px-1.5 py-px text-[0.65rem] font-black uppercase", roleBadge.cls)}>
+              <span className={cn("rounded px-1.5 py-px text-xs font-black uppercase", roleBadge.cls)}>
                 {roleBadge.label}
               </span>
             </div>
@@ -100,7 +106,7 @@ export function PortalSidebar() {
       </div>
 
       <nav aria-label="Menu chức năng LMS" className="flex-1 overflow-y-auto p-4">
-        <p className="px-3 text-[0.7rem] font-bold uppercase tracking-wider text-white/40">Chức năng</p>
+        <p className="px-3 text-xs font-bold uppercase tracking-wider text-white/40">Chức năng</p>
         <ul className="mt-2 space-y-1">
           {visible.map((item) => {
             const active =

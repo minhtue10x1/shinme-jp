@@ -19,6 +19,7 @@ import {
 import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/user-avatar";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRole } from "@/lib/role-context";
 import {
@@ -397,9 +398,12 @@ export default function ClassesPage() {
                     className="flex items-center justify-between rounded-xl border border-shinme-border bg-shinme-surface p-3 text-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-shinme-leaf font-bold text-shinme-primary">
-                        {st.avatarText || st.fullName.slice(0, 2)}
-                      </div>
+                      <UserAvatar
+                        src={st.avatarUrl}
+                        fallbackText={st.avatarText || st.fullName.slice(0, 2)}
+                        alt={st.fullName}
+                        size="sm"
+                      />
                       <div>
                         <div className="flex items-center gap-2">
                           <strong className="text-sm font-black text-shinme-ink">{st.fullName}</strong>

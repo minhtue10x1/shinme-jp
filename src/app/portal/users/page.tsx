@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   Dialog,
   DialogContent,
@@ -434,9 +435,14 @@ export default function UsersManagementPage() {
                       {/* User Info */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-shinme-leaf font-black text-shinme-primary text-xs">
-                            {u.avatarText || u.fullName.slice(0, 2).toUpperCase()}
-                          </span>
+                          <UserAvatar
+                            src={u.avatarUrl}
+                            fallbackText={u.avatarText || u.fullName.slice(0, 2)}
+                            alt={u.fullName}
+                            size="sm"
+                            className="rounded-xl"
+                            fallbackClassName="rounded-xl"
+                          />
                           <div>
                             <p className="font-black text-shinme-ink text-sm leading-tight">{u.fullName}</p>
                             <p className="font-mono text-xs text-shinme-muted">{u.email}</p>

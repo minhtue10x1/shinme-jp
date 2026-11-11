@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GraduationCap, Menu, X } from "lucide-react";
 import { ShinmeLogo } from "@/components/brand/logo";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/lib/role-context";
@@ -68,7 +69,15 @@ export function Navbar() {
             <div className="h-11 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
             <div className="flex items-center gap-2.5">
-              <div className="hidden items-center gap-1.5 text-xs font-bold text-shinme-ink-soft md:flex">
+              <div className="hidden items-center gap-2 text-xs font-bold text-shinme-ink-soft md:flex">
+                <UserAvatar
+                  src={user.avatarUrl}
+                  fallbackText={user.avatarText}
+                  alt={user.name}
+                  size="xs"
+                  className="border border-shinme-border shadow-xs"
+                  fallbackClassName="bg-shinme-leaf text-shinme-primary"
+                />
                 <span className="font-jp text-shinme-primary font-bold">こんにちは,</span>
                 <span className="max-w-[130px] truncate font-black text-shinme-ink" title={user.name}>
                   {user.name}
@@ -123,9 +132,14 @@ export function Navbar() {
           ) : firebaseUser ? (
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2.5 rounded-2xl bg-shinme-leaf px-3.5 py-2.5">
-                <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-shinme-accent font-black text-xs text-shinme-primary-deep shadow-sm">
-                  {user.avatarText || "HV"}
-                </span>
+                <UserAvatar
+                  src={user.avatarUrl}
+                  fallbackText={user.avatarText}
+                  alt={user.name}
+                  size="sm"
+                  className="rounded-xl"
+                  fallbackClassName="rounded-xl bg-shinme-accent text-shinme-primary-deep shadow-sm"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-jp text-shinme-primary font-bold">こんにちは,</p>
                   <p className="truncate text-xs font-black text-shinme-ink">{user.name}</p>

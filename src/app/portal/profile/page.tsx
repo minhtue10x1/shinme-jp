@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -20,12 +19,19 @@ import {
   Edit3,
   Loader2,
   CheckCircle2,
+  Camera,
+  Link2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { UserAvatar } from "@/components/user-avatar";
+import { compressImageToAvatar } from "@/lib/image-utils";
 import { useRole } from "@/lib/role-context";
 import {
   getUserProfile,
   updateUserClassByAdmin,
+  updateUserAvatar,
   getAllUsers,
   getClasses,
 } from "@/lib/db/services";
@@ -46,6 +52,12 @@ export default function ProfilePage() {
   const [fullNameInput, setFullNameInput] = useState("");
   const [targetJLPTInput, setTargetJLPTInput] = useState<string>("N3");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Avatar Upload & URL states
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isAvatarUrlModalOpen, setIsAvatarUrlModalOpen] = useState(false);
+  const [avatarUrlInput, setAvatarUrlInput] = useState("");
 
   // Admin selected user for class assignment
   const [adminSelectedUid, setAdminSelectedUid] = useState<string>("");
@@ -173,6 +185,88 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  // Upload avatar image from device -> compress to Data URL -> save to Firestore
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ""; // reset so same file can be re-selected
+
+    if (!firebaseUser) {
+      toast.error("Vui lòng đăng nhập tài khoản thật để đổi ảnh đại diện!");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const compressedDataUrl = await compressImageToAvatar(file, 256, 0.82);
+      await updateUserAvatar(firebaseUser.uid, compressedDataUrl);
+
+      if (dbProfile) {
+        const updated = { ...dbProfile, avatarUrl: compressedDataUrl };
+        setDbProfile(updated);
+        setUserProfile(updated);
+      }
+
+      toast.success("Cập nhật ảnh đại diện thành công!");
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      toast.error(err instanceof Error ? err.message : "Không thể tải ảnh đại diện lên.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Save external image URL as avatar
+  const handleSaveAvatarUrl = async () => {
+    if (!firebaseUser) {
+      toast.error("Vui lòng đăng nhập tài khoản thật để đổi ảnh đại diện!");
+      return;
+    }
+
+    const cleanUrl = avatarUrlInput.trim();
+    if (!cleanUrl) {
+      toast.error("Vui lòng dán đường dẫn ảnh hợp lệ.");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      await updateUserAvatar(firebaseUser.uid, cleanUrl);
+      if (dbProfile) {
+        const updated = { ...dbProfile, avatarUrl: cleanUrl };
+        setDbProfile(updated);
+        setUserProfile(updated);
+      }
+      setIsAvatarUrlModalOpen(false);
+      toast.success("Đã cập nhật ảnh đại diện từ link!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể lưu đường dẫn ảnh.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Remove avatar back to initials
+  const handleRemoveAvatar = async () => {
+    if (!firebaseUser) return;
+    try {
+      setIsUploadingAvatar(true);
+      await updateUserAvatar(firebaseUser.uid, "");
+      if (dbProfile) {
+        const updated = { ...dbProfile, avatarUrl: "" };
+        setDbProfile(updated);
+        setUserProfile(updated);
+      }
+      toast.success("Đã gỡ ảnh đại diện.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể gỡ ảnh đại diện.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both] pb-16">
       {/* Top Header */}
@@ -193,19 +287,65 @@ export default function ProfilePage() {
         {/* Left Column: Profile Card */}
         <div className="rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-sm lg:col-span-4 space-y-6">
           <div className="flex flex-col items-center text-center">
-            {user.avatarUrl ? (
-              <Image
+            <div className="relative group">
+              <UserAvatar
                 src={user.avatarUrl}
+                fallbackText={user.avatarText}
                 alt={user.name}
-                width={88}
-                height={88}
-                className="size-22 rounded-full border-4 border-shinme-leaf object-cover shadow"
+                size="xl"
+                className="border-4 border-shinme-leaf shadow-md"
+                fallbackClassName="bg-shinme-accent text-shinme-primary-deep"
               />
-            ) : (
-              <div className="grid size-22 place-items-center rounded-full bg-shinme-accent text-2xl font-black text-shinme-primary-deep shadow">
-                {user.avatarText}
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                title="Tải ảnh đại diện từ máy tính / điện thoại"
+                className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full bg-shinme-primary text-white border-2 border-white shadow-md transition-transform hover:scale-105 disabled:opacity-50"
+              >
+                {isUploadingAvatar ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarFileChange}
+                className="hidden"
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf px-3 py-1 text-xs font-bold text-shinme-primary transition-colors hover:bg-shinme-accent/30"
+              >
+                <Camera className="size-3" /> Tải ảnh mới
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAvatarUrlInput(user.avatarUrl || "");
+                  setIsAvatarUrlModalOpen(true);
+                }}
+                disabled={isUploadingAvatar}
+                className="inline-flex items-center gap-1 rounded-full bg-shinme-bg border border-shinme-border px-3 py-1 text-xs font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
+              >
+                <Link2 className="size-3" /> Link ảnh
+              </button>
+              {user.avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={isUploadingAvatar}
+                  className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-100"
+                  title="Gỡ ảnh đại diện"
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              )}
+            </div>
 
             <h2 className="mt-4 text-xl font-black text-shinme-ink">{user.name}</h2>
             <p className="font-mono text-xs font-bold text-shinme-primary bg-shinme-leaf px-2.5 py-0.5 rounded-full mt-1">
@@ -371,6 +511,63 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Modal nhập Link ảnh đại diện */}
+      {isAvatarUrlModalOpen && (
+        <Dialog open={true} onOpenChange={(open) => !open && setIsAvatarUrlModalOpen(false)}>
+          <DialogContent className="max-w-md">
+            <div className="p-6 space-y-4">
+              <div>
+                <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
+                  <Link2 className="size-5 text-shinme-primary" /> Đặt ảnh đại diện bằng Link
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs text-shinme-muted">
+                  Dán đường dẫn ảnh trực tiếp (URL) từ internet hoặc link ảnh công khai.
+                </DialogDescription>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-shinme-ink">Đường dẫn ảnh (URL):</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={avatarUrlInput}
+                  onChange={(e) => setAvatarUrlInput(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-medium text-shinme-ink focus:border-shinme-primary focus:outline-none"
+                />
+              </div>
+
+              {avatarUrlInput.trim() && (
+                <div className="flex items-center gap-3 rounded-xl bg-shinme-bg p-3 border border-shinme-line">
+                  <UserAvatar
+                    src={avatarUrlInput.trim()}
+                    fallbackText={user.avatarText}
+                    size="md"
+                  />
+                  <span className="text-xs font-semibold text-shinme-muted">Xem trước ảnh đại diện</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-shinme-line">
+                <Button variant="ghost" size="sm" onClick={() => setIsAvatarUrlModalOpen(false)}>
+                  Hủy
+                </Button>
+                <Button size="sm" onClick={handleSaveAvatarUrl} disabled={isUploadingAvatar}>
+                  {isUploadingAvatar ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4" /> Lưu ảnh đại diện
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

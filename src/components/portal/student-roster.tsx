@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Users, Search, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   getActiveClassId,
   subscribeActiveClass,
@@ -135,8 +136,18 @@ export function StudentRosterList() {
                       {std.code}
                     </td>
                     <td className="py-3 px-3">
-                      <p className="font-bold text-shinme-ink">{std.fullName}</p>
-                      <p className="text-shinme-muted">{std.email}</p>
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar
+                          src={std.avatarUrl}
+                          fallbackText={std.avatarText || std.fullName.slice(0, 2)}
+                          alt={std.fullName}
+                          size="xs"
+                        />
+                        <div>
+                          <p className="font-bold text-shinme-ink">{std.fullName}</p>
+                          <p className="text-shinme-muted">{std.email}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className="rounded bg-shinme-bg px-2 py-0.5 font-mono font-extrabold text-shinme-primary">
