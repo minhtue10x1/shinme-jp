@@ -3,8 +3,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { toast } from "sonner";
 import { auth, db } from "@/lib/firebase";
 import { logoutUser } from "@/lib/auth-service";
+import { isSessionExpired, touchSession, setupSessionActivityListeners } from "@/lib/session-manager";
 import type { UserProfileDoc } from "@/lib/db/schema";
 
 export type RoleId = "guest" | "student" | "sensei" | "admin";
@@ -88,11 +90,29 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  // Lắng nghe trạng thái đăng nhập Firebase Auth
+  // Lắng nghe trạng thái đăng nhập Firebase Auth & Kiểm tra chính sách phiên trượt 7 ngày (Rolling Session)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fUser) => {
-      setFirebaseUser(fUser);
       if (fUser) {
+        // Kiểm tra xem đã quá 7 ngày không truy cập hệ thống chưa
+        if (isSessionExpired()) {
+          console.info("Session expired after 7 days of inactivity. Auto logging out.");
+          await logoutUser();
+          setFirebaseUser(null);
+          setCustomUser(null);
+          setRoleState("guest");
+          setIsLoadingAuth(false);
+          toast.error("Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày.", {
+            description: "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại để tiếp tục học tập.",
+            duration: 8000,
+          });
+          return;
+        }
+
+        // Gia hạn phiên trượt thêm 7 ngày (Rolling Session)
+        touchSession(true);
+        setFirebaseUser(fUser);
+
         try {
           const snap = await getDoc(doc(db, "users", fUser.uid));
           if (snap.exists()) {
@@ -122,6 +142,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
           console.warn("Could not fetch user profile from Firestore:", e);
         }
       } else {
+        setFirebaseUser(null);
         // Fallback to local demo role state if not logged in
         try {
           const saved = window.localStorage.getItem(STORAGE_KEY) as RoleId | null;
@@ -137,6 +158,24 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Lắng nghe tương tác của người dùng để liên tục gia hạn phiên trượt khi còn đang học
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    const cleanup = setupSessionActivityListeners(async () => {
+      toast.error("Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày.", {
+        description: "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại.",
+        duration: 8000,
+      });
+      await logoutUser();
+      setFirebaseUser(null);
+      setCustomUser(null);
+      setRoleState("guest");
+    });
+
+    return () => cleanup();
+  }, [firebaseUser]);
 
   const setRole = (next: RoleId) => {
     setRoleState(next);

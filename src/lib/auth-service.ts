@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { touchSession, clearSession } from "@/lib/session-manager";
 import type { UserProfileDoc } from "@/lib/db/schema";
 import type { RoleId } from "@/lib/role-context";
 
@@ -28,6 +29,7 @@ export async function checkOrLoginWithGoogle(): Promise<GoogleLoginCheckResult> 
   const userSnap = await getDoc(userRef);
 
   if (userSnap.exists()) {
+    touchSession(true);
     return {
       status: "EXISTING_USER",
       user,
@@ -67,6 +69,7 @@ export async function completeGoogleRegistration(
   };
 
   await setDoc(doc(db, "users", user.uid), profile);
+  touchSession(true);
   return profile;
 }
 
@@ -103,6 +106,7 @@ export async function loginWithEmail(email: string, pass: string): Promise<{ use
     await setDoc(userRef, profile);
   }
 
+  touchSession(true);
   return { user, profile };
 }
 
@@ -131,6 +135,7 @@ export async function registerWithEmail(
   };
 
   await setDoc(doc(db, "users", user.uid), profile);
+  touchSession(true);
   return { user, profile };
 }
 
@@ -138,5 +143,6 @@ export async function registerWithEmail(
  * Đăng xuất
  */
 export async function logoutUser(): Promise<void> {
+  clearSession();
   await signOut(auth);
 }
