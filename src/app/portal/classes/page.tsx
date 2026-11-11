@@ -248,7 +248,10 @@ export default function ClassesPage() {
         <div className="grid gap-5 md:grid-cols-2">
           {classes.map((c) => {
             const classStudents = studentsByClass.get(c.id) || [];
-            const isUserInThisClass = user.className && user.className.includes(c.shortName);
+            const isUserInThisClass =
+              user.classId === c.id ||
+              Boolean(user.className && c.shortName && user.className.includes(c.shortName));
+            const canViewRoster = role !== "student" || isUserInThisClass;
 
             return (
               <div
@@ -313,39 +316,42 @@ export default function ClassesPage() {
                 </div>
 
                 {/* Actions Footer */}
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-shinme-line pt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedClass(c);
-                      setStudentSearch("");
-                    }}
-                  >
-                    <Users className="size-3.5" /> Danh sách học viên ({classStudents.length})
-                  </Button>
+                {canViewRoster && (
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-shinme-line pt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedClass(c);
+                        setStudentSearch("");
+                      }}
+                    >
+                      <Users className="size-3.5" />{" "}
+                      {role === "student" ? `Bạn cùng lớp (${classStudents.length})` : `Danh sách học viên (${classStudents.length})`}
+                    </Button>
 
-                  {role === "admin" && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(c)}
-                        className="rounded-lg p-2 text-xs font-bold text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary"
-                        title="Chỉnh sửa thông tin lớp"
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClass(c.id, c.name)}
-                        className="rounded-lg p-2 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                        title="Xóa lớp học"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    {role === "admin" && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(c)}
+                          className="rounded-lg p-2 text-xs font-bold text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary"
+                          title="Chỉnh sửa thông tin lớp"
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClass(c.id, c.name)}
+                          className="rounded-lg p-2 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                          title="Xóa lớp học"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -404,7 +410,7 @@ export default function ClassesPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-shinme-muted">{st.email}</p>
+                        {role !== "student" && <p className="text-shinme-muted">{st.email}</p>}
                       </div>
                     </div>
 
@@ -414,7 +420,7 @@ export default function ClassesPage() {
                         <select
                           value={selectedClass?.id}
                           onChange={(e) => handleReassignClass(st.uid, e.target.value)}
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[0.75rem] font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                         >
                           {classes.map((cls) => (
                             <option key={cls.id} value={cls.id}>
