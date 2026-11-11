@@ -7,7 +7,7 @@ import { auth, db } from "@/lib/firebase";
 import { logoutUser } from "@/lib/auth-service";
 import type { UserProfileDoc } from "@/lib/db/schema";
 
-export type RoleId = "student" | "sensei" | "admin";
+export type RoleId = "guest" | "student" | "sensei" | "admin";
 
 export type RoleUser = {
   id: string;
@@ -24,6 +24,16 @@ export type RoleUser = {
 };
 
 export const ROLES: Record<RoleId, RoleUser> = {
+  guest: {
+    id: "kh-guest",
+    code: "KH-GUEST",
+    role: "guest",
+    name: "Khách Shinme",
+    avatarText: "KH",
+    tagline: "Thành viên mới · Chưa xếp lớp",
+    className: "Chưa vào lớp học nào",
+    email: "guest@shinme.edu.vn",
+  },
   student: {
     id: "hv-202601",
     code: "HV-202601",
@@ -95,9 +105,16 @@ export function RoleProvider({ children }: { children: ReactNode }) {
               name: data.fullName,
               avatarText: data.avatarText || (data.fullName ? data.fullName.slice(0, 2) : "HV"),
               avatarUrl: data.avatarUrl,
-              tagline: data.role === "sensei" ? "Giảng viên Shinme" : data.role === "admin" ? "Quản trị viên Shinme" : "Học viên Shinme",
-              classId: data.classId || "cls-n3-246",
-              className: data.className || "Lớp N3-Tối 246",
+              tagline:
+                data.role === "sensei"
+                  ? "Giảng viên Shinme"
+                  : data.role === "admin"
+                    ? "Quản trị viên Shinme"
+                    : data.role === "guest"
+                      ? "Khách · Chưa vào lớp"
+                      : "Học viên Shinme",
+              classId: data.classId,
+              className: data.className || (data.role === "guest" || !data.classId ? "Chưa vào lớp học nào" : undefined),
               email: data.email,
             });
           }
@@ -108,7 +125,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         // Fallback to local demo role state if not logged in
         try {
           const saved = window.localStorage.getItem(STORAGE_KEY) as RoleId | null;
-          if (saved && (saved === "student" || saved === "sensei" || saved === "admin")) {
+          if (saved && (saved === "guest" || saved === "student" || saved === "sensei" || saved === "admin")) {
             setRoleState(saved);
           }
         } catch {
@@ -140,9 +157,16 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       name: profile.fullName,
       avatarText: profile.avatarText,
       avatarUrl: profile.avatarUrl,
-      tagline: profile.role === "sensei" ? "Giảng viên Shinme" : profile.role === "admin" ? "Quản trị viên Shinme" : "Học viên Shinme",
-      classId: profile.classId || "cls-n3-246",
-      className: profile.className || "Lớp N3-Tối 246",
+      tagline:
+        profile.role === "sensei"
+          ? "Giảng viên Shinme"
+          : profile.role === "admin"
+            ? "Quản trị viên Shinme"
+            : profile.role === "guest"
+              ? "Khách · Chưa vào lớp"
+              : "Học viên Shinme",
+      classId: profile.classId,
+      className: profile.className || (profile.role === "guest" || !profile.classId ? "Chưa vào lớp học nào" : undefined),
       email: profile.email,
     });
   };

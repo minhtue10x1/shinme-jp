@@ -143,7 +143,7 @@ export default function LoginPage() {
         const { profile } = await registerWithEmail(email, password, fullName);
         setUserProfile(profile);
         toast.success("Tạo tài khoản thành công!", {
-          description: "Chào mừng bạn đến với Trung tâm Nhật ngữ Shinme.",
+          description: "Tài khoản của bạn đã được tạo ở trạng thái Khách. Admin sẽ sớm phân lớp học cho bạn.",
         });
       }
       router.push("/portal");

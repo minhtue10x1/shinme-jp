@@ -14,7 +14,7 @@ export default function HomePage() {
   return (
     <HomeProvider>
       <Navbar />
-      <main className="flex-1">
+      <main id="top" className="flex-1">
         <Hero />
         <About />
         <Roadmap />

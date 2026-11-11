@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { LevelId } from "@/data/courses";
 
 export type LeadPrefill = { level?: string; goal?: string; course?: string; testScore?: number };
@@ -33,6 +33,13 @@ export function HomeProvider({ children }: { children: ReactNode }) {
   const [testOpen, setTestOpen] = useState(false);
   const [firstAnswer, setFirstAnswer] = useState<number | null>(null);
   const [leadPrefill, setLeadPrefill] = useState<LeadPrefill>({});
+
+  // Ensure landing page scrolls to top when navigating from other routes (unless URL has a specific hash)
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  }, []);
 
   const openTest = useCallback((answer?: number) => {
     setFirstAnswer(typeof answer === "number" ? answer : null);

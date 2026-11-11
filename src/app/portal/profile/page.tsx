@@ -16,6 +16,7 @@ import {
   BookOpen,
   Sparkles,
   Users,
+  Users2,
   Edit3,
   Loader2,
   CheckCircle2,
@@ -213,7 +214,13 @@ export default function ProfilePage() {
 
             <span className="mt-2 inline-flex items-center gap-1 text-xs font-extrabold uppercase tracking-wide text-shinme-muted">
               <Shield className="size-3.5 text-shinme-primary" />
-              {role === "admin" ? "Quản trị viên (Admin)" : role === "sensei" ? "Giảng viên (Sensei)" : "Học viên (Student)"}
+              {role === "admin"
+                ? "Quản trị viên (Admin)"
+                : role === "sensei"
+                  ? "Giảng viên (Sensei)"
+                  : role === "guest"
+                    ? "Khách (Chưa xếp lớp)"
+                    : "Học viên (Student)"}
             </span>
           </div>
 
@@ -286,7 +293,7 @@ export default function ProfilePage() {
                 <label className="mb-1 block text-xs font-bold text-slate-700">Lớp học hiện tại</label>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600 flex items-center justify-between">
                   <span>{user.className || "Chưa xếp lớp"}</span>
-                  <span className="text-[0.7rem] text-slate-400 font-semibold">(Chỉ Admin mới có quyền đổi lớp)</span>
+                  <span className="text-xs text-slate-400 font-semibold">(Chỉ Admin mới có quyền đổi lớp)</span>
                 </div>
               </div>
 
@@ -344,7 +351,12 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/portal/users">
+                    <Users2 className="size-4" /> Đi tới Quản trị Người dùng & Phân lớp →
+                  </Link>
+                </Button>
                 <button
                   type="button"
                   onClick={handleAdminAssignClass}

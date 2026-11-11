@@ -14,6 +14,7 @@ import {
   Heart,
   Sparkles,
   TrendingUp,
+  UserCheck,
   Users,
   Users2,
 } from "lucide-react";
@@ -38,11 +39,93 @@ import {
 import type { ClassDoc, UserProfileDoc, TestSubmissionDoc, JLPTTestDoc } from "@/lib/db/schema";
 
 export default function PortalDashboard() {
-  const { role } = useRole();
+  const { role, user } = useRole();
 
   if (role === "admin") return <AdminDashboard />;
   if (role === "sensei") return <SenseiDashboard />;
+  if (role === "guest" || !user.classId) return <GuestDashboard />;
   return <StudentDashboard />;
+}
+
+/* =====================================================================
+ * 0. GUEST VIEW (Khách / Thành viên chưa xếp lớp)
+ * ===================================================================== */
+function GuestDashboard() {
+  const { user } = useRole();
+
+  return (
+    <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
+      {/* Welcome banner */}
+      <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">
+        <div>
+          <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
+            Xin chào, {user.name}! 👋
+          </h1>
+          <p className="mt-1 text-sm font-semibold text-shinme-muted">
+            Chào mừng bạn đến với Cổng học tập trực tuyến Nhật ngữ Shinme
+          </p>
+        </div>
+        <Badge tone="warn">Trạng thái: Khách (Chưa xếp lớp)</Badge>
+      </div>
+
+      {/* Main Unassigned Notice Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-shinme-border bg-gradient-to-br from-shinme-surface via-shinme-surface to-shinme-leaf-faint p-6 sm:p-8 shadow-[var(--shadow-card)]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-shinme-leaf text-shinme-primary shadow-sm">
+            <BookOpen className="size-7" />
+          </div>
+          <div className="space-y-2 flex-1">
+            <h2 className="text-xl font-black text-shinme-ink sm:text-2xl">
+              Bạn chưa vào lớp học nào
+            </h2>
+            <p className="text-sm font-medium text-shinme-ink-soft leading-relaxed max-w-2xl">
+              Tài khoản của bạn hiện đang ở trạng thái <strong>Khách vãng lai (chưa được phân lớp)</strong>.
+              Ban giáo vụ và Quản trị viên (Admin) Shinme sẽ sớm liên hệ để tư vấn trình độ JLPT phù hợp và thêm bạn vào lớp học chính thức.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Button asChild size="sm">
+                <Link href="/portal/profile">
+                  <UserCheck className="size-4" /> Cập nhật hồ sơ cá nhân
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/#tu-van">
+                  <Sparkles className="size-4" /> Đăng ký tư vấn xếp lớp
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)] space-y-2">
+          <div className="flex items-center gap-2 text-shinme-primary font-bold text-sm">
+            <GraduationCap className="size-4" /> Lộ trình đào tạo Shinme
+          </div>
+          <p className="text-xs text-shinme-muted leading-relaxed">
+            Shinme cung cấp đầy đủ các chương trình từ N5, N4 Cấp tốc, N3 Tối, Kaiwa Thực chiến đến Luyện đề JLPT chuyên sâu. Bạn có thể xem thêm thông tin chi tiết trên trang chủ.
+          </p>
+          <Link href="/" className="inline-block text-xs font-bold text-shinme-primary hover:underline pt-1">
+            Xem các khóa học & lộ trình →
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)] space-y-2">
+          <div className="flex items-center gap-2 text-shinme-primary font-bold text-sm">
+            <Clock className="size-4" /> Hỗ trợ học viên & Giáo vụ
+          </div>
+          <p className="text-xs text-shinme-muted leading-relaxed">
+            Nếu bạn đã đăng ký khóa học nhưng chưa được kích hoạt lớp, vui lòng nhắn tin trực tiếp cho Sensei phụ trách hoặc liên hệ hotline giáo vụ: <strong className="text-shinme-ink">0988 123 456</strong>.
+          </p>
+        </div>
+      </div>
+
+      {/* Center Announcements */}
+      <AnnouncementFeed />
+    </div>
+  );
 }
 
 /* =====================================================================
@@ -363,6 +446,7 @@ function AdminDashboard() {
 
   const totalStudents = users.filter((u) => u.role === "student").length;
   const totalSenseis = users.filter((u) => u.role === "sensei").length;
+  const totalGuests = users.filter((u) => u.role === "guest").length;
 
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
@@ -371,11 +455,18 @@ function AdminDashboard() {
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">Tổng quan Trung tâm Shinme</h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">Bảng điều hành Giáo vụ, Tuyển sinh & Lớp học</p>
         </div>
-        <Button asChild size="sm">
-          <Link href="/portal/leads">
-            <Users2 className="size-4" /> Xem danh sách Leads ({leads.length})
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/portal/users">
+              <Users className="size-4" /> Quản lý Người dùng & Giáo viên ({users.length})
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/portal/leads">
+              <Users2 className="size-4" /> Leads tư vấn ({leads.length})
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Class Selector for Admin */}
@@ -384,7 +475,7 @@ function AdminDashboard() {
       {/* Center KPIs */}
       <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng học viên đăng ký</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Học viên chính thức</p>
           <p className="tabular mt-2 text-3xl font-black text-shinme-primary">{totalStudents}</p>
           <p className="mt-1 text-xs text-shinme-muted">{classes.length} lớp đang vận hành</p>
         </div>
@@ -394,9 +485,9 @@ function AdminDashboard() {
           <p className="mt-1 text-xs text-shinme-muted">Giáo viên trên hệ thống</p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Khách tư vấn mới</p>
-          <p className="tabular mt-2 text-3xl font-black text-shinme-accent">{leads.length}</p>
-          <p className="mt-1 text-xs text-shinme-muted">Đăng ký từ trang chủ / Test</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Khách chưa xếp lớp</p>
+          <p className="tabular mt-2 text-3xl font-black text-amber-600">{totalGuests}</p>
+          <p className="mt-1 text-xs text-shinme-muted">Cần Admin phân lớp học</p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng số lớp học</p>

@@ -18,6 +18,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import type { RoleId } from "@/lib/role-context";
 import type {
   UserProfileDoc,
   ClassDoc,
@@ -55,14 +56,85 @@ export async function getUsersByClass(classId: string): Promise<UserProfileDoc[]
 export async function updateUserClassByAdmin(
   uid: string,
   classId: string,
-  className: string
+  className: string,
+  promoteGuestToStudent: boolean = true
 ): Promise<void> {
   const ref = doc(db, "users", uid);
-  await updateDoc(ref, {
+  const snap = await getDoc(ref);
+  const data = snap.data() as UserProfileDoc | undefined;
+
+  const updates: Record<string, any> = {
     classId,
     className,
     updatedAt: new Date().toISOString(),
-  });
+  };
+
+  if (promoteGuestToStudent && data?.role === "guest") {
+    updates.role = "student";
+    if (data.code?.startsWith("KH-")) {
+      updates.code = data.code.replace("KH-", "HV-");
+    }
+  }
+
+  await updateDoc(ref, updates);
+}
+
+export async function assignTeacherAndClasses(
+  uid: string,
+  teacherName: string,
+  classIds: string[],
+  classes: ClassDoc[]
+): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  const snap = await getDoc(userRef);
+  const data = snap.data() as UserProfileDoc | undefined;
+
+  const primaryClass = classes.find((c) => c.id === classIds[0]);
+  const classNames = classIds
+    .map((id) => classes.find((c) => c.id === id)?.shortName || id)
+    .join(", ");
+
+  const userUpdates: Record<string, any> = {
+    role: "sensei",
+    classId: primaryClass ? primaryClass.id : "ALL",
+    className: classNames ? `Phụ trách: ${classNames}` : "Giảng viên Shinme",
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!data?.code || data.code.startsWith("KH-") || data.code.startsWith("HV-")) {
+    userUpdates.code = `SS-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  }
+
+  await updateDoc(userRef, userUpdates);
+
+  // Update selected classes in Firestore
+  for (const cid of classIds) {
+    const classRef = doc(db, "classes", cid);
+    await updateDoc(classRef, {
+      senseiId: uid,
+      senseiName: teacherName,
+    });
+  }
+}
+
+export async function updateUserRole(uid: string, newRole: RoleId): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  const snap = await getDoc(userRef);
+  const data = snap.data() as UserProfileDoc | undefined;
+
+  const updates: Record<string, any> = {
+    role: newRole,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (data?.code) {
+    const rawNumber = data.code.replace(/^(KH|HV|SS|ADMIN)-?/, "");
+    if (newRole === "sensei") updates.code = `SS-${rawNumber}`;
+    else if (newRole === "student") updates.code = `HV-${rawNumber}`;
+    else if (newRole === "guest") updates.code = `KH-${rawNumber}`;
+  }
+
+  await updateDoc(userRef, updates);
 }
 
 /* =====================================================================

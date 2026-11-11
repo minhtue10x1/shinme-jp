@@ -6,6 +6,7 @@ import { ROLES, useRole, type RoleId } from "@/lib/role-context";
 import { cn } from "@/lib/utils";
 
 const ROLE_ITEMS: { id: RoleId; label: string; code: string; short: string; defaultRoute: string }[] = [
+  { id: "guest", label: "Khách", code: ROLES.guest.code, short: "Khách", defaultRoute: "/portal" },
   { id: "student", label: "Học viên", code: ROLES.student.code, short: "Student", defaultRoute: "/portal" },
   { id: "sensei", label: "Sensei", code: ROLES.sensei.code, short: "Sensei", defaultRoute: "/portal" },
   { id: "admin", label: "Quản trị viên", code: ROLES.admin.code, short: "Admin", defaultRoute: "/portal" },

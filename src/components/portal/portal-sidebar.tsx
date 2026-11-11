@@ -33,10 +33,11 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/portal", label: "Tổng quan & Lớp học", icon: LayoutDashboard, roles: ["student", "sensei", "admin"] },
-  { href: "/portal/profile", label: "Hồ sơ cá nhân", icon: UserCheck, roles: ["student", "sensei", "admin"] },
+  { href: "/portal", label: "Tổng quan", icon: LayoutDashboard, roles: ["guest", "student", "sensei", "admin"] },
+  { href: "/portal/profile", label: "Hồ sơ cá nhân", icon: UserCheck, roles: ["guest", "student", "sensei", "admin"] },
+  { href: "/portal/users", label: "Quản lý Người dùng & Giáo viên", icon: Users2, roles: ["admin"] },
   { href: "/portal/tests", label: "Khảo thí & Đề thi JLPT", icon: GraduationCap, roles: ["student", "sensei", "admin"] },
-  { href: "/portal/gradebook", label: "Sổ điểm & Phân tích", icon: BarChart3, roles: ["sensei", "admin", "student"] },
+  { href: "/portal/gradebook", label: "Sổ điểm kiểm tra", icon: BarChart3, roles: ["sensei", "admin", "student"] },
   { href: "/portal/resources", label: "Tài liệu lớp học", icon: FolderLock, roles: ["student", "sensei", "admin"] },
   { href: "/portal/assignments", label: "Bài tập & Mondai", icon: FileCheck2, roles: ["student", "sensei", "admin"] },
   { href: "/portal/materials", label: "Kho học liệu chung", icon: BookOpen, roles: ["student", "sensei", "admin"] },
@@ -60,12 +61,22 @@ export function PortalSidebar() {
       ? { label: "Admin", cls: "bg-shinme-warn-soft text-[#8a5a12]" }
       : role === "sensei"
         ? { label: "Sensei", cls: "bg-shinme-leaf text-shinme-primary" }
-        : { label: "Học viên", cls: "bg-shinme-surface/15 text-white" };
+        : role === "guest"
+          ? { label: "Khách", cls: "bg-amber-100 text-amber-800" }
+          : { label: "Học viên", cls: "bg-shinme-surface/15 text-white" };
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-shinme-primary-deep text-white">
       <div className="border-b border-white/10 p-5">
-        <Link href="/" className="inline-block">
+        <Link
+          href="/"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+            }
+          }}
+          className="inline-block"
+        >
           <ShinmeWordmark subtitle="Cổng LMS" />
         </Link>
 
@@ -128,6 +139,11 @@ export function PortalSidebar() {
         </Link>
         <Link
           href="/"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+            }
+          }}
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-white/60 transition-colors hover:bg-white/5 hover:text-white"
         >
           <ArrowLeft className="size-3.5" />

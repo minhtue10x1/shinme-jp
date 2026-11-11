@@ -53,17 +53,15 @@ export async function completeGoogleRegistration(
   fullName: string,
   targetJLPT: "N5" | "N4" | "N3" | "N2" | "N1" | "KAIWA" = "N3"
 ): Promise<UserProfileDoc> {
-  const shortCode = `HV-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  const shortCode = `KH-${Date.now().toString(36).slice(-4).toUpperCase()}`;
   const profile: UserProfileDoc = {
     uid: user.uid,
     email: user.email || "",
-    role: "student",
+    role: "guest",
     code: shortCode,
-    fullName: fullName.trim() || user.displayName || "Học viên Shinme",
-    avatarText: (fullName.trim() || user.displayName || "HV").slice(0, 2).toUpperCase(),
+    fullName: fullName.trim() || user.displayName || "Thành viên Shinme",
+    avatarText: (fullName.trim() || user.displayName || "KH").slice(0, 2).toUpperCase(),
     avatarUrl: user.photoURL || undefined,
-    classId: "cls-n3-246",
-    className: "N3-Tối 246 (Sensei Tanaka)",
     targetJLPT,
     createdAt: new Date().toISOString(),
   };
@@ -96,8 +94,8 @@ export async function loginWithEmail(email: string, pass: string): Promise<{ use
     profile = {
       uid: user.uid,
       email: user.email || email,
-      role: "student",
-      code: `HV-${user.uid.slice(0, 4).toUpperCase()}`,
+      role: "guest",
+      code: `KH-${user.uid.slice(0, 4).toUpperCase()}`,
       fullName: email.split("@")[0],
       avatarText: email.slice(0, 2).toUpperCase(),
       createdAt: new Date().toISOString(),
@@ -109,26 +107,25 @@ export async function loginWithEmail(email: string, pass: string): Promise<{ use
 }
 
 /**
- * Đăng ký tài khoản mới bằng Email & Mật khẩu
+ * Đăng ký tài khoản mới bằng Email & Mật khẩu (Mặc định cấp vai trò Khách để Admin phân lớp)
  */
 export async function registerWithEmail(
   email: string,
   pass: string,
   fullName: string,
-  role: RoleId = "student"
+  role: RoleId = "guest"
 ): Promise<{ user: User; profile: UserProfileDoc }> {
   const res = await createUserWithEmailAndPassword(auth, email, pass);
   const user = res.user;
 
+  const codePrefix = role === "sensei" ? "SS" : role === "student" ? "HV" : role === "admin" ? "AD" : "KH";
   const profile: UserProfileDoc = {
     uid: user.uid,
     email: user.email || email,
     role,
-    code: role === "sensei" ? `SS-${Date.now().toString(36).slice(-4).toUpperCase()}` : `HV-${Date.now().toString(36).slice(-4).toUpperCase()}`,
+    code: `${codePrefix}-${Date.now().toString(36).slice(-4).toUpperCase()}`,
     fullName,
     avatarText: fullName.slice(0, 2).toUpperCase(),
-    classId: "cls-n3-246",
-    className: "N3-Tối 246 (Sensei Tanaka)",
     targetJLPT: "N3",
     createdAt: new Date().toISOString(),
   };
