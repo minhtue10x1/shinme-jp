@@ -118,3 +118,4 @@ flowchart LR
     SaveLead --> AdminLeads["Admin xem danh sách tại\n/portal/leads"]
     AdminLeads --> Consult["Tư vấn xếp lớp & Hướng dẫn\nkhách tạo tài khoản trên /login"]
 ```
+

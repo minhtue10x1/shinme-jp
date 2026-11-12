@@ -34,6 +34,7 @@ import {
   getClasses,
   getAllUsers,
   getAllSubmissions,
+  getSubmissionsByStudent,
   getAllTests,
 } from "@/lib/db/services";
 import type { ClassDoc, UserProfileDoc, TestSubmissionDoc, JLPTTestDoc } from "@/lib/db/schema";
@@ -137,7 +138,8 @@ function StudentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getClasses(), getAllSubmissions(), getAllTests()])
+    const uid = firebaseUser?.uid || user.id;
+    Promise.all([getClasses(), getSubmissionsByStudent(uid), getAllTests()])
       .then(([cList, sList, tList]) => {
         setClasses(cList);
         setSubmissions(sList);
@@ -145,7 +147,7 @@ function StudentDashboard() {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [firebaseUser, user.id]);
 
   const assignedClass =
     classes.find((c) => c.id === user.classId) ||

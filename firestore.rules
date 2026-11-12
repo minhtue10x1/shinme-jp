@@ -1,0 +1,156 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // HELPER FUNCTIONS (Kiểm tra xác thực & vai trò từ Firestore)
+    // ===============================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userExists() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return userExists() ? getUserData().role : 'guest';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+
+    function isTeacherOrAdmin() {
+      return isSignedIn() && getUserRole() in ['sensei', 'admin'];
+    }
+
+    function isStudentOrAbove() {
+      return isSignedIn() && getUserRole() in ['student', 'sensei', 'admin'];
+    }
+
+    // ===============================================================
+    // 1. USERS & PROFILES (`users`)
+    // ===============================================================
+    match /users/{userId} {
+      // Học viên chính thức/Sensei/Admin được đọc danh sách; Khách chỉ đọc được hồ sơ của chính mình
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStudentOrAbove());
+
+      // Tự đăng ký mới: BẮT BUỘC chỉ được tạo cho chính UID của mình,
+      // mặc định role = 'guest' và KHÔNG được tự gán classId
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'guest'
+        && !('classId' in request.resource.data);
+
+      // Cập nhật:
+      // - Admin được toàn quyền (xếp lớp, đổi role, bổ nhiệm Sensei)
+      // - Chủ tài khoản chỉ được sửa thông tin cá nhân, TUYỆT ĐỐI KHÔNG được tự sửa role/classId/code
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['role', 'classId', 'className', 'code', 'uid', 'email'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // 2. CLASSES (`classes`)
+    // ===============================================================
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+
+      // Admin sửa toàn bộ; Sensei chỉ được cập nhật tiến độ buổi học / bài đang học
+      allow update: if isAdmin() || (
+        isTeacherOrAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['completedSessions', 'currentLesson', 'currentLessonJa'])
+      );
+    }
+
+    // ===============================================================
+    // 3. JLPT TESTS (`tests`)
+    // ===============================================================
+    match /tests/{testId} {
+      allow read: if isStudentOrAbove();
+      allow create, update, delete: if isTeacherOrAdmin();
+    }
+
+    // ===============================================================
+    // 4. TEST SUBMISSIONS (`test_submissions`)
+    // ===============================================================
+    match /test_submissions/{subId} {
+      // Sensei/Admin xem tất cả; Học viên CHỈ đọc được kết quả thi của chính mình
+      allow read: if isTeacherOrAdmin()
+        || (isStudentOrAbove() && resource.data.studentId == request.auth.uid);
+
+      // Học viên chỉ được nộp bài cho chính UID của mình
+      allow create: if isStudentOrAbove()
+        && request.resource.data.studentId == request.auth.uid;
+
+      // Chặn học viên tự ý sửa điểm hoặc xóa bài sau khi đã nộp
+      allow update, delete: if isTeacherOrAdmin();
+    }
+
+    // ===============================================================
+    // 5. ASSIGNMENTS (`assignments`)
+    // ===============================================================
+    match /assignments/{asgId} {
+      allow read: if isStudentOrAbove();
+      allow create, delete: if isTeacherOrAdmin();
+
+      // Sensei/Admin toàn quyền; Học viên CHỈ được phép ghi bài nộp vào đúng key UID của mình
+      allow update: if isTeacherOrAdmin() || (
+        isStudentOrAbove()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submissions'])
+        && (
+          !('submissions' in resource.data)
+            ? request.resource.data.submissions.keys().hasOnly([request.auth.uid])
+            : request.resource.data.submissions.diff(resource.data.submissions).affectedKeys().hasOnly([request.auth.uid])
+        )
+        && request.resource.data.submissions[request.auth.uid].status == 'submitted'
+      );
+    }
+
+    // ===============================================================
+    // 6. ANNOUNCEMENTS (`announcements`)
+    // ===============================================================
+    match /announcements/{annId} {
+      // Tài khoản Khách (guest) không được phép đọc bảng tin lớp học
+      allow read: if isStudentOrAbove();
+      allow create, update, delete: if isTeacherOrAdmin();
+    }
+
+    // ===============================================================
+    // 7. STUDY MATERIALS (`materials`)
+    // ===============================================================
+    match /materials/{matId} {
+      allow read: if isStudentOrAbove();
+      allow create, update, delete: if isTeacherOrAdmin();
+    }
+
+    // ===============================================================
+    // 8. CONSULTATION LEADS (`leads`)
+    // ===============================================================
+    match /leads/{leadId} {
+      // Khách vãng lai trên Landing Page được phép gửi form tư vấn
+      allow create: if request.resource.data.keys().hasAll(['fullName', 'phone'])
+        && request.resource.data.fullName is string
+        && request.resource.data.phone is string
+        && request.resource.data.fullName.size() <= 100
+        && request.resource.data.phone.size() <= 30;
+
+      // Chỉ Admin mới có quyền đọc danh sách khách hàng và cập nhật trạng thái tư vấn
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

@@ -24,7 +24,7 @@ import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/lib/role-context";
-import { getAllTests, getAllSubmissions, getClasses } from "@/lib/db/services";
+import { getAllTests, getAllSubmissions, getSubmissionsByStudent, getClasses } from "@/lib/db/services";
 import type { JLPTTestDoc, TestSubmissionDoc, ClassDoc } from "@/lib/db/schema";
 import { toast } from "sonner";
 
@@ -44,9 +44,10 @@ export default function TestsHubPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+      const uid = firebaseUser?.uid || user.id;
       const [testList, subList, classList] = await Promise.all([
         getAllTests(),
-        getAllSubmissions(),
+        role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),
         getClasses(),
       ]);
       setTests(testList);
@@ -54,7 +55,7 @@ export default function TestsHubPage() {
       setClasses(classList);
     } catch (err) {
       console.error("Load tests error:", err);
-      toast.error("Không thể tải danh sách đề thi từ cơ sở dữ liệu.");
+      toast.error("Không thể tải danh sách đề thi.");
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +63,7 @@ export default function TestsHubPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [role, firebaseUser, user.id]);
 
   // Filter tests based on user role and filters
   const filteredTests = useMemo(() => {

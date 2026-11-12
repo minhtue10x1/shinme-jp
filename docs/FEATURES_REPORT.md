@@ -120,3 +120,4 @@ Hệ thống phân chia 4 vai trò rõ ràng được quản lý đồng bộ t�
 - **Đào tạo & Khảo thí:** `/portal/classes`, `/portal/assignments`, `/portal/materials`, `/portal/tests`, `/portal/tests/create`, `/portal/tests/manage`, `/portal/tests/[id]/take` (Dynamic), `/portal/gradebook`
 - **Quản trị (Admin):** `/portal/users`, `/portal/leads`
 - **Legacy Redirects:** `/portal/resources` → `/portal/materials`, `/portal/exam/[id]` → `/portal/tests`
+

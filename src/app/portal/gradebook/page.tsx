@@ -25,6 +25,7 @@ import {
   getClasses,
   getAllUsers,
   getAllSubmissions,
+  getSubmissionsByStudent,
 } from "@/lib/db/services";
 import type {
   JLPTTestDoc,
@@ -56,11 +57,12 @@ export default function GradebookPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+      const uid = firebaseUser?.uid || user.id;
       const [testList, classList, userList, subList] = await Promise.all([
         getAllTests(),
         getClasses(),
-        getAllUsers(),
-        getAllSubmissions(),
+        role === "student" ? Promise.resolve([]) : getAllUsers(),
+        role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),
       ]);
       setTests(testList);
       setClasses(classList);
@@ -72,7 +74,7 @@ export default function GradebookPage() {
       }
     } catch (err) {
       console.error("Load gradebook error:", err);
-      toast.error("Không thể tải dữ liệu bảng điểm từ cơ sở dữ liệu.");
+      toast.error("Không thể tải dữ liệu bảng điểm.");
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +82,7 @@ export default function GradebookPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [role, firebaseUser, user.id]);
 
   // Current active test
   const activeTest = useMemo(() => {
