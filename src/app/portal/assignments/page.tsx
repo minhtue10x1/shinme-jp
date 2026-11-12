@@ -101,9 +101,9 @@ export default function AssignmentsPage() {
     setIsLoading(true);
     try {
       const [asgList, classList, userList] = await Promise.all([
-        getAssignments(),
+        getAssignments(role === "student" ? user.classId : undefined),
         getClasses(),
-        getAllUsers(),
+        role === "student" ? Promise.resolve([]) : getAllUsers(),
       ]);
       setAssignments(asgList);
       setClasses(classList);
@@ -118,7 +118,7 @@ export default function AssignmentsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [role, user.classId]);
 
   // Filtered assignments
   const filtered = useMemo(() => {

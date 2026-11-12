@@ -27,6 +27,7 @@ import {
   saveClass,
   deleteClass,
   getAllUsers,
+  getUsersByClass,
   updateUserClassByAdmin,
 } from "@/lib/db/services";
 import type { ClassDoc, UserProfileDoc } from "@/lib/db/schema";
@@ -65,7 +66,14 @@ export default function ClassesPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [classList, userList] = await Promise.all([getClasses(), getAllUsers()]);
+      const [classList, userList] = await Promise.all([
+        getClasses(),
+        role === "student"
+          ? user.classId
+            ? getUsersByClass(user.classId)
+            : Promise.resolve([])
+          : getAllUsers(),
+      ]);
       setClasses(classList);
       setUsers(userList);
     } catch (err) {
@@ -78,7 +86,7 @@ export default function ClassesPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [role, user.classId]);
 
   // Map students count by classId
   const studentsByClass = useMemo(() => {
@@ -273,7 +281,7 @@ export default function ClassesPage() {
                       )}
                     </div>
                     <Badge tone="leaf">
-                      {classStudents.length} Học viên
+                      {classStudents.length || c.studentsCount || 0} Học viên
                     </Badge>
                   </div>
 

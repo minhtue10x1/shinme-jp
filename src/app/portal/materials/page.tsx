@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChokaiAudioPlayer } from "@/components/portal/chokai-audio-player";
 import { useRole } from "@/lib/role-context";
+import { isSafeHttpUrl } from "@/lib/utils";
 import {
   getClasses,
   getMaterials,
@@ -155,6 +156,11 @@ export default function MaterialsPage() {
 
     if (!selectedFile && !formData.externalUrl.trim()) {
       toast.error("Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!");
+      return;
+    }
+
+    if (!selectedFile && !isSafeHttpUrl(formData.externalUrl)) {
+      toast.error("Link tài liệu phải bắt đầu bằng https:// hoặc http://");
       return;
     }
 
@@ -349,9 +355,15 @@ export default function MaterialsPage() {
 
               <div className="mt-5 flex items-center justify-between border-t border-shinme-line pt-3">
                 <a
-                  href={m.fileUrl}
+                  href={isSafeHttpUrl(m.fileUrl) ? m.fileUrl : "#"}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!isSafeHttpUrl(m.fileUrl)) {
+                      e.preventDefault();
+                      toast.error("Đường dẫn tài liệu không hợp lệ.");
+                    }
+                  }}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline"
                 >
                   <Download className="size-3.5" />

@@ -27,6 +27,10 @@ export function StudentRosterList() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (role !== "sensei" && role !== "admin") {
+      setIsLoading(false);
+      return;
+    }
     Promise.all([getClasses(), getAllUsers(), getAllSubmissions()])
       .then(([cList, uList, sList]) => {
         setClasses(cList);
@@ -35,7 +39,7 @@ export function StudentRosterList() {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [role]);
 
   const currentClass =
     classes.find((c) => c.id === activeClassId) || classes[0] || {
@@ -59,6 +63,8 @@ export function StudentRosterList() {
       std.email.toLowerCase().includes(q)
     );
   });
+
+  if (role !== "sensei" && role !== "admin") return null;
 
   return (
     <div className="space-y-4 rounded-3xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">

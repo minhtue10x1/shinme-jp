@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, isSafeAvatarSrc } from "@/lib/utils";
 
 type UserAvatarProps = {
   src?: string | null;
@@ -35,7 +35,7 @@ export function UserAvatar({
   }, [src]);
 
   const trimmedSrc = src?.trim();
-  const showImage = Boolean(trimmedSrc) && !imgError;
+  const showImage = isSafeAvatarSrc(trimmedSrc) && !imgError;
 
   if (showImage) {
     return (

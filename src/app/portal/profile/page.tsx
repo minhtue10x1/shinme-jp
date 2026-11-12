@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
 import { compressImageToAvatar } from "@/lib/image-utils";
+import { isSafeHttpUrl } from "@/lib/utils";
 import { useRole } from "@/lib/role-context";
 import {
   getUserProfile,
@@ -224,8 +225,8 @@ export default function ProfilePage() {
     }
 
     const cleanUrl = avatarUrlInput.trim();
-    if (!cleanUrl) {
-      toast.error("Vui lòng dán đường dẫn ảnh hợp lệ.");
+    if (!isSafeHttpUrl(cleanUrl)) {
+      toast.error("Đường dẫn ảnh phải bắt đầu bằng https:// hoặc http://");
       return;
     }
 
