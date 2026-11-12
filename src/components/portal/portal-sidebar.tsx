@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   BarChart3,
@@ -13,6 +14,8 @@ import {
   GraduationCap,
   Home,
   LayoutDashboard,
+  Loader2,
+  LogOut,
   Menu,
   Sparkles,
   UserCheck,
@@ -22,6 +25,8 @@ import {
 import { FuriganaText } from "@/components/furigana-text";
 import { ShinmeWordmark } from "@/components/brand/logo";
 import { UserAvatar } from "@/components/user-avatar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useRole, type RoleId } from "@/lib/role-context";
 import { cn } from "@/lib/utils";
 
@@ -47,8 +52,26 @@ const NAV_ITEMS: NavItem[] = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
-  const { role, user } = useRole();
+  const router = useRouter();
+  const { role, user, logout } = useRole();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      setIsLogoutOpen(false);
+      toast.success("Đã đăng xuất tài khoản.");
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      toast.error("Không thể đăng xuất. Vui lòng thử lại.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     setMobileOpen(false);
@@ -154,6 +177,17 @@ export function PortalSidebar() {
           <ArrowLeft className="size-3.5" />
           Về trang chủ Shinme
         </Link>
+        <button
+          type="button"
+          onClick={() => {
+            setMobileOpen(false);
+            setIsLogoutOpen(true);
+          }}
+          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-rose-300/90 transition-colors hover:bg-rose-500/15 hover:text-rose-200"
+        >
+          <LogOut className="size-3.5" />
+          Đăng xuất
+        </button>
       </div>
     </div>
   );
@@ -202,6 +236,56 @@ export function PortalSidebar() {
       <aside aria-label="Thanh điều hướng LMS" className="hidden w-[var(--sidebar-w)] shrink-0 lg:block">
         <div className="sticky top-0 h-screen">{sidebarContent}</div>
       </aside>
+
+      {/* Logout Confirmation Dialog */}
+      {isLogoutOpen && (
+        <Dialog open={true} onOpenChange={(open) => !open && !isLoggingOut && setIsLogoutOpen(false)}>
+          <DialogContent className="max-w-sm">
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600">
+                  <LogOut className="size-5" />
+                </span>
+                <div>
+                  <DialogTitle className="text-lg font-black text-shinme-ink">
+                    Xác nhận đăng xuất
+                  </DialogTitle>
+                  <DialogDescription className="mt-1 text-xs text-shinme-muted leading-relaxed">
+                    Bạn có chắc chắn muốn đăng xuất khỏi tài khoản <strong className="text-shinme-ink">{user.name}</strong> ({user.code}) không?
+                  </DialogDescription>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-shinme-line">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsLogoutOpen(false)}
+                  disabled={isLoggingOut}
+                >
+                  Ở lại
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmLogout}
+                  disabled={isLoggingOut}
+                  className="bg-rose-600 text-white hover:bg-rose-700"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Đang xuất...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="size-4" /> Đăng xuất
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
