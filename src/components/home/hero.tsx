@@ -27,7 +27,7 @@ export function Hero() {
           <FuriganaText
             as="p"
             text={t.home.hero.catchphrase}
-            className="sm:whitespace-nowrap text-[clamp(1.75rem,3.2vw,2.85rem)] font-black leading-[1.55] tracking-[0.02em] text-shinme-primary"
+            className="whitespace-nowrap text-[clamp(1.85rem,4.3vw,3.65rem)] font-black leading-[1.55] tracking-[0.02em] text-shinme-primary"
             rtClassName="text-shinme-primary-soft tracking-[0.18em]"
           />
 
