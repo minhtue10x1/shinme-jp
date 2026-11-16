@@ -58,22 +58,22 @@ export function LanguageToggle({ className, variant = "navbar" }: LanguageToggle
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-shinme-border bg-shinme-surface p-1 shadow-xs transition-colors",
+        "inline-flex items-center gap-0.5 rounded-full border border-shinme-border/80 bg-shinme-surface/90 p-0.5 shadow-2xs backdrop-blur-xs transition-colors",
         className
       )}
       role="group"
       aria-label="Language selection / Chọn ngôn ngữ"
     >
-      <span className="pl-2 text-shinme-primary" aria-hidden="true">
+      <span className="pl-1.5 pr-0.5 text-shinme-primary/70" aria-hidden="true">
         <Globe className="size-3.5" />
       </span>
       <button
         type="button"
         onClick={() => setLang("vi")}
         className={cn(
-          "rounded-full px-2.5 py-1 text-xs font-black transition-all cursor-pointer select-none",
+          "rounded-full px-2 py-0.5 text-xs font-black transition-all cursor-pointer select-none",
           lang === "vi"
-            ? "bg-shinme-primary text-white shadow-xs"
+            ? "bg-shinme-primary text-white shadow-2xs"
             : "text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary"
         )}
         aria-pressed={lang === "vi"}
@@ -85,9 +85,9 @@ export function LanguageToggle({ className, variant = "navbar" }: LanguageToggle
         type="button"
         onClick={() => setLang("en")}
         className={cn(
-          "rounded-full px-2.5 py-1 text-xs font-black transition-all cursor-pointer select-none",
+          "rounded-full px-2 py-0.5 text-xs font-black transition-all cursor-pointer select-none",
           lang === "en"
-            ? "bg-shinme-primary text-white shadow-xs"
+            ? "bg-shinme-primary text-white shadow-2xs"
             : "text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary"
         )}
         aria-pressed={lang === "en"}

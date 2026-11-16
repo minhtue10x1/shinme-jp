@@ -54,12 +54,12 @@ export function Navbar() {
           <ShinmeLogo priority />
         </Link>
 
-        <ul className="ml-auto hidden items-center gap-1 lg:flex">
+        <ul className="ml-auto hidden items-center gap-1 xl:gap-2 lg:flex">
           {navLinks.map((l) => (
             <li key={l.href}>
               <a
                 href={l.href}
-                className="rounded-full px-3.5 py-2 text-sm font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
+                className="whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold text-shinme-ink-soft transition-colors hover:bg-shinme-leaf hover:text-shinme-primary"
               >
                 {l.label}
               </a>
@@ -67,41 +67,43 @@ export function Navbar() {
           ))}
         </ul>
 
-        <div className="ml-auto hidden items-center gap-3 sm:inline-flex lg:ml-2">
-          <LanguageToggle variant="navbar" />
+        {/* Action area: [|] [🎓 LMS] [👤 Avatar] [🌐 VI | EN] */}
+        <div className="ml-auto hidden items-center gap-3 lg:flex">
+          <div className="h-5 w-px bg-shinme-border/80" aria-hidden="true" />
+
           {isLoadingAuth ? (
-            <div className="h-11 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
+            <div className="h-10 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
             <div className="flex items-center gap-2.5">
-              <div className="hidden items-center gap-2 text-xs font-bold text-shinme-ink-soft md:flex">
+              <Button asChild size="md" className="gap-2 font-black">
+                <Link href="/portal">
+                  <GraduationCap className="size-4" />
+                  <span>{t.nav.portal}</span>
+                </Link>
+              </Button>
+              <Link
+                href="/portal/profile"
+                className="group relative flex items-center rounded-full transition-transform hover:scale-105"
+                title={`${user.name} (${user.code}) — ${t.portal.sidebar.profile}`}
+                aria-label={user.name}
+              >
                 <UserAvatar
                   src={user.avatarUrl}
                   fallbackText={user.avatarText}
                   alt={user.name}
-                  size="xs"
-                  className="border border-shinme-border shadow-xs"
-                  fallbackClassName="bg-shinme-leaf text-shinme-primary"
+                  size="sm"
+                  className="border-2 border-shinme-primary/25 shadow-xs transition-colors group-hover:border-shinme-primary"
+                  fallbackClassName="bg-shinme-leaf text-shinme-primary font-bold"
                 />
-                <span className="font-jp text-shinme-primary font-bold">こんにちは,</span>
-                <span className="max-w-[130px] truncate font-black text-shinme-ink" title={user.name}>
-                  {user.name}
-                </span>
-              </div>
-              <Button asChild size="md">
-                <Link href="/portal">
-                  <GraduationCap />
-                  {t.nav.portal}
-                  <span className="rounded-full bg-white/15 px-1.5 py-px text-xs font-extrabold tracking-wide">
-                    LMS
-                  </span>
-                </Link>
-              </Button>
+              </Link>
             </div>
           ) : (
             <Button asChild size="md">
               <Link href="/login">{t.nav.login}</Link>
             </Button>
           )}
+
+          <LanguageToggle variant="navbar" />
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:hidden">
