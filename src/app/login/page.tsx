@@ -16,11 +16,14 @@ import {
   type GoogleLoginCheckResult,
 } from "@/lib/auth-service";
 import { useRole } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import type { User as FirebaseUser } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const { setUserProfile } = useRole();
+  const { t, lang } = useTranslation();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -157,7 +160,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-[#FAF8F2] px-4 py-12 sm:px-6 lg:px-8">
+    <div className="relative flex min-h-screen flex-col justify-center bg-[#FAF8F2] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute top-5 right-5 z-20">
+        <LanguageToggle variant="navbar" />
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center">
@@ -170,10 +177,10 @@ export default function LoginPage() {
             </span>
           </Link>
           <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
-            {mode === "login" ? "Đăng nhập Cổng Học Viên & Sensei" : "Tạo tài khoản học viên mới"}
+            {mode === "login" ? t.login.title : t.login.tabRegister}
           </h2>
           <p className="mt-1 text-xs text-slate-600">
-            Hệ thống đào tạo tiếng Nhật trực tuyến Trung tâm Nhật ngữ Shinme
+            {t.login.subtitle}
           </p>
         </div>
 
@@ -185,7 +192,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading || isLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-2xs transition hover:border-[#135E36]/40 hover:bg-slate-50 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-2xs transition hover:border-[#135E36]/40 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
             >
               {isGoogleLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-[#135E36]" />
@@ -209,11 +216,8 @@ export default function LoginPage() {
                   />
                 </svg>
               )}
-              <span>Đăng nhập 1-chạm bằng Google (Gmail)</span>
+              <span>{t.login.loginWithGoogle}</span>
             </button>
-            <p className="text-center text-[0.7rem] text-slate-500">
-              Phương thức xác thực khuyến nghị cho Học viên & Giảng viên
-            </p>
           </div>
 
           <div className="relative my-6 text-center">
@@ -221,7 +225,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-slate-200" />
             </div>
             <span className="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase">
-              hoặc tài khoản ID / Password
+              {t.login.orWithEmail}
             </span>
           </div>
 
@@ -230,7 +234,7 @@ export default function LoginPage() {
             {mode === "register" && (
               <div>
                 <label className="mb-1 block text-xs font-bold text-slate-700">
-                  Họ và tên của bạn *
+                  {t.login.nameLabel} *
                 </label>
                 <div className="relative">
                   <User className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -239,7 +243,7 @@ export default function LoginPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="VD: Lê Hoàng Nam"
+                    placeholder={t.login.namePlaceholder}
                     className="w-full rounded-xl border border-slate-200 py-2.5 pr-3.5 pl-10 text-sm font-medium text-slate-900 focus:border-[#135E36] focus:outline-none"
                   />
                 </div>
@@ -248,7 +252,7 @@ export default function LoginPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-slate-700">
-                Email của bạn *
+                {t.login.emailLabel} *
               </label>
               <div className="relative">
                 <Mail className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -257,7 +261,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="hocvien@shinme.edu.vn"
+                  placeholder={t.login.emailPlaceholder}
                   className="w-full rounded-xl border border-slate-200 py-2.5 pr-3.5 pl-10 text-sm font-medium text-slate-900 focus:border-[#135E36] focus:outline-none"
                 />
               </div>
@@ -265,7 +269,7 @@ export default function LoginPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-slate-700">
-                Mật khẩu *
+                {t.login.passwordLabel} *
               </label>
               <div className="relative">
                 <Lock className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -274,7 +278,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={t.login.passwordPlaceholder}
                   className="w-full rounded-xl border border-slate-200 py-2.5 pr-3.5 pl-10 text-sm font-medium text-slate-900 focus:border-[#135E36] focus:outline-none"
                 />
               </div>
@@ -283,10 +287,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading || isGoogleLoading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#135E36] py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0f4a2a] disabled:opacity-50"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#135E36] py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0f4a2a] disabled:opacity-50 cursor-pointer"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin text-[#6CC24A]" />}
-              <span>{mode === "login" ? "Đăng nhập ngay" : "Tạo tài khoản học viên"}</span>
+              <span>{mode === "login" ? t.login.submitLogin : t.login.submitRegister}</span>
             </button>
           </form>
 
@@ -294,24 +298,24 @@ export default function LoginPage() {
           <div className="mt-5 text-center text-xs text-slate-600">
             {mode === "login" ? (
               <p>
-                Chưa có tài khoản học viên?{" "}
+                {lang === "vi" ? "Chưa có tài khoản học viên? " : "Don't have an account yet? "}
                 <button
                   type="button"
                   onClick={() => setMode("register")}
-                  className="font-bold text-[#135E36] hover:underline"
+                  className="font-bold text-[#135E36] hover:underline cursor-pointer"
                 >
-                  Đăng ký tài khoản mới
+                  {t.login.tabRegister}
                 </button>
               </p>
             ) : (
               <p>
-                Đã có tài khoản?{" "}
+                {lang === "vi" ? "Đã có tài khoản? " : "Already have an account? "}
                 <button
                   type="button"
                   onClick={() => setMode("login")}
-                  className="font-bold text-[#135E36] hover:underline"
+                  className="font-bold text-[#135E36] hover:underline cursor-pointer"
                 >
-                  Đăng nhập lại
+                  {t.login.tabLogin}
                 </button>
               </p>
             )}
@@ -325,7 +329,7 @@ export default function LoginPage() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#135E36]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Quay lại Trang chủ Shinme
+            {t.common.backToHome}
           </Link>
         </div>
       </div>
@@ -341,17 +345,17 @@ export default function LoginPage() {
 
               <div>
                 <DialogTitle className="text-xl font-extrabold text-slate-900">
-                  Xác nhận tạo tài khoản mới bằng Gmail
+                  {t.login.googleModalTitle}
                 </DialogTitle>
                 <DialogDescription className="mt-1.5 text-xs text-slate-600">
-                  Địa chỉ email <strong className="font-bold text-slate-900">{newGoogleUser.email}</strong> chưa có tài khoản trong hệ thống Shinme. Bạn có muốn sử dụng email này để đăng ký tài khoản Học viên mới?
+                  {t.login.googleModalDesc} ({newGoogleUser.email})
                 </DialogDescription>
               </div>
 
               <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-[#FAF8F2] p-4">
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-700">
-                    Họ và tên hiển thị:
+                    {t.common.fullName}:
                   </label>
                   <input
                     type="text"
@@ -365,7 +369,7 @@ export default function LoginPage() {
 
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-700">
-                    Mục tiêu trình độ JLPT của bạn:
+                    {t.login.targetLabel}:
                   </label>
                   <select
                     value={newGoogleUser.targetJLPT}
@@ -377,12 +381,12 @@ export default function LoginPage() {
                     }
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#135E36] focus:outline-none"
                   >
-                    <option value="N5">JLPT N5 (Sơ cấp 1)</option>
-                    <option value="N4">JLPT N4 (Sơ cấp 2)</option>
-                    <option value="N3">JLPT N3 (Trung cấp)</option>
-                    <option value="N2">JLPT N2 (Trung thượng cấp)</option>
-                    <option value="N1">JLPT N1 (Cao cấp)</option>
-                    <option value="KAIWA">Giao tiếp Kaiwa chuyên sâu</option>
+                    <option value="N5">JLPT N5</option>
+                    <option value="N4">JLPT N4</option>
+                    <option value="N3">JLPT N3</option>
+                    <option value="N2">JLPT N2</option>
+                    <option value="N1">JLPT N1</option>
+                    <option value="KAIWA">Kaiwa (Conversation)</option>
                   </select>
                 </div>
               </div>
@@ -391,19 +395,19 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleCancelGoogleRegistration}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Hủy bỏ
+                  {t.login.googleModalCancel}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleConfirmGoogleRegistration}
                   disabled={isLoading}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a] disabled:opacity-50 cursor-pointer"
                 >
                   {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#6CC24A]" />}
-                  Đồng ý tạo tài khoản
+                  {t.login.googleModalConfirm}
                 </button>
               </div>
             </div>

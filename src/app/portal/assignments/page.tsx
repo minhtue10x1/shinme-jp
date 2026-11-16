@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useRole } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   getAssignments,
   saveAssignment,
@@ -47,7 +48,7 @@ import type {
   UserProfileDoc,
 } from "@/lib/db/schema";
 
-const QUICK_FEEDBACKS = [
+const QUICK_FEEDBACKS_VI = [
   "Phát âm và ngữ điệu rất tự nhiên!",
   "Chú ý thêm cách dùng trợ từ に và で.",
   "Phần chia thể bị động (受身形) cần ôn tập thêm một chút.",
@@ -56,8 +57,18 @@ const QUICK_FEEDBACKS = [
   "Cần đọc kỹ lại mạch chuyển ý trong đoạn văn Đọc hiểu.",
 ];
 
+const QUICK_FEEDBACKS_EN = [
+  "Very natural pronunciation and intonation!",
+  "Pay extra attention to particles に and で usage.",
+  "Passive form (受身形) conjugation needs a bit more review.",
+  "Kanji stroke order is accurate and looks wonderful!",
+  "Great work, clear reasoning and keep up the momentum! ♡",
+  "Review the transitions and argument flow in the Reading section.",
+];
+
 export default function AssignmentsPage() {
   const { role, user } = useRole();
+  const { lang, t } = useTranslation();
   const [assignments, setAssignments] = useState<AssignmentDoc[]>([]);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [students, setStudents] = useState<UserProfileDoc[]>([]);
@@ -110,7 +121,7 @@ export default function AssignmentsPage() {
       setStudents(userList.filter((u) => u.role === "student"));
     } catch (error) {
       console.error("Failed to load assignments data:", error);
-      toast.error("Không thể tải danh sách bài tập. Vui lòng thử lại!");
+      toast.error(lang === "vi" ? "Không thể tải danh sách bài tập. Vui lòng thử lại!" : "Failed to load assignments. Please try again!");
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +170,7 @@ export default function AssignmentsPage() {
   const handleSaveStudentSubmission = async () => {
     if (!submittingItem) return;
     if (!studentAnswerInput.trim()) {
-      toast.error("Vui lòng nhập nội dung bài làm của bạn!");
+      toast.error(lang === "vi" ? "Vui lòng nhập nội dung bài làm của bạn!" : "Please enter your submission answer!");
       return;
     }
 
@@ -194,13 +205,19 @@ export default function AssignmentsPage() {
         })
       );
 
-      toast.success("Đã nộp bài tập thành công!", {
-        description: "Sensei sẽ xem và chấm điểm cho bạn sớm nhất.",
-      });
+      toast.success(
+        lang === "vi" ? "Đã nộp bài tập thành công!" : "Assignment submitted successfully!",
+        {
+          description:
+            lang === "vi"
+              ? "Sensei sẽ xem và chấm điểm cho bạn sớm nhất."
+              : "Sensei will review and grade your work soon.",
+        }
+      );
       setSubmittingItem(null);
     } catch (error) {
       console.error("Error submitting assignment:", error);
-      toast.error("Nộp bài thất bại. Vui lòng kiểm tra lại kết nối mạng!");
+      toast.error(lang === "vi" ? "Nộp bài thất bại. Vui lòng kiểm tra lại kết nối mạng!" : "Submission failed. Please check your network connection!");
     } finally {
       setIsSavingSubmission(false);
     }
@@ -235,7 +252,12 @@ export default function AssignmentsPage() {
     setSelectedStudentUid(chosenUid);
     const existing = item.submissions?.[chosenUid];
     setScoreInput(existing?.score ?? (item.maxScore ? Math.floor(item.maxScore * 0.9) : 10));
-    setFeedbackInput(existing?.feedback || "Em hoàn thành bài rất tốt! Cần chú ý thêm một số cấu trúc phức tạp hơn.");
+    setFeedbackInput(
+      existing?.feedback ||
+        (lang === "vi"
+          ? "Em hoàn thành bài rất tốt! Cần chú ý thêm một số cấu trúc phức tạp hơn."
+          : "Great job completing this assignment! Pay attention to advanced sentence structures.")
+    );
   };
 
   const handleSelectStudentToGrade = (uid: string) => {
@@ -243,7 +265,12 @@ export default function AssignmentsPage() {
     if (!gradingItem) return;
     const existing = gradingItem.submissions?.[uid];
     setScoreInput(existing?.score ?? (gradingItem.maxScore ? Math.floor(gradingItem.maxScore * 0.9) : 10));
-    setFeedbackInput(existing?.feedback || "Em hoàn thành bài rất tốt! Cần chú ý thêm một số cấu trúc phức tạp hơn.");
+    setFeedbackInput(
+      existing?.feedback ||
+        (lang === "vi"
+          ? "Em hoàn thành bài rất tốt! Cần chú ý thêm một số cấu trúc phức tạp hơn."
+          : "Great job completing this assignment! Pay attention to advanced sentence structures.")
+    );
   };
 
   // Save grading
@@ -288,13 +315,21 @@ export default function AssignmentsPage() {
         })
       );
 
-      toast.success(`Đã lưu kết quả chấm điểm cho ${studentName}!`, {
-        description: `Điểm: ${scoreInput}/${gradingItem.maxScore} · Nhận xét đã cập nhật vào tài khoản học viên.`,
-      });
+      toast.success(
+        lang === "vi"
+          ? `Đã lưu kết quả chấm điểm cho ${studentName}!`
+          : `Saved grade for ${studentName}!`,
+        {
+          description:
+            lang === "vi"
+              ? `Điểm: ${scoreInput}/${gradingItem.maxScore} · Nhận xét đã cập nhật vào tài khoản học viên.`
+              : `Score: ${scoreInput}/${gradingItem.maxScore} · Feedback updated to student account.`,
+        }
+      );
       setGradingItem(null);
     } catch (error) {
       console.error("Error saving grade:", error);
-      toast.error("Không thể lưu kết quả chấm điểm. Vui lòng thử lại!");
+      toast.error(lang === "vi" ? "Không thể lưu kết quả chấm điểm. Vui lòng thử lại!" : "Failed to save grade. Please try again!");
     } finally {
       setIsSavingGrade(false);
     }
@@ -303,12 +338,15 @@ export default function AssignmentsPage() {
   // Handle create new assignment
   const handleCreateAssignment = async () => {
     if (!formTitle.trim()) {
-      toast.error("Vui lòng nhập tiêu đề bài tập!");
+      toast.error(lang === "vi" ? "Vui lòng nhập tiêu đề bài tập!" : "Please enter assignment title!");
       return;
     }
 
     const selectedClass = classes.find((c) => c.id === formClassId);
-    const className = formClassId === "ALL" ? "Tất cả các lớp" : (selectedClass?.code || selectedClass?.name || "Lớp học");
+    const className =
+      formClassId === "ALL"
+        ? (lang === "vi" ? "Tất cả các lớp" : "All Classes")
+        : (selectedClass?.code || selectedClass?.name || (lang === "vi" ? "Lớp học" : "Class"));
     const code = formCode.trim() || `ASG-${Date.now().toString().slice(-4)}`;
 
     const newDoc: AssignmentDoc = {
@@ -333,7 +371,7 @@ export default function AssignmentsPage() {
     try {
       await saveAssignment(newDoc);
       setAssignments((prev) => [newDoc, ...prev]);
-      toast.success(`Đã tạo bài tập [${code}] thành công!`);
+      toast.success(lang === "vi" ? `Đã tạo bài tập [${code}] thành công!` : `Created assignment [${code}] successfully!`);
       setIsCreateOpen(false);
       // Reset form
       setFormTitle("");
@@ -342,7 +380,7 @@ export default function AssignmentsPage() {
       setFormDescription("");
     } catch (error) {
       console.error("Error creating assignment:", error);
-      toast.error("Tạo bài tập thất bại. Vui lòng thử lại!");
+      toast.error(lang === "vi" ? "Tạo bài tập thất bại. Vui lòng thử lại!" : "Failed to create assignment. Please try again!");
     } finally {
       setIsSubmittingNew(false);
     }
@@ -350,15 +388,15 @@ export default function AssignmentsPage() {
 
   // Handle delete assignment
   const handleDeleteAssignment = async (id: string, code: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa bài tập ${code} không?`)) return;
+    if (!window.confirm(lang === "vi" ? `Bạn có chắc chắn muốn xóa bài tập ${code} không?` : `Are you sure you want to delete assignment ${code}?`)) return;
 
     try {
       await deleteAssignment(id);
       setAssignments((prev) => prev.filter((a) => a.id !== id));
-      toast.success(`Đã xóa bài tập ${code}.`);
+      toast.success(lang === "vi" ? `Đã xóa bài tập ${code}.` : `Deleted assignment ${code}.`);
     } catch (error) {
       console.error("Error deleting assignment:", error);
-      toast.error("Không thể xóa bài tập. Vui lòng thử lại!");
+      toast.error(lang === "vi" ? "Không thể xóa bài tập. Vui lòng thử lại!" : "Failed to delete assignment. Please try again!");
     }
   };
 
@@ -367,16 +405,22 @@ export default function AssignmentsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
-          <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">Bài tập & Mondai</h1>
+          <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
+            {lang === "vi" ? "Bài tập & Mondai" : "Assignments & Mondai"}
+          </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
             {role === "student"
-              ? "Danh sách bài tập về nhà, Mini Test và Mondai luyện thi tiếng Nhật"
-              : "Quản lý đề kiểm tra, chấm bài và giao bài tập theo lớp"}
+              ? (lang === "vi"
+                  ? "Danh sách bài tập về nhà, Mini Test và Mondai luyện thi tiếng Nhật"
+                  : "Homework, Mini Tests, and Japanese practice exercises")
+              : (lang === "vi"
+                  ? "Quản lý đề kiểm tra, chấm bài và giao bài tập theo lớp"
+                  : "Manage exam assignments, grading, and homework per class")}
           </p>
         </div>
         {role !== "student" && (
           <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="size-4" /> Tạo đề bài mới
+            <Plus className="size-4" /> {lang === "vi" ? "Tạo đề bài mới" : "New Assignment"}
           </Button>
         )}
       </div>
@@ -384,17 +428,24 @@ export default function AssignmentsPage() {
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          {["ALL", "Kanji", "Ngữ pháp", "Đọc hiểu", "Kaiwa", "Tổng hợp"].map((t) => (
+          {[
+            { id: "ALL", vi: "Tất cả dạng bài", en: "All Types" },
+            { id: "Kanji", vi: "Kanji", en: "Kanji" },
+            { id: "Ngữ pháp", vi: "Ngữ pháp", en: "Grammar" },
+            { id: "Đọc hiểu", vi: "Đọc hiểu", en: "Reading" },
+            { id: "Kaiwa", vi: "Kaiwa", en: "Conversation" },
+            { id: "Tổng hợp", vi: "Tổng hợp", en: "Comprehensive" },
+          ].map((typeItem) => (
             <button
-              key={t}
-              onClick={() => setFilterType(t)}
+              key={typeItem.id}
+              onClick={() => setFilterType(typeItem.id)}
               className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                filterType === t
+                filterType === typeItem.id
                   ? "bg-shinme-primary text-white"
                   : "bg-shinme-surface text-shinme-ink-soft border border-shinme-border hover:bg-shinme-leaf"
               }`}
             >
-              {t === "ALL" ? "Tất cả dạng bài" : t}
+              {lang === "vi" ? typeItem.vi : typeItem.en}
             </button>
           ))}
         </div>
@@ -407,7 +458,7 @@ export default function AssignmentsPage() {
               onChange={(e) => setFilterClass(e.target.value)}
               className="h-9 rounded-full border border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
             >
-              <option value="ALL">Tất cả lớp học</option>
+              <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.code} — {cls.shortName || cls.name}
@@ -421,7 +472,7 @@ export default function AssignmentsPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-shinme-muted" />
             <input
               type="text"
-              placeholder="Tìm theo mã hoặc tên..."
+              placeholder={lang === "vi" ? "Tìm theo mã hoặc tên..." : "Search by code or title..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 w-full rounded-full border border-shinme-border bg-shinme-surface pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
@@ -434,20 +485,24 @@ export default function AssignmentsPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-shinme-muted space-y-3">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
-          <p className="text-sm font-semibold">Đang tải danh sách bài tập từ dữ liệu trung tâm...</p>
+          <p className="text-sm font-semibold">
+            {lang === "vi" ? "Đang tải danh sách bài tập từ dữ liệu trung tâm..." : "Loading assignments from center database..."}
+          </p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-12 text-center">
           <BookOpen className="mx-auto size-12 text-shinme-muted/60" />
-          <h3 className="mt-3 text-base font-bold text-shinme-ink">Chưa có bài tập nào</h3>
+          <h3 className="mt-3 text-base font-bold text-shinme-ink">
+            {lang === "vi" ? "Chưa có bài tập nào" : "No assignments found"}
+          </h3>
           <p className="mt-1 text-xs text-shinme-muted">
             {search || filterType !== "ALL" || filterClass !== "ALL"
-              ? "Không tìm thấy bài tập phù hợp với bộ lọc hiện tại."
-              : "Hiện tại chưa có bài tập nào được giao."}
+              ? (lang === "vi" ? "Không tìm thấy bài tập phù hợp với bộ lọc hiện tại." : "No assignments match your search filter.")
+              : (lang === "vi" ? "Hiện tại chưa có bài tập nào được giao." : "No assignments have been given yet.")}
           </p>
           {role !== "student" && (
             <Button size="sm" onClick={() => setIsCreateOpen(true)} className="mt-4">
-              <Plus className="size-4" /> Tạo bài tập đầu tiên
+              <Plus className="size-4" /> {lang === "vi" ? "Tạo bài tập đầu tiên" : "Create First Assignment"}
             </Button>
           )}
         </div>
@@ -483,7 +538,8 @@ export default function AssignmentsPage() {
                       <Badge tone="neutral">{item.level}</Badge>
                       <Badge tone="leaf">{item.type}</Badge>
                       <span className="text-xs font-semibold text-shinme-muted">
-                        · Lớp: <strong className="text-shinme-ink">{item.className}</strong>
+                        {lang === "vi" ? "· Lớp: " : "· Class: "}
+                        <strong className="text-shinme-ink">{item.className}</strong>
                       </span>
                     </div>
 
@@ -500,13 +556,19 @@ export default function AssignmentsPage() {
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-shinme-muted pt-1">
                       <span className="flex items-center gap-1.5 font-medium">
-                        <Clock className="size-3.5 text-shinme-muted" /> Hạn nộp:{" "}
+                        <Clock className="size-3.5 text-shinme-muted" /> {lang === "vi" ? "Hạn nộp: " : "Due: "}
                         <strong className="font-bold text-shinme-danger">{item.dueDate}</strong>
                       </span>
                       <span>·</span>
-                      <span>Số câu: <strong>{item.questionsCount}</strong></span>
+                      <span>
+                        {lang === "vi" ? "Số câu: " : "Questions: "}
+                        <strong>{item.questionsCount}</strong>
+                      </span>
                       <span>·</span>
-                      <span>Thang điểm: <strong>{item.maxScore}đ</strong></span>
+                      <span>
+                        {lang === "vi" ? "Thang điểm: " : "Max Score: "}
+                        <strong>{item.maxScore}đ</strong>
+                      </span>
                     </div>
                   </div>
 
@@ -516,16 +578,16 @@ export default function AssignmentsPage() {
                       isGraded ? (
                         <div className="text-right">
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf px-3 py-1 text-xs font-black text-shinme-primary">
-                            <CheckCircle2 className="size-3.5" /> Đã chấm điểm
+                            <CheckCircle2 className="size-3.5" /> {lang === "vi" ? "Đã chấm điểm" : "Graded"}
                           </span>
                           <p className="mt-1 text-lg font-black text-shinme-ink">
-                            {studentSub?.score} / {item.maxScore} điểm
+                            {studentSub?.score} / {item.maxScore} {lang === "vi" ? "điểm" : "pts"}
                           </p>
                         </div>
                       ) : isSubmitted ? (
                         <div className="text-right">
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-black text-amber-700">
-                            <Clock className="size-3.5" /> Đã nộp · Đang chờ chấm
+                            <Clock className="size-3.5" /> {lang === "vi" ? "Đã nộp · Đang chờ chấm" : "Submitted · Pending Grade"}
                           </span>
                           <Button
                             variant="outline"
@@ -533,7 +595,7 @@ export default function AssignmentsPage() {
                             className="mt-2 text-xs"
                             onClick={() => handleOpenStudentSubmission(item)}
                           >
-                            <Pencil className="size-3.5" /> Xem / Sửa bài đã nộp
+                            <Pencil className="size-3.5" /> {lang === "vi" ? "Xem / Sửa bài đã nộp" : "View / Edit Submission"}
                           </Button>
                         </div>
                       ) : (
@@ -542,14 +604,16 @@ export default function AssignmentsPage() {
                           onClick={() => handleOpenStudentSubmission(item)}
                           className="font-bold"
                         >
-                          <Send className="size-3.5" /> Nộp bài làm
+                          <Send className="size-3.5" /> {lang === "vi" ? "Nộp bài làm" : "Submit Answer"}
                         </Button>
                       )
                     ) : (
                       <div className="text-right space-y-1">
-                        <p className="text-xs font-bold text-shinme-muted">Tiến độ nộp bài</p>
+                        <p className="text-xs font-bold text-shinme-muted">
+                          {lang === "vi" ? "Tiến độ nộp bài" : "Submission Progress"}
+                        </p>
                         <p className="text-base font-black text-shinme-primary">
-                          {submissionsCount} / {totalStudentsCount} học viên
+                          {submissionsCount} / {totalStudentsCount} {lang === "vi" ? "học viên" : "students"}
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <Button
@@ -557,14 +621,14 @@ export default function AssignmentsPage() {
                             size="sm"
                             onClick={() => openGradingModal(item)}
                           >
-                            <UserCheck className="size-3.5" /> Chấm bài & Nhận xét
+                            <UserCheck className="size-3.5" /> {lang === "vi" ? "Chấm bài & Nhận xét" : "Grade & Feedback"}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteAssignment(item.id, item.code)}
                             className="text-shinme-muted hover:text-shinme-danger"
-                            title="Xóa bài tập này"
+                            title={lang === "vi" ? "Xóa bài tập này" : "Delete assignment"}
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -577,7 +641,9 @@ export default function AssignmentsPage() {
                 {/* Feedback banner for student */}
                 {role === "student" && studentSub?.feedback && (
                   <div className="mt-4 rounded-xl bg-shinme-leaf-faint p-3.5 text-xs leading-relaxed text-shinme-ink-soft border border-shinme-accent-soft/40">
-                    <strong className="text-shinme-primary">Nhận xét từ Sensei: </strong>
+                    <strong className="text-shinme-primary">
+                      {lang === "vi" ? "Nhận xét từ Sensei: " : "Feedback from Sensei: "}
+                    </strong>
                     {studentSub.feedback}
                   </div>
                 )}
@@ -594,10 +660,12 @@ export default function AssignmentsPage() {
             <div className="p-6 sm:p-8 space-y-5">
               <div>
                 <DialogTitle className="text-xl font-black text-shinme-ink flex items-center gap-2">
-                  <Send className="size-5 text-shinme-primary" /> Nộp bài tập
+                  <Send className="size-5 text-shinme-primary" /> {lang === "vi" ? "Nộp bài tập" : "Submit Assignment"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Học viên: <strong className="text-shinme-ink font-bold">{user.name} ({user.code})</strong> · Hạn nộp: {submittingItem.dueDate}
+                  {lang === "vi" ? "Học viên: " : "Student: "}
+                  <strong className="text-shinme-ink font-bold">{user.name} ({user.code})</strong> · {lang === "vi" ? "Hạn nộp: " : "Due: "}
+                  {submittingItem.dueDate}
                 </DialogDescription>
               </div>
 
@@ -616,29 +684,33 @@ export default function AssignmentsPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Nội dung câu trả lời / Bài làm của bạn:
+                  {lang === "vi" ? "Nội dung câu trả lời / Bài làm của bạn:" : "Your answers / submission content:"}
                 </label>
                 <textarea
                   rows={6}
                   value={studentAnswerInput}
                   onChange={(e) => setStudentAnswerInput(e.target.value)}
-                  placeholder="Gõ trực tiếp đáp án các câu, đoạn văn câu hỏi hoặc chèn link file drive bài làm..."
+                  placeholder={
+                    lang === "vi"
+                      ? "Gõ trực tiếp đáp án các câu, đoạn văn câu hỏi hoặc chèn link file drive bài làm..."
+                      : "Type your answers, essays or paste links to your assignment drive files..."
+                  }
                   className="w-full rounded-xl border-2 border-shinme-border p-3 text-sm text-shinme-ink focus:border-shinme-primary focus:outline-none leading-relaxed"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-2 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setSubmittingItem(null)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleSaveStudentSubmission} disabled={isSavingSubmission}>
                   {isSavingSubmission ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang lưu...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang lưu..." : "Saving..."}
                     </>
                   ) : (
                     <>
-                      <Send className="size-4" /> Xác nhận nộp bài
+                      <Send className="size-4" /> {lang === "vi" ? "Xác nhận nộp bài" : "Confirm & Submit"}
                     </>
                   )}
                 </Button>
@@ -655,17 +727,19 @@ export default function AssignmentsPage() {
             <div className="p-6 sm:p-8 space-y-5">
               <div>
                 <DialogTitle className="text-xl font-black text-shinme-ink flex items-center gap-2">
-                  <UserCheck className="size-5 text-shinme-primary" /> Chấm bài & Nhận xét
+                  <UserCheck className="size-5 text-shinme-primary" /> {lang === "vi" ? "Chấm bài & Nhận xét" : "Grade & Feedback"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Đề bài: <strong className="text-shinme-ink font-bold">{gradingItem.code} - {gradingItem.title}</strong> · Thang điểm: {gradingItem.maxScore}đ
+                  {lang === "vi" ? "Đề bài: " : "Assignment: "}
+                  <strong className="text-shinme-ink font-bold">{gradingItem.code} - {gradingItem.title}</strong> · {lang === "vi" ? "Thang điểm: " : "Scale: "}
+                  {gradingItem.maxScore}đ
                 </DialogDescription>
               </div>
 
               {/* Student Picker */}
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Chọn học viên trong lớp để chấm:
+                  {lang === "vi" ? "Chọn học viên trong lớp để chấm:" : "Select student in class to grade:"}
                 </label>
                 <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1 border border-shinme-border rounded-xl">
                   {students
@@ -694,10 +768,10 @@ export default function AssignmentsPage() {
                             </span>
                           ) : isSubmitted ? (
                             <span className={`rounded px-1.5 py-0.5 text-xs font-black ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"}`}>
-                              Đã nộp
+                              {lang === "vi" ? "Đã nộp" : "Submitted"}
                             </span>
                           ) : (
-                            <span className="text-xs opacity-60">Chưa nộp</span>
+                            <span className="text-xs opacity-60">{lang === "vi" ? "Chưa nộp" : "Pending"}</span>
                           )}
                         </button>
                       );
@@ -711,7 +785,7 @@ export default function AssignmentsPage() {
                 return (
                   <div className="rounded-xl bg-shinme-bg p-4 border border-shinme-line space-y-1">
                     <p className="text-xs font-bold uppercase text-shinme-muted">
-                      Bài làm của học viên:
+                      {lang === "vi" ? "Bài làm của học viên:" : "Student's submission:"}
                     </p>
                     {curSub?.studentAnswer ? (
                       <p className="text-xs font-medium text-shinme-ink whitespace-pre-wrap leading-relaxed">
@@ -719,7 +793,9 @@ export default function AssignmentsPage() {
                       </p>
                     ) : (
                       <p className="text-xs italic text-shinme-muted">
-                        Học viên chưa nộp bài qua hệ thống (hoặc nộp trực tiếp tại lớp). Sensei có thể chấm điểm và gửi nhận xét trực tiếp dưới đây.
+                        {lang === "vi"
+                          ? "Học viên chưa nộp bài qua hệ thống (hoặc nộp trực tiếp tại lớp). Sensei có thể chấm điểm và gửi nhận xét trực tiếp dưới đây."
+                          : "Student has not submitted through portal yet. Sensei can still award a score and leave feedback below."}
                       </p>
                     )}
                   </div>
@@ -729,7 +805,7 @@ export default function AssignmentsPage() {
               {/* Score Input */}
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Điểm số đạt được:
+                  {lang === "vi" ? "Điểm số đạt được:" : "Awarded Score:"}
                 </label>
                 <div className="flex items-center gap-3">
                   <input
@@ -741,7 +817,7 @@ export default function AssignmentsPage() {
                     className="h-11 w-24 rounded-xl border-2 border-shinme-border px-3 text-center text-lg font-black text-shinme-primary focus:border-shinme-primary focus:outline-none tabular"
                   />
                   <span className="text-sm font-bold text-shinme-muted">
-                    / {gradingItem.maxScore || 10} điểm
+                    / {gradingItem.maxScore || 10} {lang === "vi" ? "điểm" : "points"}
                   </span>
                 </div>
               </div>
@@ -749,10 +825,10 @@ export default function AssignmentsPage() {
               {/* Quick Feedback Suggestions */}
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Mẫu nhận xét nhanh của Sensei:
+                  {lang === "vi" ? "Mẫu nhận xét nhanh của Sensei:" : "Quick feedback templates:"}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {QUICK_FEEDBACKS.map((fb) => (
+                  {(lang === "vi" ? QUICK_FEEDBACKS_VI : QUICK_FEEDBACKS_EN).map((fb) => (
                     <button
                       key={fb}
                       type="button"
@@ -768,29 +844,29 @@ export default function AssignmentsPage() {
               {/* Detailed Feedback Textarea */}
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Nội dung nhận xét chi tiết:
+                  {lang === "vi" ? "Nội dung nhận xét chi tiết:" : "Detailed Feedback:"}
                 </label>
                 <textarea
                   rows={3}
                   value={feedbackInput}
                   onChange={(e) => setFeedbackInput(e.target.value)}
-                  placeholder="Nhập lời khen hoặc dặn dò cho học viên..."
+                  placeholder={lang === "vi" ? "Nhập lời khen hoặc dặn dò cho học viên..." : "Enter compliments or guidance for the student..."}
                   className="w-full rounded-xl border-2 border-shinme-border p-3 text-sm text-shinme-ink focus:border-shinme-primary focus:outline-none"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-2 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setGradingItem(null)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleSaveGrading} disabled={isSavingGrade}>
                   {isSavingGrade ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang lưu...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang lưu..." : "Saving..."}
                     </>
                   ) : (
                     <>
-                      <Save className="size-4" /> Lưu kết quả chấm
+                      <Save className="size-4" /> {lang === "vi" ? "Lưu kết quả chấm" : "Save Grade"}
                     </>
                   )}
                 </Button>
@@ -807,19 +883,23 @@ export default function AssignmentsPage() {
             <div className="p-6 sm:p-8 space-y-4">
               <div>
                 <DialogTitle className="text-xl font-black text-shinme-ink flex items-center gap-2">
-                  <Plus className="size-5 text-shinme-primary" /> Tạo đề bài tập mới
+                  <Plus className="size-5 text-shinme-primary" /> {lang === "vi" ? "Tạo đề bài tập mới" : "Create New Assignment"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Giao bài tập về nhà, Mini Test hoặc bài luyện Dokkai/Kaiwa trực tiếp cho các lớp học.
+                  {lang === "vi"
+                    ? "Giao bài tập về nhà, Mini Test hoặc bài luyện Dokkai/Kaiwa trực tiếp cho các lớp học."
+                    : "Assign homework, Mini Tests, or Dokkai/Kaiwa exercises directly to classes."}
                 </DialogDescription>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-shinme-ink">Mã bài tập *</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Mã bài tập *" : "Assignment Code *"}
+                  </label>
                   <input
                     type="text"
-                    placeholder="VD: BTVN-27, TEST-04..."
+                    placeholder={lang === "vi" ? "VD: BTVN-27, TEST-04..." : "e.g. HW-27, TEST-04..."}
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value)}
                     className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-semibold text-shinme-ink focus:border-shinme-primary focus:outline-none"
@@ -827,13 +907,15 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-shinme-ink">Lớp học giao bài *</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Lớp học giao bài *" : "Target Class *"}
+                  </label>
                   <select
                     value={formClassId}
                     onChange={(e) => setFormClassId(e.target.value)}
                     className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-semibold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                   >
-                    <option value="ALL">Tất cả các lớp</option>
+                    <option value="ALL">{lang === "vi" ? "Tất cả các lớp" : "All Classes"}</option>
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.code} — {c.shortName || c.name}
@@ -843,10 +925,16 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-shinme-ink">Tiêu đề bài tập *</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Tiêu đề bài tập *" : "Assignment Title *"}
+                  </label>
                   <input
                     type="text"
-                    placeholder="VD: Soumatome N3 Bài 27: Đặt 5 câu với cấu trúc ～わりに"
+                    placeholder={
+                      lang === "vi"
+                        ? "VD: Soumatome N3 Bài 27: Đặt 5 câu với cấu trúc ～わりに"
+                        : "e.g. Soumatome N3 Lesson 27: Write 5 sentences with ～わりに"
+                    }
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-semibold text-shinme-ink focus:border-shinme-primary focus:outline-none"
@@ -854,7 +942,11 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-shinme-ink">Tiêu đề tiếng Nhật (tùy chọn, kèm Furigana dạng Kanji[furigana])</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi"
+                      ? "Tiêu đề tiếng Nhật (tùy chọn, kèm Furigana dạng Kanji[furigana])"
+                      : "Japanese Title (optional, Furigana format Kanji[furigana])"}
+                  </label>
                   <input
                     type="text"
                     placeholder="VD: 総まとめ文法[そうまとめぶんぽう] 作文[さくぶん]"
@@ -865,7 +957,9 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-shinme-ink">Trình độ JLPT</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Trình độ JLPT" : "JLPT Level"}
+                  </label>
                   <select
                     value={formLevel}
                     onChange={(e) => setFormLevel(e.target.value as any)}
@@ -881,22 +975,26 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-shinme-ink">Thể loại bài</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Thể loại bài" : "Category"}
+                  </label>
                   <select
                     value={formType}
                     onChange={(e) => setFormType(e.target.value as any)}
                     className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-semibold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                   >
                     <option value="Kanji">Kanji</option>
-                    <option value="Ngữ pháp">Ngữ pháp</option>
-                    <option value="Đọc hiểu">Đọc hiểu</option>
-                    <option value="Kaiwa">Kaiwa</option>
-                    <option value="Tổng hợp">Tổng hợp</option>
+                    <option value="Ngữ pháp">{lang === "vi" ? "Ngữ pháp" : "Grammar"}</option>
+                    <option value="Đọc hiểu">{lang === "vi" ? "Đọc hiểu" : "Reading"}</option>
+                    <option value="Kaiwa">{lang === "vi" ? "Kaiwa" : "Conversation"}</option>
+                    <option value="Tổng hợp">{lang === "vi" ? "Tổng hợp" : "Comprehensive"}</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-shinme-ink">Hạn nộp bài</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Hạn nộp bài" : "Due Date"}
+                  </label>
                   <input
                     type="date"
                     value={formDueDate}
@@ -907,7 +1005,9 @@ export default function AssignmentsPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-shinme-ink">Số câu</label>
+                    <label className="text-xs font-bold text-shinme-ink">
+                      {lang === "vi" ? "Số câu" : "Questions Count"}
+                    </label>
                     <input
                       type="number"
                       min={1}
@@ -917,7 +1017,9 @@ export default function AssignmentsPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-shinme-ink">Thang điểm</label>
+                    <label className="text-xs font-bold text-shinme-ink">
+                      {lang === "vi" ? "Thang điểm" : "Max Score"}
+                    </label>
                     <input
                       type="number"
                       min={1}
@@ -929,10 +1031,16 @@ export default function AssignmentsPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-shinme-ink">Mô tả / Hướng dẫn làm bài</label>
+                  <label className="text-xs font-bold text-shinme-ink">
+                    {lang === "vi" ? "Mô tả / Hướng dẫn làm bài" : "Instructions / Description"}
+                  </label>
                   <textarea
                     rows={3}
-                    placeholder="Ghi chú chi tiết yêu cầu nộp bài, số từ hoặc quy định nộp..."
+                    placeholder={
+                      lang === "vi"
+                        ? "Ghi chú chi tiết yêu cầu nộp bài, số từ hoặc quy định nộp..."
+                        : "Detailed notes on requirements, length, or submission guidelines..."
+                    }
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     className="w-full rounded-xl border border-shinme-border bg-shinme-surface p-3 text-xs font-medium text-shinme-ink focus:border-shinme-primary focus:outline-none"
@@ -942,16 +1050,16 @@ export default function AssignmentsPage() {
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setIsCreateOpen(false)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleCreateAssignment} disabled={isSubmittingNew}>
                   {isSubmittingNew ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang tạo...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang tạo..." : "Creating..."}
                     </>
                   ) : (
                     <>
-                      <Save className="size-4" /> Tạo bài tập
+                      <Save className="size-4" /> {lang === "vi" ? "Tạo bài tập" : "Create Assignment"}
                     </>
                   )}
                 </Button>

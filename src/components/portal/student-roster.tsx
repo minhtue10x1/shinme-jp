@@ -11,9 +11,11 @@ import {
 import { useRole } from "@/lib/role-context";
 import { getAllUsers, getAllSubmissions, getClasses } from "@/lib/db/services";
 import type { UserProfileDoc, TestSubmissionDoc, ClassDoc } from "@/lib/db/schema";
+import { useTranslation } from "@/lib/i18n/context";
 
 export function StudentRosterList() {
   const { role } = useRole();
+  const { lang } = useTranslation();
   const activeClassId = useSyncExternalStore(
     subscribeActiveClass,
     () => getActiveClassId(role),
@@ -75,12 +77,16 @@ export function StudentRosterList() {
               <Users className="size-4" />
             </span>
             <h2 className="text-lg font-black text-shinme-ink">
-              Danh sách học viên: {currentClass.shortName}
+              {lang === "vi" ? `Danh sách học viên: ${currentClass.shortName}` : `Student Roster: ${currentClass.shortName}`}
             </h2>
-            <Badge tone="leaf">{classStudents.length} Học viên</Badge>
+            <Badge tone="leaf">
+              {lang === "vi" ? `${classStudents.length} Học viên` : `${classStudents.length} Students`}
+            </Badge>
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            Theo dõi tiến độ làm bài thi thử, điểm số và mục tiêu JLPT của từng học viên
+            {lang === "vi"
+              ? "Theo dõi tiến độ làm bài thi thử, điểm số và mục tiêu JLPT của từng học viên"
+              : "Track practice exam progress, scores, and JLPT targets for each student"}
           </p>
         </div>
 
@@ -88,7 +94,7 @@ export function StudentRosterList() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-shinme-muted" />
           <input
             type="text"
-            placeholder="Tìm theo tên hoặc mã HV..."
+            placeholder={lang === "vi" ? "Tìm theo tên hoặc mã HV..." : "Search by name or code..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-9 w-full rounded-full border border-shinme-border bg-shinme-bg pl-9 pr-3 text-xs font-semibold text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
@@ -105,20 +111,20 @@ export function StudentRosterList() {
       ) : filtered.length === 0 ? (
         <div className="py-8 text-center text-xs text-shinme-muted">
           {classStudents.length === 0
-            ? "Chưa có học viên nào được gán vào lớp học này."
-            : "Không tìm thấy học viên phù hợp."}
+            ? (lang === "vi" ? "Chưa có học viên nào được gán vào lớp học này." : "No students assigned to this class yet.")
+            : (lang === "vi" ? "Không tìm thấy học viên phù hợp." : "No matching students found.")}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead className="border-b border-shinme-line text-xs font-extrabold uppercase text-shinme-muted">
               <tr>
-                <th className="py-2.5 px-3">Mã HV</th>
-                <th className="py-2.5 px-3">Học viên</th>
-                <th className="py-2.5 px-3 text-center">Mục tiêu JLPT</th>
-                <th className="py-2.5 px-3 text-center">Đã làm (Bài thi)</th>
-                <th className="py-2.5 px-3 text-center">Điểm TB</th>
-                <th className="py-2.5 px-3 text-right">Trạng thái</th>
+                <th className="py-2.5 px-3">{lang === "vi" ? "Mã HV" : "ID"}</th>
+                <th className="py-2.5 px-3">{lang === "vi" ? "Học viên" : "Student"}</th>
+                <th className="py-2.5 px-3 text-center">{lang === "vi" ? "Mục tiêu JLPT" : "Target JLPT"}</th>
+                <th className="py-2.5 px-3 text-center">{lang === "vi" ? "Đã làm (Bài thi)" : "Exams Taken"}</th>
+                <th className="py-2.5 px-3 text-center">{lang === "vi" ? "Điểm TB" : "Avg Score"}</th>
+                <th className="py-2.5 px-3 text-right">{lang === "vi" ? "Trạng thái" : "Status"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-shinme-line text-xs">
@@ -161,7 +167,7 @@ export function StudentRosterList() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center font-mono font-bold text-shinme-ink">
-                      {stdSubs.length} bài
+                      {lang === "vi" ? `${stdSubs.length} bài` : `${stdSubs.length} exams`}
                     </td>
                     <td className="py-3 px-3 text-center">
                       {avgScore !== null ? (
@@ -169,12 +175,14 @@ export function StudentRosterList() {
                           {avgScore}đ
                         </span>
                       ) : (
-                        <span className="text-slate-400">Chưa thi</span>
+                        <span className="text-slate-400">{lang === "vi" ? "Chưa thi" : "None"}</span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-right">
                       <Badge tone={stdSubs.length > 0 ? "leaf" : "neutral"}>
-                        {stdSubs.length > 0 ? "Đang theo học" : "Mới nhập học"}
+                        {stdSubs.length > 0
+                          ? (lang === "vi" ? "Đang theo học" : "Active")
+                          : (lang === "vi" ? "Mới nhập học" : "Enrolled")}
                       </Badge>
                     </td>
                   </tr>

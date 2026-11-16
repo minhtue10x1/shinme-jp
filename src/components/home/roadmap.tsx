@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { COURSES, LEVELS, STATUS_META, type LevelId } from "@/data/courses";
 import { cn, formatVnd } from "@/lib/utils";
 import { useHome } from "./home-context";
+import { useTranslation } from "@/lib/i18n/context";
 
 const STAGES = LEVELS.filter((l) => l.id !== "KAIWA");
 const KAIWA = LEVELS.find((l) => l.id === "KAIWA")!;
 
 export function Roadmap() {
   const { activeLevel, setActiveLevel, goToConsultation } = useHome();
+  const { t, lang } = useTranslation();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const order = LEVELS.map((l) => l.id);
   const stageIndex = STAGES.findIndex((s) => s.id === activeLevel);
@@ -34,6 +36,15 @@ export function Roadmap() {
     tabRefs.current[id]?.focus();
   };
 
+  const stageNames: Record<string, string> = {
+    N5: lang === "vi" ? "Gieo hạt" : "Seed",
+    N4: lang === "vi" ? "Nảy mầm" : "Sprout",
+    N3: lang === "vi" ? "Lá non" : "Young Leaf",
+    N2: lang === "vi" ? "Thành cây" : "Tree",
+    N1: lang === "vi" ? "Cánh rừng" : "Forest",
+    KAIWA: lang === "vi" ? "Giao tiếp" : "Kaiwa",
+  };
+
   const renderTab = (l: (typeof LEVELS)[number], growth: number) => {
     const active = l.id === activeLevel;
     const reached = l.id !== "KAIWA" && stageIndex >= 0 && STAGES.findIndex((s) => s.id === l.id) <= stageIndex;
@@ -50,7 +61,7 @@ export function Roadmap() {
         tabIndex={active ? 0 : -1}
         onClick={() => setActiveLevel(l.id)}
         onKeyDown={onKeyDown}
-        className="group relative flex flex-1 flex-col items-center gap-2 rounded-2xl px-1 pb-3 pt-1 text-center focus-visible:outline-shinme-accent"
+        className="group relative flex flex-1 flex-col items-center gap-2 rounded-2xl px-1 pb-3 pt-1 text-center focus-visible:outline-shinme-accent cursor-pointer"
       >
         <span
           className={cn(
@@ -71,7 +82,7 @@ export function Roadmap() {
         </span>
         <span className={cn("text-xl font-black", active ? "text-white" : "text-white/75")}>{l.label}</span>
         <span className={cn("text-sm font-semibold", active ? "text-shinme-accent" : "text-white/55")}>
-          {l.stageVi}
+          {stageNames[l.id] || l.stageVi}
         </span>
       </button>
     );
@@ -87,11 +98,10 @@ export function Roadmap() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <h2 id="roadmap-title" className="text-3xl font-extrabold sm:text-4xl">
-              Lộ trình khóa học
+              {t.home.roadmap.title}
             </h2>
             <p className="mt-3 max-w-[56ch] text-lg leading-relaxed text-white/75">
-              Từ hạt giống N5 đến cánh rừng N1 — chọn cấp độ để xem lịch học, học phí và kết quả đầu ra của
-              từng lớp.
+              {t.home.roadmap.subtitle}
             </p>
           </div>
         </div>
@@ -132,12 +142,24 @@ export function Roadmap() {
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-white/15 pb-5">
             <FuriganaText text={level.stageJa} className="text-3xl font-black text-shinme-accent" />
             <p className="text-lg font-semibold text-white/85">{level.summary}</p>
-            <p className="text-sm font-bold text-white/60 sm:ml-auto">Thời lượng: {level.duration}</p>
+            <p className="text-sm font-bold text-white/60 sm:ml-auto">{t.home.roadmap.durationLabel}: {level.duration}</p>
           </div>
 
           <ul className="mt-6 grid gap-5 lg:grid-cols-2">
             {courses.map((c) => {
               const status = STATUS_META[c.status];
+              const statusLabel =
+                c.status === "open"
+                  ? (lang === "vi" ? "Đang mở đăng ký" : "Open for Registration")
+                  : c.status === "soon"
+                    ? (lang === "vi" ? "Sắp khai giảng" : "Opening Soon")
+                    : (lang === "vi" ? "Đã đủ học viên" : "Class Full");
+              const formatLabel =
+                c.format === "Offline"
+                  ? (lang === "vi" ? "Trực tiếp tại lớp" : "In-Person Classroom")
+                  : c.format === "Online"
+                    ? (lang === "vi" ? "Trực tuyến qua Zoom" : "Live Online")
+                    : (lang === "vi" ? "Kết hợp Hybrid" : "Hybrid Mode");
               return (
                 <li
                   key={c.id}
@@ -150,8 +172,8 @@ export function Roadmap() {
                     </div>
                     <Badge tone={status.tone}>
                       {c.status === "open" && <span className="size-1.5 rounded-full bg-shinme-accent" />}
-                      {status.label}
-                      {c.seatsLeft !== undefined && c.status === "open" && ` · còn ${c.seatsLeft} chỗ`}
+                      {statusLabel}
+                      {c.seatsLeft !== undefined && c.status === "open" && ` · ${lang === "vi" ? `còn ${c.seatsLeft} chỗ` : `${c.seatsLeft} seats left`}`}
                     </Badge>
                   </div>
 
@@ -159,7 +181,7 @@ export function Roadmap() {
                     <div className="flex items-start gap-2">
                       <CalendarDays className="mt-0.5 size-4 shrink-0 text-shinme-primary" />
                       <div>
-                        <dt className="sr-only">Lịch học</dt>
+                        <dt className="sr-only">{t.home.roadmap.scheduleLabel}</dt>
                         <dd className="font-bold">{c.schedule}</dd>
                         <dd className="tabular text-shinme-muted">{c.time}</dd>
                       </div>
@@ -167,16 +189,16 @@ export function Roadmap() {
                     <div className="flex items-start gap-2">
                       <Clock className="mt-0.5 size-4 shrink-0 text-shinme-primary" />
                       <div>
-                        <dt className="sr-only">Khai giảng</dt>
-                        <dd className="font-bold">KG {c.startDate}</dd>
-                        <dd className="text-shinme-muted">{c.sessions} buổi</dd>
+                        <dt className="sr-only">Start Date</dt>
+                        <dd className="font-bold">{lang === "vi" ? "KG" : "Starts"} {c.startDate}</dd>
+                        <dd className="text-shinme-muted">{c.sessions} {lang === "vi" ? "buổi" : "sessions"}</dd>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <MapPin className="mt-0.5 size-4 shrink-0 text-shinme-primary" />
                       <div>
-                        <dt className="sr-only">Hình thức</dt>
-                        <dd className="font-bold">{c.format}</dd>
+                        <dt className="sr-only">Format</dt>
+                        <dd className="font-bold">{formatLabel}</dd>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
@@ -191,7 +213,7 @@ export function Roadmap() {
                   </dl>
 
                   <div className="mt-5 rounded-xl bg-shinme-leaf-faint p-4">
-                    <p className="text-sm font-extrabold text-shinme-primary">Đầu ra sau khóa học</p>
+                    <p className="text-sm font-extrabold text-shinme-primary">{t.home.roadmap.goalsLabel}</p>
                     <ul className="mt-2 space-y-1.5">
                       {c.outcomes.map((o) => (
                         <li key={o} className="flex gap-2 text-sm text-shinme-ink-soft">
@@ -204,17 +226,17 @@ export function Roadmap() {
 
                   <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-6">
                     <div>
-                      <p className="text-xs font-bold text-shinme-muted">Học phí trọn khóa</p>
+                      <p className="text-xs font-bold text-shinme-muted">{t.home.roadmap.tuition}</p>
                       <p className="tabular text-2xl font-black text-shinme-primary">{formatVnd(c.tuition)}</p>
                     </div>
                     {c.status === "full" ? (
-                      <Button variant="outline" onClick={() => goToConsultation({ course: `${c.name} (lớp kế tiếp)` })}>
+                      <Button variant="outline" onClick={() => goToConsultation({ course: `${c.name} (${lang === "vi" ? "lớp kế tiếp" : "next class"})` })}>
                         <BellRing />
-                        Báo tôi lớp kế tiếp
+                        {lang === "vi" ? "Báo tôi lớp kế tiếp" : "Notify Next Class"}
                       </Button>
                     ) : (
                       <Button onClick={() => goToConsultation({ course: c.name })}>
-                        Đăng ký giữ chỗ
+                        {t.home.roadmap.enrollNow}
                       </Button>
                     )}
                   </div>

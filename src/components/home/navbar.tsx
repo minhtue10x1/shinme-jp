@@ -6,21 +6,24 @@ import { GraduationCap, Menu, X } from "lucide-react";
 import { ShinmeLogo } from "@/components/brand/logo";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/lib/role-context";
-
-const NAV_LINKS = [
-  { href: "#ve-shinme", label: "Về Shinme" },
-  { href: "#lo-trinh", label: "Lộ trình khóa học" },
-  { href: "#sensei", label: "Đội ngũ Sensei" },
-  { href: "#thi-thu", label: "Thi thử Mini" },
-  { href: "#blog", label: "Blog" },
-];
+import { useTranslation } from "@/lib/i18n/context";
 
 export function Navbar() {
   const { firebaseUser, user, isLoadingAuth } = useRole();
+  const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+
+  const navLinks = [
+    { href: "#ve-shinme", label: t.nav.about },
+    { href: "#lo-trinh", label: t.nav.roadmap },
+    { href: "#sensei", label: t.nav.sensei },
+    { href: "#thi-thu", label: t.nav.mockTest },
+    { href: "#blog", label: t.nav.blog },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -52,7 +55,7 @@ export function Navbar() {
         </Link>
 
         <ul className="ml-auto hidden items-center gap-1 lg:flex">
-          {NAV_LINKS.map((l) => (
+          {navLinks.map((l) => (
             <li key={l.href}>
               <a
                 href={l.href}
@@ -65,6 +68,7 @@ export function Navbar() {
         </ul>
 
         <div className="ml-auto hidden items-center gap-3 sm:inline-flex lg:ml-2">
+          <LanguageToggle variant="navbar" />
           {isLoadingAuth ? (
             <div className="h-11 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
@@ -86,36 +90,39 @@ export function Navbar() {
               <Button asChild size="md">
                 <Link href="/portal">
                   <GraduationCap />
-                  Cổng LMS
+                  {t.nav.portal}
                   <span className="rounded-full bg-white/15 px-1.5 py-px text-xs font-extrabold tracking-wide">
-                    Portal
+                    LMS
                   </span>
                 </Link>
               </Button>
             </div>
           ) : (
             <Button asChild size="md">
-              <Link href="/login">Đăng nhập</Link>
+              <Link href="/login">{t.nav.login}</Link>
             </Button>
           )}
         </div>
 
-        <button
-          type="button"
-          className="ml-auto grid size-11 place-items-center rounded-full text-shinme-primary hover:bg-shinme-leaf sm:ml-0 lg:hidden"
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? "Đóng menu" : "Mở menu"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="size-6" /> : <Menu className="size-6" />}
-        </button>
+        <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <LanguageToggle variant="navbar" />
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full text-shinme-primary hover:bg-shinme-leaf"
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? "Đóng menu" : "Mở menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="size-6" /> : <Menu className="size-6" />}
+          </button>
+        </div>
       </nav>
 
       {open && (
         <div id="mobile-nav" className="border-t border-shinme-line bg-shinme-bg px-5 pb-6 pt-2 lg:hidden">
           <ul className="flex flex-col">
-            {NAV_LINKS.map((l) => (
+            {navLinks.map((l) => (
               <li key={l.href}>
                 <a
                   href={l.href}
@@ -148,14 +155,14 @@ export function Navbar() {
               <Button asChild size="lg" className="w-full">
                 <Link href="/portal" onClick={() => setOpen(false)}>
                   <GraduationCap />
-                  Cổng Học Viên / Sensei (LMS)
+                  {t.nav.portal}
                 </Link>
               </Button>
             </div>
           ) : (
             <Button asChild size="lg" className="mt-3 w-full">
               <Link href="/login" onClick={() => setOpen(false)}>
-                Đăng nhập
+                {t.nav.login}
               </Link>
             </Button>
           )}

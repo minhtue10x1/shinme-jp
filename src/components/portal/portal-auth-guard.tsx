@@ -6,6 +6,7 @@ import { useEffect, type ReactNode } from "react";
 import { Loader2, Lock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRole, type RoleId } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 
 function isRouteAllowed(pathname: string, role: RoleId): boolean {
   // Admin-only routes
@@ -33,6 +34,7 @@ function isRouteAllowed(pathname: string, role: RoleId): boolean {
 export function PortalAuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { firebaseUser, isLoadingAuth } = useRole();
+  const { lang } = useTranslation();
 
   useEffect(() => {
     if (!isLoadingAuth && !firebaseUser) {
@@ -45,7 +47,9 @@ export function PortalAuthGuard({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-shinme-bg p-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
-          <p className="text-sm font-bold text-shinme-muted">Đang xác thực phiên làm việc Shinme...</p>
+          <p className="text-sm font-bold text-shinme-muted">
+            {lang === "vi" ? "Đang xác thực phiên làm việc Shinme..." : "Authenticating Shinme session..."}
+          </p>
         </div>
       </div>
     );
@@ -58,12 +62,16 @@ export function PortalAuthGuard({ children }: { children: ReactNode }) {
           <div className="grid size-14 place-items-center rounded-2xl bg-shinme-leaf text-shinme-primary">
             <Lock className="size-7" />
           </div>
-          <h2 className="text-lg font-black text-shinme-ink">Yêu cầu đăng nhập</h2>
+          <h2 className="text-lg font-black text-shinme-ink">
+            {lang === "vi" ? "Yêu cầu đăng nhập" : "Login Required"}
+          </h2>
           <p className="text-xs font-medium text-shinme-muted">
-            Bạn cần đăng nhập để truy cập Cổng học tập trực tuyến Shinme. Đang chuyển hướng...
+            {lang === "vi"
+              ? "Bạn cần đăng nhập để truy cập Cổng học tập trực tuyến Shinme. Đang chuyển hướng..."
+              : "You must be logged in to access the Shinme Learning Portal. Redirecting..."}
           </p>
           <Button asChild size="sm">
-            <Link href="/login">Đi tới trang Đăng nhập</Link>
+            <Link href="/login">{lang === "vi" ? "Đi tới trang Đăng nhập" : "Go to Login"}</Link>
           </Button>
         </div>
       </div>
@@ -80,6 +88,7 @@ export function PortalAuthGuard({ children }: { children: ReactNode }) {
 export function PortalRouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { role } = useRole();
+  const { lang } = useTranslation();
 
   if (!isRouteAllowed(pathname, role)) {
     return (
@@ -88,15 +97,21 @@ export function PortalRouteGuard({ children }: { children: ReactNode }) {
           <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-shinme-warn-soft text-[#8a5a12]">
             <ShieldAlert className="size-7" />
           </div>
-          <h2 className="text-xl font-black text-shinme-ink">Không có quyền truy cập</h2>
+          <h2 className="text-xl font-black text-shinme-ink">
+            {lang === "vi" ? "Không có quyền truy cập" : "Access Denied"}
+          </h2>
           <p className="text-xs font-medium leading-relaxed text-shinme-muted">
             {role === "guest"
-              ? "Tài khoản Khách (chưa xếp lớp) chỉ có thể xem Tổng quan và Hồ sơ cá nhân. Vui lòng đợi Admin xếp lớp học cho bạn."
-              : "Tài khoản của bạn không có quyền mở trang chức năng này."}
+              ? (lang === "vi"
+                  ? "Tài khoản Khách (chưa xếp lớp) chỉ có thể xem Tổng quan và Hồ sơ cá nhân. Vui lòng đợi Admin xếp lớp học cho bạn."
+                  : "Guest accounts can only view Overview and Profile. Please wait for an Admin to place you into a class.")
+              : (lang === "vi"
+                  ? "Tài khoản của bạn không có quyền mở trang chức năng này."
+                  : "Your account does not have permission to view this page.")}
           </p>
           <div className="pt-2">
             <Button asChild size="sm">
-              <Link href="/portal">Quay về Tổng quan Portal</Link>
+              <Link href="/portal">{lang === "vi" ? "Quay về Tổng quan Portal" : "Back to Portal Overview"}</Link>
             </Button>
           </div>
         </div>

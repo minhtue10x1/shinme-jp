@@ -100,10 +100,16 @@ export function RoleProvider({ children }: { children: ReactNode }) {
           setCustomUser(null);
           setRoleState("guest");
           setIsLoadingAuth(false);
-          toast.error("Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày.", {
-            description: "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại để tiếp tục học tập.",
-            duration: 8000,
-          });
+          const isVi = typeof window !== "undefined" ? (window.localStorage.getItem("shinme_language") || "vi") === "vi" : true;
+          toast.error(
+            isVi ? "Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày." : "Session expired due to inactivity for more than 7 days.",
+            {
+              description: isVi
+                ? "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại để tiếp tục học tập."
+                : "Automatically logged out for security. Please sign in again to continue.",
+              duration: 8000,
+            }
+          );
           return;
         }
 
@@ -155,10 +161,16 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     if (!firebaseUser) return;
 
     const cleanup = setupSessionActivityListeners(async () => {
-      toast.error("Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày.", {
-        description: "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại.",
-        duration: 8000,
-      });
+      const isVi = typeof window !== "undefined" ? (window.localStorage.getItem("shinme_language") || "vi") === "vi" : true;
+      toast.error(
+        isVi ? "Phiên đăng nhập đã hết hạn do bạn không hoạt động trong hơn 7 ngày." : "Session expired due to inactivity for more than 7 days.",
+        {
+          description: isVi
+            ? "Hệ thống tự động đăng xuất để bảo mật. Vui lòng đăng nhập lại."
+            : "Automatically logged out for security. Please sign in again.",
+          duration: 8000,
+        }
+      );
       await logoutUser();
       setFirebaseUser(null);
       setCustomUser(null);

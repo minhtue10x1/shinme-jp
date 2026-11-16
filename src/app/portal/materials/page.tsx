@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChokaiAudioPlayer } from "@/components/portal/chokai-audio-player";
 import { useRole } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 import { isSafeHttpUrl } from "@/lib/utils";
 import {
   getClasses,
@@ -37,7 +38,7 @@ import {
 import type { ClassDoc, MaterialDoc } from "@/lib/db/schema";
 import { toast } from "sonner";
 
-const CATEGORIES = [
+const CATEGORIES_VI = [
   "Tất cả danh mục",
   "Giáo trình chính",
   "Kanji & Từ vựng",
@@ -48,6 +49,7 @@ const CATEGORIES = [
 
 export default function MaterialsPage() {
   const { role, user } = useRole();
+  const { lang, t } = useTranslation();
 
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [materials, setMaterials] = useState<MaterialDoc[]>([]);
@@ -86,7 +88,7 @@ export default function MaterialsPage() {
       setMaterials(materialList);
     } catch (err) {
       console.error("Load materials error:", err);
-      toast.error("Không thể tải danh sách tài liệu từ hệ thống.");
+      toast.error(lang === "vi" ? "Không thể tải danh sách tài liệu từ hệ thống." : "Failed to load materials from system.");
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +106,7 @@ export default function MaterialsPage() {
         return false;
       }
       // Filter by Category
-      if (selectedCategory !== "Tất cả danh mục" && m.category !== selectedCategory) {
+      if (selectedCategory !== "ALL" && selectedCategory !== "Tất cả danh mục" && m.category !== selectedCategory) {
         return false;
       }
       // Filter by Search Query
@@ -150,17 +152,17 @@ export default function MaterialsPage() {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
-      toast.error("Vui lòng nhập tiêu đề tài liệu!");
+      toast.error(lang === "vi" ? "Vui lòng nhập tiêu đề tài liệu!" : "Please enter material title!");
       return;
     }
 
     if (!selectedFile && !formData.externalUrl.trim()) {
-      toast.error("Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!");
+      toast.error(lang === "vi" ? "Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!" : "Please choose a file or paste a direct link!");
       return;
     }
 
     if (!selectedFile && !isSafeHttpUrl(formData.externalUrl)) {
-      toast.error("Link tài liệu phải bắt đầu bằng https:// hoặc http://");
+      toast.error(lang === "vi" ? "Link tài liệu phải bắt đầu bằng https:// hoặc http://" : "Link must start with https:// or http://");
       return;
     }
 
@@ -169,7 +171,7 @@ export default function MaterialsPage() {
       setUploadPercent(10);
 
       let fileUrl = formData.externalUrl.trim();
-      let fileName = selectedFile ? selectedFile.name : "Tài liệu trực tuyến";
+      let fileName = selectedFile ? selectedFile.name : (lang === "vi" ? "Tài liệu trực tuyến" : "Online Resource");
       let sizeFormatted = "Google Drive / Link";
 
       // Upload file to Firebase Storage if file was provided
@@ -184,7 +186,10 @@ export default function MaterialsPage() {
       }
 
       const chosenClass = classes.find((c) => c.id === formData.classId);
-      const className = formData.classId === "ALL" ? "Toàn bộ học viên" : chosenClass?.name || "Lớp học";
+      const className =
+        formData.classId === "ALL"
+          ? (lang === "vi" ? "Toàn bộ học viên" : "All Students")
+          : chosenClass?.name || (lang === "vi" ? "Lớp học" : "Class");
 
       const payload: MaterialDoc = {
         id: `mat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -203,12 +208,12 @@ export default function MaterialsPage() {
       };
 
       await saveMaterialDoc(payload);
-      toast.success("Tải lên và lưu tài liệu thành công!");
+      toast.success(lang === "vi" ? "Tải lên và lưu tài liệu thành công!" : "Material uploaded and saved successfully!");
       setIsUploadOpen(false);
       await loadData();
     } catch (err) {
       console.error("Upload material error:", err);
-      toast.error("Không thể tải lên tài liệu. Vui lòng thử lại!");
+      toast.error(lang === "vi" ? "Không thể tải lên tài liệu. Vui lòng thử lại!" : "Failed to upload material. Please try again!");
     } finally {
       setIsUploading(false);
       setUploadPercent(0);
@@ -216,14 +221,14 @@ export default function MaterialsPage() {
   };
 
   const handleDeleteMaterial = async (m: MaterialDoc) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa tài liệu "${m.title}"?`)) return;
+    if (!confirm(lang === "vi" ? `Bạn có chắc chắn muốn xóa tài liệu "${m.title}"?` : `Are you sure you want to delete "${m.title}"?`)) return;
     try {
       await deleteMaterialDoc(m.id, m.fileUrl);
-      toast.success(`Đã xóa tài liệu ${m.title}`);
+      toast.success(lang === "vi" ? `Đã xóa tài liệu ${m.title}` : `Deleted material ${m.title}`);
       await loadData();
     } catch (err) {
       console.error("Delete material error:", err);
-      toast.error("Không thể xóa tài liệu.");
+      toast.error(lang === "vi" ? "Không thể xóa tài liệu." : "Failed to delete material.");
     }
   };
 
@@ -232,16 +237,22 @@ export default function MaterialsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
-          <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">Kho học liệu & Giáo trình</h1>
+          <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
+            {lang === "vi" ? "Kho học liệu & Giáo trình" : "Learning Materials & Curriculum"}
+          </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Tài liệu số hóa, slide giảng dạy, bảng từ vựng và audio chokai dành cho các lớp học
+            {lang === "vi"
+              ? "Tài liệu số hóa, slide giảng dạy, bảng từ vựng và audio chokai dành cho các lớp học"
+              : "Digital documents, lecture slides, vocabulary sheets, and Chokai audio for classes"}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge tone="leaf">{materials.length} Tài liệu</Badge>
+          <Badge tone="leaf">
+            {lang === "vi" ? `${materials.length} Tài liệu` : `${materials.length} Materials`}
+          </Badge>
           {role !== "student" && (
             <Button size="sm" onClick={handleOpenUploadModal}>
-              <Upload className="size-4" /> Tải lên tài liệu mới
+              <Upload className="size-4" /> {lang === "vi" ? "Tải lên tài liệu mới" : "Upload New Material"}
             </Button>
           )}
         </div>
@@ -259,10 +270,10 @@ export default function MaterialsPage() {
             onChange={(e) => setSelectedClassId(e.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            <option value="ALL">Tất cả lớp học</option>
+            <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
             {classes.map((cls) => (
               <option key={cls.id} value={cls.id}>
-                Lớp: {cls.shortName} ({cls.level})
+                {lang === "vi" ? `Lớp: ${cls.shortName} (${cls.level})` : `Class: ${cls.shortName} (${cls.level})`}
               </option>
             ))}
           </select>
@@ -273,9 +284,18 @@ export default function MaterialsPage() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            {(
+              [
+                { id: "Tất cả danh mục", vi: "Tất cả danh mục", en: "All Categories" },
+                { id: "Giáo trình chính", vi: "Giáo trình chính", en: "Main Curriculum" },
+                { id: "Kanji & Từ vựng", vi: "Kanji & Từ vựng", en: "Kanji & Vocabulary" },
+                { id: "Nghe hiểu Chokai", vi: "Nghe hiểu Chokai", en: "Chokai Listening" },
+                { id: "Ngữ pháp & Đề thi", vi: "Ngữ pháp & Đề thi", en: "Grammar & Exams" },
+                { id: "Tài liệu bổ trợ", vi: "Tài liệu bổ trợ", en: "Supplementary Materials" },
+              ] as const
+            ).map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {lang === "vi" ? cat.vi : cat.en}
               </option>
             ))}
           </select>
@@ -288,7 +308,7 @@ export default function MaterialsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tiêu đề, bài học..."
+            placeholder={lang === "vi" ? "Tìm theo tiêu đề, bài học..." : "Search by title, lesson..."}
             className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
           />
         </div>
@@ -306,15 +326,17 @@ export default function MaterialsPage() {
           <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-shinme-leaf text-shinme-primary">
             <BookOpen className="size-8" />
           </div>
-          <h3 className="mt-4 text-lg font-black text-shinme-ink">Chưa có tài liệu nào</h3>
+          <h3 className="mt-4 text-lg font-black text-shinme-ink">
+            {lang === "vi" ? "Chưa có tài liệu nào" : "No materials found"}
+          </h3>
           <p className="mt-1 text-sm text-shinme-muted">
             {searchQuery || selectedClassId !== "ALL" || selectedCategory !== "Tất cả danh mục"
-              ? "Không có tài liệu nào phù hợp với bộ lọc hiện tại."
-              : "Lớp học chưa có học liệu số hóa được tải lên."}
+              ? (lang === "vi" ? "Không có tài liệu nào phù hợp với bộ lọc hiện tại." : "No materials match the current filters.")
+              : (lang === "vi" ? "Lớp học chưa có học liệu số hóa được tải lên." : "No digitized learning materials uploaded for this class yet.")}
           </p>
           {role !== "student" && (
             <Button className="mt-5" onClick={handleOpenUploadModal}>
-              <Upload className="size-4" /> Tải lên tài liệu đầu tiên
+              <Upload className="size-4" /> {lang === "vi" ? "Tải lên tài liệu đầu tiên" : "Upload First Material"}
             </Button>
           )}
         </div>
@@ -333,7 +355,7 @@ export default function MaterialsPage() {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-shinme-muted">
-                      {m.classId === "ALL" ? "Chung" : m.className.split(" ")[0]}
+                      {m.classId === "ALL" ? (lang === "vi" ? "Chung" : "All") : m.className.split(" ")[0]}
                     </span>
                     <Badge tone="leaf">{m.category}</Badge>
                   </div>
@@ -361,13 +383,13 @@ export default function MaterialsPage() {
                   onClick={(e) => {
                     if (!isSafeHttpUrl(m.fileUrl)) {
                       e.preventDefault();
-                      toast.error("Đường dẫn tài liệu không hợp lệ.");
+                      toast.error(lang === "vi" ? "Đường dẫn tài liệu không hợp lệ." : "Invalid material URL.");
                     }
                   }}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline"
                 >
                   <Download className="size-3.5" />
-                  Mở / Tải về máy
+                  {lang === "vi" ? "Mở / Tải về máy" : "Open / Download"}
                   <ExternalLink className="size-3 opacity-70" />
                 </a>
 
@@ -376,7 +398,7 @@ export default function MaterialsPage() {
                     type="button"
                     onClick={() => handleDeleteMaterial(m)}
                     className="rounded-lg p-1.5 text-xs text-rose-600 hover:bg-rose-50"
-                    title="Xóa tài liệu này"
+                    title={lang === "vi" ? "Xóa tài liệu này" : "Delete material"}
                   >
                     <Trash2 className="size-4" />
                   </button>
@@ -394,19 +416,23 @@ export default function MaterialsPage() {
         <DialogContent className="max-w-xl">
           <DialogTitle className="flex items-center gap-2 text-lg font-black text-shinme-ink">
             <Upload className="size-5 text-shinme-primary" />
-            Tải lên tài liệu lớp học
+            {lang === "vi" ? "Tải lên tài liệu lớp học" : "Upload Class Material"}
           </DialogTitle>
           <DialogDescription className="text-xs text-shinme-muted">
-            Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học
+            {lang === "vi"
+              ? "Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học"
+              : "Add new materials or share external links with students by class"}
           </DialogDescription>
 
           <form onSubmit={handleUploadSubmit} className="mt-4 space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-bold text-shinme-ink">Tiêu đề tài liệu *</label>
+              <label className="mb-1 block text-xs font-bold text-shinme-ink">
+                {lang === "vi" ? "Tiêu đề tài liệu *" : "Material Title *"}
+              </label>
               <input
                 type="text"
                 required
-                placeholder="Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4"
+                placeholder={lang === "vi" ? "Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4" : "e.g. Soumatome N3 Textbook — Grammar Week 1-4"}
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -415,13 +441,15 @@ export default function MaterialsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">Lớp học áp dụng *</label>
+                <label className="mb-1 block text-xs font-bold text-shinme-ink">
+                  {lang === "vi" ? "Lớp học áp dụng *" : "Target Class *"}
+                </label>
                 <select
                   value={formData.classId}
                   onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="ALL">Toàn bộ trung tâm (Chung)</option>
+                  <option value="ALL">{lang === "vi" ? "Toàn bộ trung tâm (Chung)" : "All Center (General)"}</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.shortName} ({cls.level})
@@ -431,41 +459,47 @@ export default function MaterialsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">Danh mục học liệu *</label>
+                <label className="mb-1 block text-xs font-bold text-shinme-ink">
+                  {lang === "vi" ? "Danh mục học liệu *" : "Category *"}
+                </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as MaterialDoc["category"] })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="Giáo trình chính">Giáo trình chính</option>
-                  <option value="Kanji & Từ vựng">Kanji & Từ vựng</option>
-                  <option value="Nghe hiểu Chokai">Nghe hiểu Chokai</option>
-                  <option value="Ngữ pháp & Đề thi">Ngữ pháp & Đề thi</option>
-                  <option value="Tài liệu bổ trợ">Tài liệu bổ trợ</option>
+                  <option value="Giáo trình chính">{lang === "vi" ? "Giáo trình chính" : "Main Curriculum"}</option>
+                  <option value="Kanji & Từ vựng">{lang === "vi" ? "Kanji & Từ vựng" : "Kanji & Vocabulary"}</option>
+                  <option value="Nghe hiểu Chokai">{lang === "vi" ? "Nghe hiểu Chokai" : "Chokai Listening"}</option>
+                  <option value="Ngữ pháp & Đề thi">{lang === "vi" ? "Ngữ pháp & Đề thi" : "Grammar & Exams"}</option>
+                  <option value="Tài liệu bổ trợ">{lang === "vi" ? "Tài liệu bổ trợ" : "Supplementary Materials"}</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">Định dạng file</label>
+                <label className="mb-1 block text-xs font-bold text-shinme-ink">
+                  {lang === "vi" ? "Định dạng file" : "File Format"}
+                </label>
                 <select
                   value={formData.format}
                   onChange={(e) => setFormData({ ...formData, format: e.target.value as MaterialDoc["format"] })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="PDF">Tài liệu PDF</option>
-                  <option value="Audio">Audio / MP3 (Chokai)</option>
-                  <option value="Slide">Bài giảng Slide / PPTX</option>
-                  <option value="Doc">Văn bản Docx / Excel</option>
+                  <option value="PDF">{lang === "vi" ? "Tài liệu PDF" : "PDF Document"}</option>
+                  <option value="Audio">{lang === "vi" ? "Audio / MP3 (Chokai)" : "Audio / MP3 (Chokai)"}</option>
+                  <option value="Slide">{lang === "vi" ? "Bài giảng Slide / PPTX" : "Slide / PPTX"}</option>
+                  <option value="Doc">{lang === "vi" ? "Văn bản Docx / Excel" : "Docx / Excel"}</option>
                 </select>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">Bài học tương ứng</label>
+                <label className="mb-1 block text-xs font-bold text-shinme-ink">
+                  {lang === "vi" ? "Bài học tương ứng" : "Lesson"}
+                </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Bài 26 hoặc Tuần 2"
+                  placeholder={lang === "vi" ? "Ví dụ: Bài 26 hoặc Tuần 2" : "e.g. Lesson 26 or Week 2"}
                   value={formData.lesson}
                   onChange={(e) => setFormData({ ...formData, lesson: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -475,7 +509,7 @@ export default function MaterialsPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                Tiêu đề tiếng Nhật / Furigana (tùy chọn)
+                {lang === "vi" ? "Tiêu đề tiếng Nhật / Furigana (tùy chọn)" : "Japanese Title / Furigana (optional)"}
               </label>
               <input
                 type="text"
@@ -507,17 +541,23 @@ export default function MaterialsPage() {
                   {selectedFile ? (
                     <span className="text-shinme-primary font-mono">{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
                   ) : (
-                    "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)"
+                    lang === "vi"
+                      ? "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)"
+                      : "Click to select a file from computer (PDF, MP3, PPTX, DOCX...)"
                   )}
                 </p>
-                <p className="mt-1 text-xs text-shinme-muted">Hỗ trợ file tối đa 50MB</p>
+                <p className="mt-1 text-xs text-shinme-muted">
+                  {lang === "vi" ? "Hỗ trợ file tối đa 50MB" : "Supports files up to 50MB"}
+                </p>
               </label>
             </div>
 
             {/* External URL alternative */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-shinme-muted">
-                Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)
+                {lang === "vi"
+                  ? "Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)"
+                  : "Or paste direct resource link (Google Drive / OneDrive / YouTube)"}
               </label>
               <input
                 type="url"
@@ -532,7 +572,7 @@ export default function MaterialsPage() {
             {isUploading && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-shinme-primary">
-                  <span>Đang lưu tài liệu...</span>
+                  <span>{lang === "vi" ? "Đang lưu tài liệu..." : "Saving document..."}</span>
                   <span className="tabular">{uploadPercent}%</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-shinme-line">
@@ -546,10 +586,12 @@ export default function MaterialsPage() {
 
             <div className="flex justify-end gap-2 pt-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsUploadOpen(false)} disabled={isUploading}>
-                Hủy
+                {lang === "vi" ? "Hủy" : "Cancel"}
               </Button>
               <Button type="submit" size="sm" disabled={isUploading}>
-                {isUploading ? `Đang tải lên (${uploadPercent}%)...` : "Lưu & Xuất bản"}
+                {isUploading
+                  ? (lang === "vi" ? `Đang tải lên (${uploadPercent}%)...` : `Uploading (${uploadPercent}%)...`)
+                  : (lang === "vi" ? "Lưu & Xuất bản" : "Save & Publish")}
               </Button>
             </div>
           </form>

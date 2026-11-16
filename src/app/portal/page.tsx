@@ -30,6 +30,7 @@ import {
 } from "@/lib/classroom-store";
 import { getLeadsServerSnapshot, getLeadsSnapshot, subscribeLeads } from "@/lib/leads";
 import { useRole } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   getClasses,
   getAllUsers,
@@ -53,6 +54,7 @@ export default function PortalDashboard() {
  * ===================================================================== */
 function GuestDashboard() {
   const { user } = useRole();
+  const { t, lang } = useTranslation();
 
   return (
     <div className="space-y-6 animate-[rise-in_260ms_var(--ease-out-expo)_both]">
@@ -60,13 +62,15 @@ function GuestDashboard() {
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            Xin chào, {user.name}! 👋
+            {lang === "vi" ? `Xin chào, ${user.name}! 👋` : `Hello, ${user.name}! 👋`}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Chào mừng bạn đến với Cổng học tập trực tuyến Nhật ngữ Shinme
+            {t.portal.dashboard.guestDesc}
           </p>
         </div>
-        <Badge tone="warn">Trạng thái: Khách (Chưa xếp lớp)</Badge>
+        <Badge tone="warn">
+          {lang === "vi" ? "Trạng thái: Khách (Chưa xếp lớp)" : "Status: Guest (Unassigned)"}
+        </Badge>
       </div>
 
       {/* Main Unassigned Notice Card */}
@@ -77,21 +81,20 @@ function GuestDashboard() {
           </div>
           <div className="space-y-2 flex-1">
             <h2 className="text-xl font-black text-shinme-ink sm:text-2xl">
-              Bạn chưa vào lớp học nào
+              {t.portal.dashboard.guestCardTitle}
             </h2>
             <p className="text-sm font-medium text-shinme-ink-soft leading-relaxed max-w-2xl">
-              Tài khoản của bạn hiện đang ở trạng thái <strong>Khách vãng lai (chưa được phân lớp)</strong>.
-              Ban giáo vụ và Quản trị viên (Admin) Shinme sẽ sớm liên hệ để tư vấn trình độ JLPT phù hợp và thêm bạn vào lớp học chính thức.
+              {t.portal.dashboard.guestCardDesc}
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button asChild size="sm">
                 <Link href="/portal/profile">
-                  <UserCheck className="size-4" /> Cập nhật hồ sơ cá nhân
+                  <UserCheck className="size-4" /> {t.portal.profile.title}
                 </Link>
               </Button>
               <Button asChild variant="outline" size="sm">
                 <Link href="/#tu-van">
-                  <Sparkles className="size-4" /> Đăng ký tư vấn xếp lớp
+                  <Sparkles className="size-4" /> {t.portal.dashboard.guestActionConsult}
                 </Link>
               </Button>
             </div>
@@ -103,22 +106,28 @@ function GuestDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)] space-y-2">
           <div className="flex items-center gap-2 text-shinme-primary font-bold text-sm">
-            <GraduationCap className="size-4" /> Lộ trình đào tạo Shinme
+            <GraduationCap className="size-4" /> {lang === "vi" ? "Lộ trình đào tạo Shinme" : "Shinme Curriculum"}
           </div>
           <p className="text-xs text-shinme-muted leading-relaxed">
-            Shinme cung cấp đầy đủ các chương trình từ N5, N4 Cấp tốc, N3 Tối, Kaiwa Thực chiến đến Luyện đề JLPT chuyên sâu. Bạn có thể xem thêm thông tin chi tiết trên trang chủ.
+            {lang === "vi"
+              ? "Shinme cung cấp đầy đủ các chương trình từ N5, N4 Cấp tốc, N3 Tối, Kaiwa Thực chiến đến Luyện đề JLPT chuyên sâu. Bạn có thể xem thêm thông tin chi tiết trên trang chủ."
+              : "Shinme offers comprehensive programs from N5, N4 Intensive, N3 Evening, Practical Kaiwa to Advanced JLPT Exam Prep. View full details on our homepage."}
           </p>
           <Link href="/" className="inline-block text-xs font-bold text-shinme-primary hover:underline pt-1">
-            Xem các khóa học & lộ trình →
+            {lang === "vi" ? "Xem các khóa học & lộ trình →" : "Explore courses & roadmaps →"}
           </Link>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)] space-y-2">
           <div className="flex items-center gap-2 text-shinme-primary font-bold text-sm">
-            <Clock className="size-4" /> Hỗ trợ học viên & Giáo vụ
+            <Clock className="size-4" /> {lang === "vi" ? "Hỗ trợ học viên & Giáo vụ" : "Student Advisory & Support"}
           </div>
           <p className="text-xs text-shinme-muted leading-relaxed">
-            Nếu bạn đã đăng ký khóa học nhưng chưa được kích hoạt lớp, vui lòng nhắn tin trực tiếp cho Sensei phụ trách hoặc liên hệ hotline giáo vụ: <strong className="text-shinme-ink">0988 123 456</strong>.
+            {lang === "vi" ? (
+              <>Nếu bạn đã đăng ký khóa học nhưng chưa được kích hoạt lớp, vui lòng nhắn tin trực tiếp cho Sensei phụ trách hoặc liên hệ hotline giáo vụ: <strong className="text-shinme-ink">0988 123 456</strong>.</>
+            ) : (
+              <>If you have enrolled in a class but have not been activated yet, please message your Sensei directly or contact academic hotline: <strong className="text-shinme-ink">+84 988 123 456</strong>.</>
+            )}
           </p>
         </div>
       </div>
@@ -131,6 +140,7 @@ function GuestDashboard() {
  * ===================================================================== */
 function StudentDashboard() {
   const { user, firebaseUser } = useRole();
+  const { t, lang } = useTranslation();
 
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
@@ -198,7 +208,7 @@ function StudentDashboard() {
           <div className="space-y-3 z-10">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-black text-shinme-accent">
-                <Sparkles className="size-3.5" /> Lộ trình JLPT · Cổng Học Viên Shinme
+                <Sparkles className="size-3.5" /> {lang === "vi" ? "Lộ trình JLPT · Cổng Học Viên Shinme" : "JLPT Path · Shinme Student Portal"}
               </span>
               <span className="rounded-full bg-shinme-accent px-2.5 py-0.5 text-xs font-black text-shinme-primary-deep">
                 {assignedClass.shortName}
@@ -211,7 +221,9 @@ function StudentDashboard() {
 
             <p className="max-w-[48ch] text-sm leading-relaxed text-white/80">
               <FuriganaText text="日本語[にほんご]で未来[みらい]をひらく" className="font-bold text-shinme-accent mr-1" />
-              — Chào mừng bạn đến với Cổng học tập Shinme. Hãy theo dõi thông báo và làm các bài kiểm tra được giao nhé!
+              — {lang === "vi"
+                ? "Chào mừng bạn đến với Cổng học tập Shinme. Hãy theo dõi thông báo và làm các bài kiểm tra được giao nhé!"
+                : "Welcome to Shinme Portal. Keep track of notices and complete your assigned tests!"}
             </p>
 
             {/* Upcoming test banner */}
@@ -223,18 +235,20 @@ function StudentDashboard() {
                   </span>
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-shinme-accent">
-                      Bài kiểm tra cần làm:
+                      {lang === "vi" ? "Bài kiểm tra cần làm:" : "Assigned Exam:"}
                     </span>
                     <p className="text-sm font-black text-white">{upcomingTest.title}</p>
                     <p className="text-xs text-white/70">
-                      Thời gian: {upcomingTest.durationMinutes} phút · Điểm đạt: {upcomingTest.passScore}/{upcomingTest.totalPoints}đ
+                      {lang === "vi"
+                        ? `Thời gian: ${upcomingTest.durationMinutes} phút · Điểm đạt: ${upcomingTest.passScore}/${upcomingTest.totalPoints}đ`
+                        : `Duration: ${upcomingTest.durationMinutes} min · Pass score: ${upcomingTest.passScore}/${upcomingTest.totalPoints}`}
                     </p>
                   </div>
                 </div>
 
                 <Button asChild size="sm" variant="onDark">
                   <Link href={`/portal/tests/${upcomingTest.id}/take`}>
-                    Vào phòng thi <ArrowRight className="size-3.5" />
+                    {lang === "vi" ? "Vào phòng thi" : "Enter Exam"} <ArrowRight className="size-3.5" />
                   </Link>
                 </Button>
               </div>
@@ -255,7 +269,7 @@ function StudentDashboard() {
             </div>
             <div className="absolute -bottom-2 animate-[leaf-pop_600ms_var(--ease-out-expo)_both] rounded-full bg-shinme-surface px-3 py-1 text-xs font-black text-shinme-primary shadow-md">
               <span className="inline-flex items-center gap-1">
-                Cố lên! <Heart className="size-3 fill-shinme-accent text-shinme-accent" />
+                {lang === "vi" ? "Cố lên!" : "Ganbatte!"} <Heart className="size-3 fill-shinme-accent text-shinme-accent" />
               </span>
             </div>
           </div>
@@ -266,13 +280,17 @@ function StudentDashboard() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tiến độ khóa học</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+              {lang === "vi" ? "Tiến độ khóa học" : "Course Progress"}
+            </span>
             <TrendingUp className="size-4 text-shinme-primary" />
           </div>
           <p className="tabular mt-3 text-3xl font-black text-shinme-primary">
             {assignedClass.completedSessions}/{assignedClass.totalSessions}
           </p>
-          <p className="mt-1 text-xs font-semibold text-shinme-muted">buổi · {progressPercent}% lộ trình</p>
+          <p className="mt-1 text-xs font-semibold text-shinme-muted">
+            {lang === "vi" ? `buổi · ${progressPercent}% lộ trình` : `sessions · ${progressPercent}% completed`}
+          </p>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-shinme-bg-deep">
             <div
               className="h-full rounded-full bg-shinme-accent"
@@ -283,36 +301,44 @@ function StudentDashboard() {
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Bài thi đã làm</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+              {t.portal.dashboard.quickStats.testsTaken}
+            </span>
             <CheckCircle2 className="size-4 text-shinme-primary" />
           </div>
           <p className="tabular mt-3 text-3xl font-black text-shinme-primary">
             {mySubmissions.length}
           </p>
           <p className="mt-1 text-xs font-semibold text-shinme-muted">
-            {passedCount} bài đạt chuẩn (Goukaku)
+            {lang === "vi" ? `${passedCount} bài đạt chuẩn (Goukaku)` : `${passedCount} passed exams (Goukaku)`}
           </p>
           <p className="mt-3 text-xs font-bold text-shinme-accent">
-            {mySubmissions.length > 0 ? "Tiếp tục phát huy nhé!" : "Hãy làm bài test đầu tiên!"}
+            {mySubmissions.length > 0
+              ? (lang === "vi" ? "Tiếp tục phát huy nhé!" : "Keep up the great work!")
+              : (lang === "vi" ? "Hãy làm bài test đầu tiên!" : "Take your first test!")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Điểm trung bình</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+              {t.portal.dashboard.quickStats.averageScore}
+            </span>
             <Award className="size-4 text-shinme-warn" />
           </div>
           <p className="tabular mt-3 text-3xl font-black text-shinme-ink">
             {avgScore !== null ? `${avgScore}đ` : "--"}
           </p>
           <p className="mt-1 text-xs font-semibold text-shinme-muted">
-            {avgScore !== null ? "Tính trên các bài thi đã nộp" : "Chưa có điểm"}
+            {avgScore !== null
+              ? (lang === "vi" ? "Tính trên các bài thi đã nộp" : "Based on submitted tests")
+              : (lang === "vi" ? "Chưa có điểm" : "No test scores")}
           </p>
           <Link
             href="/portal/gradebook"
             className="mt-3 block text-xs font-bold text-shinme-primary hover:underline"
           >
-            Xem chi tiết bảng điểm →
+            {lang === "vi" ? "Xem chi tiết bảng điểm →" : "View gradebook details →"}
           </Link>
         </div>
       </div>

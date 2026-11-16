@@ -12,9 +12,11 @@ import { useRole } from "@/lib/role-context";
 import { getClasses } from "@/lib/db/services";
 import type { ClassDoc } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/context";
 
 export function ClassSelector() {
   const { role, user } = useRole();
+  const { lang } = useTranslation();
   const [classes, setClasses] = useState<ClassDoc[]>([]);
 
   useEffect(() => {
@@ -50,8 +52,10 @@ export function ClassSelector() {
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Lớp học của bạn:</span>
-              <Badge tone="leaf">Chính khóa</Badge>
+              <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+                {lang === "vi" ? "Lớp học của bạn:" : "Your class:"}
+              </span>
+              <Badge tone="leaf">{lang === "vi" ? "Chính khóa" : "Enrolled"}</Badge>
             </div>
             <p className="text-base font-black text-shinme-ink">{studentClass.name}</p>
             <p className="text-xs text-shinme-muted">
@@ -62,7 +66,7 @@ export function ClassSelector() {
 
         <div className="flex items-center gap-2 text-xs font-semibold text-shinme-muted">
           <span className="inline-flex items-center gap-1 text-shinme-primary font-bold">
-            <School className="size-3.5" /> Giảng viên: {studentClass.senseiName}
+            <School className="size-3.5" /> {lang === "vi" ? "Giảng viên:" : "Instructor:"} {studentClass.senseiName}
           </span>
         </div>
       </div>
@@ -89,14 +93,18 @@ export function ClassSelector() {
           </span>
           <div>
             <p className="text-xs font-bold text-shinme-muted uppercase tracking-wider">
-              {role === "sensei" ? "Lớp đang quản lý & giảng dạy" : "Xem dữ liệu theo lớp học"}
+              {role === "sensei"
+                ? (lang === "vi" ? "Lớp đang quản lý & giảng dạy" : "Assigned & Active Class")
+                : (lang === "vi" ? "Xem dữ liệu theo lớp học" : "Viewing data by class")}
             </p>
             <p className="text-base font-black text-shinme-ink">{currentClass.name}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-shinme-muted">Chuyển lớp:</span>
+          <span className="text-xs font-bold text-shinme-muted">
+            {lang === "vi" ? "Chuyển lớp:" : "Switch class:"}
+          </span>
           <div className="flex flex-wrap gap-1.5">
             {allowedClasses.map((cls) => {
               const active = cls.id === currentClass.id;

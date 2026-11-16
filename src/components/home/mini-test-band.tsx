@@ -5,9 +5,12 @@ import { Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PLACEMENT_TEST } from "@/data/placement-test";
 import { useHome } from "./home-context";
+import { useTranslation } from "@/lib/i18n/context";
 
 export function MiniTestBand() {
   const { openTest } = useHome();
+  const { t, lang } = useTranslation();
+
   return (
     <section id="thi-thu" aria-labelledby="mini-test-title" className="px-5 lg:px-8">
       <div className="relative mx-auto grid max-w-7xl items-center gap-8 overflow-hidden rounded-[2rem] bg-shinme-leaf px-6 py-10 sm:px-10 md:grid-cols-[auto_1fr_auto] lg:px-14 lg:py-12">
@@ -23,10 +26,12 @@ export function MiniTestBand() {
 
         <div>
           <h2 id="mini-test-title" className="text-balance text-3xl font-extrabold text-shinme-primary-deep">
-            Bạn đang ở trình độ nào?
+            {t.home.miniTest.title}
           </h2>
           <p className="mt-2 max-w-[56ch] text-lg leading-relaxed text-shinme-ink-soft">
-            5 câu Mondai từ N5 đến N2, chấm điểm ngay sau mỗi câu và gợi ý lớp phù hợp. Không cần đăng nhập.
+            {lang === "vi"
+              ? "5 câu Mondai từ N5 đến N2, chấm điểm ngay sau mỗi câu và gợi ý lớp phù hợp. Không cần đăng nhập."
+              : "5 quick Mondai questions from N5 to N2, instant feedback and class recommendations. No login required."}
           </p>
           <ol className="mt-4 flex flex-wrap gap-2" aria-label="Cấu trúc bài thi">
             {PLACEMENT_TEST.map((q, i) => (
@@ -34,7 +39,7 @@ export function MiniTestBand() {
                 key={q.id}
                 className="rounded-full bg-shinme-surface px-3 py-1 text-sm font-bold text-shinme-ink-soft"
               >
-                Câu {i + 1} · <span className="text-shinme-primary">{q.level}</span>
+                {lang === "vi" ? `Câu ${i + 1}` : `Q ${i + 1}`} · <span className="text-shinme-primary">{q.level}</span>
               </li>
             ))}
           </ol>
@@ -43,14 +48,13 @@ export function MiniTestBand() {
         <div className="flex flex-col items-start gap-2 md:items-end">
           <Button size="lg" onClick={() => openTest()}>
             <Sparkles />
-            Bắt đầu Thi thử Mini
+            {t.home.miniTest.ctaButton}
           </Button>
           <span className="flex items-center gap-1.5 text-sm font-semibold text-shinme-ink-soft">
-            <Timer className="size-4" /> Khoảng 3 phút
+            <Timer className="size-4" /> {lang === "vi" ? "Khoảng 3 phút" : "~3 minutes"}
           </span>
         </div>
       </div>
     </section>
   );
 }
-

@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useRole, type RoleId } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   getAllUsers,
   getClasses,
@@ -42,6 +43,7 @@ import type { UserProfileDoc, ClassDoc } from "@/lib/db/schema";
 
 export default function UsersManagementPage() {
   const { role, user: currentUser } = useRole();
+  const { lang, t } = useTranslation();
 
   const [users, setUsers] = useState<UserProfileDoc[]>([]);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
@@ -80,7 +82,7 @@ export default function UsersManagementPage() {
       }
     } catch (err) {
       console.error("Error loading users:", err);
-      toast.error("Không thể tải danh sách người dùng.");
+      toast.error(lang === "vi" ? "Không thể tải danh sách người dùng." : "Failed to load user list.");
     } finally {
       setIsLoading(false);
     }
@@ -134,12 +136,16 @@ export default function UsersManagementPage() {
         <div className="mx-auto grid size-12 place-items-center rounded-full bg-shinme-warn-soft text-[#8a5a12]">
           <ShieldAlert className="size-6" />
         </div>
-        <h2 className="text-xl font-bold text-shinme-ink">Quyền truy cập hạn chế</h2>
+        <h2 className="text-xl font-bold text-shinme-ink">
+          {lang === "vi" ? "Quyền truy cập hạn chế" : "Restricted Access"}
+        </h2>
         <p className="text-sm text-shinme-muted max-w-md mx-auto">
-          Chức năng Quản lý Người dùng & Phân lớp chỉ dành cho vai trò <strong>Quản trị viên (Admin)</strong>.
+          {lang === "vi"
+            ? "Chức năng Quản lý Người dùng & Phân lớp chỉ dành cho vai trò Quản trị viên (Admin)."
+            : "User Management & Class Placement is reserved for Administrator (Admin) roles."}
         </p>
         <Button asChild size="sm">
-          <Link href="/portal">Quay về Tổng quan</Link>
+          <Link href="/portal">{lang === "vi" ? "Quay về Tổng quan" : "Back to Overview"}</Link>
         </Button>
       </div>
     );
@@ -181,15 +187,21 @@ export default function UsersManagementPage() {
         )
       );
 
-      toast.success(`Đã xếp ${assignUser.fullName} vào lớp ${targetCls.name}!`, {
-        description: autoPromoteToStudent && assignUser.role === "guest"
-          ? "Vai trò đã được nâng cấp thành Học viên chính thức."
-          : undefined,
-      });
+      toast.success(
+        lang === "vi"
+          ? `Đã xếp ${assignUser.fullName} vào lớp ${targetCls.name}!`
+          : `Assigned ${assignUser.fullName} to class ${targetCls.name}!`,
+        {
+          description:
+            autoPromoteToStudent && assignUser.role === "guest"
+              ? (lang === "vi" ? "Vai trò đã được nâng cấp thành Học viên chính thức." : "Role upgraded to Official Student.")
+              : undefined,
+        }
+      );
       setAssignUser(null);
     } catch (err) {
       console.error(err);
-      toast.error("Không thể cập nhật lớp học cho người dùng này.");
+      toast.error(lang === "vi" ? "Không thể cập nhật lớp học cho người dùng này." : "Failed to update class assignment.");
     } finally {
       setIsAssigning(false);
     }
@@ -214,7 +226,7 @@ export default function UsersManagementPage() {
   const handleSaveTeacherAssignment = async () => {
     if (!teacherUser) return;
     if (teacherSelectedClassIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất 1 lớp học để phân công cho Sensei!");
+      toast.error(lang === "vi" ? "Vui lòng chọn ít nhất 1 lớp học để phân công cho Sensei!" : "Please select at least 1 class for Sensei!");
       return;
     }
 
@@ -240,7 +252,7 @@ export default function UsersManagementPage() {
                 role: "sensei",
                 code: newCode,
                 classId: teacherSelectedClassIds[0],
-                className: `Phụ trách ${teacherSelectedClassIds.length} lớp học`,
+                className: lang === "vi" ? `Phụ trách ${teacherSelectedClassIds.length} lớp học` : `In charge of ${teacherSelectedClassIds.length} classes`,
               }
             : u
         )
@@ -255,13 +267,21 @@ export default function UsersManagementPage() {
         )
       );
 
-      toast.success(`Đã bổ nhiệm ${teacherUser.fullName} làm Giáo viên (Sensei)!`, {
-        description: `Phân công phụ trách ${teacherSelectedClassIds.length} lớp học thành công.`,
-      });
+      toast.success(
+        lang === "vi"
+          ? `Đã bổ nhiệm ${teacherUser.fullName} làm Giáo viên (Sensei)!`
+          : `Appointed ${teacherUser.fullName} as Instructor (Sensei)!`,
+        {
+          description:
+            lang === "vi"
+              ? `Phân công phụ trách ${teacherSelectedClassIds.length} lớp học thành công.`
+              : `Assigned ${teacherSelectedClassIds.length} classes successfully.`,
+        }
+      );
       setTeacherUser(null);
     } catch (err) {
       console.error(err);
-      toast.error("Không thể hoàn tất bổ nhiệm giáo viên.");
+      toast.error(lang === "vi" ? "Không thể hoàn tất bổ nhiệm giáo viên." : "Failed to appoint teacher.");
     } finally {
       setIsAssigningTeacher(false);
     }
@@ -287,11 +307,15 @@ export default function UsersManagementPage() {
         )
       );
 
-      toast.success(`Đã đổi vai trò của ${roleChangeUser.fullName} thành ${newTargetRole.toUpperCase()}!`);
+      toast.success(
+        lang === "vi"
+          ? `Đã đổi vai trò của ${roleChangeUser.fullName} thành ${newTargetRole.toUpperCase()}!`
+          : `Changed role of ${roleChangeUser.fullName} to ${newTargetRole.toUpperCase()}!`
+      );
       setRoleChangeUser(null);
     } catch (err) {
       console.error(err);
-      toast.error("Không thể thay đổi vai trò người dùng.");
+      toast.error(lang === "vi" ? "Không thể thay đổi vai trò người dùng." : "Failed to change user role.");
     } finally {
       setIsChangingRole(false);
     }
@@ -303,39 +327,59 @@ export default function UsersManagementPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            Quản trị Người dùng & Phân lớp
+            {lang === "vi" ? "Quản trị Người dùng & Phân lớp" : "User Management & Class Assignment"}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            Tìm kiếm thành viên, xếp lớp cho học viên mới và bổ nhiệm / phân công giảng dạy cho Giáo viên (Sensei)
+            {lang === "vi"
+              ? "Tìm kiếm thành viên, xếp lớp cho học viên mới và bổ nhiệm / phân công giảng dạy cho Giáo viên (Sensei)"
+              : "Search members, assign classes to new students, and appoint/assign teaching responsibilities to Sensei"}
           </p>
         </div>
-        <Badge tone="warn">Chế độ Quản trị viên</Badge>
+        <Badge tone="warn">
+          {lang === "vi" ? "Chế độ Quản trị viên" : "Administrator Mode"}
+        </Badge>
       </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Tổng số tài khoản</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+            {lang === "vi" ? "Tổng số tài khoản" : "Total Accounts"}
+          </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-ink">{users.length}</p>
-          <p className="mt-0.5 text-xs text-shinme-muted">Đã đăng ký hệ thống</p>
+          <p className="mt-0.5 text-xs text-shinme-muted">
+            {lang === "vi" ? "Đã đăng ký hệ thống" : "Registered in system"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Khách chưa xếp lớp</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+            {lang === "vi" ? "Khách chưa xếp lớp" : "Unassigned Guests"}
+          </p>
           <p className="tabular mt-1 text-2xl font-black text-amber-700">{guestCount}</p>
-          <p className="mt-0.5 text-xs text-amber-600 font-semibold">Cần Admin xếp lớp học</p>
+          <p className="mt-0.5 text-xs text-amber-600 font-semibold">
+            {lang === "vi" ? "Cần Admin xếp lớp học" : "Requires Admin class placement"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Học viên chính thức</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+            {lang === "vi" ? "Học viên chính thức" : "Enrolled Students"}
+          </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-primary">{studentCount}</p>
-          <p className="mt-0.5 text-xs text-shinme-muted">Đang theo học tại các lớp</p>
+          <p className="mt-0.5 text-xs text-shinme-muted">
+            {lang === "vi" ? "Đang theo học tại các lớp" : "Currently studying in classes"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">Giáo viên (Sensei)</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
+            {lang === "vi" ? "Giáo viên (Sensei)" : "Instructors (Sensei)"}
+          </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-primary">{senseiCount}</p>
-          <p className="mt-0.5 text-xs text-shinme-muted">Phụ trách giảng dạy</p>
+          <p className="mt-0.5 text-xs text-shinme-muted">
+            {lang === "vi" ? "Phụ trách giảng dạy" : "In charge of teaching"}
+          </p>
         </div>
       </div>
 
@@ -343,11 +387,11 @@ export default function UsersManagementPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: "ALL", label: `Tất cả (${users.length})` },
-            { id: "guest", label: `Khách (${guestCount})` },
-            { id: "student", label: `Học viên (${studentCount})` },
-            { id: "sensei", label: `Giáo viên (${senseiCount})` },
-            { id: "admin", label: `Admin (${adminCount})` },
+            { id: "ALL", label: lang === "vi" ? `Tất cả (${users.length})` : `All (${users.length})` },
+            { id: "guest", label: lang === "vi" ? `Khách (${guestCount})` : `Guests (${guestCount})` },
+            { id: "student", label: lang === "vi" ? `Học viên (${studentCount})` : `Students (${studentCount})` },
+            { id: "sensei", label: lang === "vi" ? `Giáo viên (${senseiCount})` : `Sensei (${senseiCount})` },
+            { id: "admin", label: lang === "vi" ? `Admin (${adminCount})` : `Admin (${adminCount})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -370,8 +414,8 @@ export default function UsersManagementPage() {
             onChange={(e) => setClassFilter(e.target.value)}
             className="h-9 rounded-full border border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            <option value="ALL">Tất cả lớp học</option>
-            <option value="UNASSIGNED">Chưa vào lớp nào</option>
+            <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
+            <option value="UNASSIGNED">{lang === "vi" ? "Chưa vào lớp nào" : "Unassigned (No Class)"}</option>
             {classes.map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {cls.code} — {cls.shortName || cls.name}
@@ -384,7 +428,7 @@ export default function UsersManagementPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-shinme-muted" />
             <input
               type="text"
-              placeholder="Tìm theo tên, email, mã HV..."
+              placeholder={lang === "vi" ? "Tìm theo tên, email, mã HV..." : "Search by name, email, code..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 w-full rounded-full border border-shinme-border bg-shinme-surface pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
@@ -397,14 +441,20 @@ export default function UsersManagementPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 text-shinme-muted space-y-3">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
-          <p className="text-sm font-semibold">Đang tải danh sách người dùng...</p>
+          <p className="text-sm font-semibold">
+            {lang === "vi" ? "Đang tải danh sách người dùng..." : "Loading user directory..."}
+          </p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-12 text-center">
           <Users className="mx-auto size-12 text-shinme-muted/60" />
-          <h3 className="mt-3 text-base font-bold text-shinme-ink">Không tìm thấy người dùng phù hợp</h3>
+          <h3 className="mt-3 text-base font-bold text-shinme-ink">
+            {lang === "vi" ? "Không tìm thấy người dùng phù hợp" : "No matching users found"}
+          </h3>
           <p className="mt-1 text-xs text-shinme-muted">
-            Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc vai trò khác.
+            {lang === "vi"
+              ? "Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc vai trò khác."
+              : "Try adjusting your search keywords or selecting a different role filter."}
           </p>
         </div>
       ) : (
@@ -413,11 +463,11 @@ export default function UsersManagementPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-shinme-line bg-shinme-bg/60 text-shinme-muted font-black uppercase tracking-wider">
-                  <th className="py-3 px-4">Thành viên</th>
-                  <th className="py-3 px-4">Vai trò</th>
-                  <th className="py-3 px-4">Lớp học hiện tại</th>
-                  <th className="py-3 px-4">Mục tiêu JLPT</th>
-                  <th className="py-3 px-4 text-right">Thao tác Admin</th>
+                  <th className="py-3 px-4">{lang === "vi" ? "Thành viên" : "Member"}</th>
+                  <th className="py-3 px-4">{lang === "vi" ? "Vai trò" : "Role"}</th>
+                  <th className="py-3 px-4">{lang === "vi" ? "Lớp học hiện tại" : "Current Class"}</th>
+                  <th className="py-3 px-4">{lang === "vi" ? "Mục tiêu JLPT" : "JLPT Target"}</th>
+                  <th className="py-3 px-4 text-right">{lang === "vi" ? "Thao tác Admin" : "Admin Actions"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-shinme-line">
@@ -457,22 +507,22 @@ export default function UsersManagementPage() {
                       <td className="py-3.5 px-4">
                         {isGuest && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-1 text-xs font-black text-amber-800">
-                            Khách (Chưa xếp lớp)
+                            {lang === "vi" ? "Khách (Chưa xếp lớp)" : "Guest (Unassigned)"}
                           </span>
                         )}
                         {isStudent && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-bg border border-shinme-border px-2.5 py-1 text-xs font-black text-shinme-ink">
-                            Học viên
+                            {lang === "vi" ? "Học viên" : "Student"}
                           </span>
                         )}
                         {isSensei && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf border border-shinme-primary/20 px-2.5 py-1 text-xs font-black text-shinme-primary">
-                            Giáo viên (Sensei)
+                            {lang === "vi" ? "Giáo viên (Sensei)" : "Teacher (Sensei)"}
                           </span>
                         )}
                         {isAdmin && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-warn-soft border border-[#8a5a12]/20 px-2.5 py-1 text-xs font-black text-[#8a5a12]">
-                            Quản trị viên
+                            {lang === "vi" ? "Quản trị viên" : "Administrator"}
                           </span>
                         )}
                       </td>
@@ -486,7 +536,7 @@ export default function UsersManagementPage() {
                           </div>
                         ) : (
                           <span className="italic text-xs text-shinme-muted font-medium">
-                            — Chưa vào lớp —
+                            {lang === "vi" ? "— Chưa vào lớp —" : "— Unassigned —"}
                           </span>
                         )}
                       </td>
@@ -496,7 +546,9 @@ export default function UsersManagementPage() {
                         {u.targetJLPT ? (
                           <Badge tone="leaf">{u.targetJLPT}</Badge>
                         ) : (
-                          <span className="text-xs text-shinme-muted">Tự do</span>
+                          <span className="text-xs text-shinme-muted">
+                            {lang === "vi" ? "Tự do" : "None / Free"}
+                          </span>
                         )}
                         {u.phone && <p className="text-xs text-shinme-muted mt-1">{u.phone}</p>}
                       </td>
@@ -512,7 +564,9 @@ export default function UsersManagementPage() {
                             className="text-xs font-bold"
                           >
                             <GraduationCap className="size-3.5" />
-                            {isGuest ? "Xếp vào lớp" : "Chuyển lớp"}
+                            {isGuest
+                              ? (lang === "vi" ? "Xếp vào lớp" : "Assign Class")
+                              : (lang === "vi" ? "Chuyển lớp" : "Transfer Class")}
                           </Button>
 
                           {/* Assign Teacher Button */}
@@ -522,10 +576,12 @@ export default function UsersManagementPage() {
                               variant="outline"
                               onClick={() => handleOpenAssignTeacher(u)}
                               className="text-xs font-bold text-shinme-primary hover:bg-shinme-leaf"
-                              title="Bổ nhiệm làm Giáo viên và phân lớp phụ trách"
+                              title={lang === "vi" ? "Bổ nhiệm làm Giáo viên và phân lớp phụ trách" : "Appoint as Sensei and assign teaching classes"}
                             >
                               <UserCheck className="size-3.5" />
-                              {isSensei ? "Phân lớp dạy" : "Gán làm Giáo viên"}
+                              {isSensei
+                                ? (lang === "vi" ? "Phân lớp dạy" : "Assign Classes")
+                                : (lang === "vi" ? "Gán làm Giáo viên" : "Appoint Sensei")}
                             </Button>
                           )}
 
@@ -535,7 +591,7 @@ export default function UsersManagementPage() {
                             variant="ghost"
                             onClick={() => handleOpenRoleChange(u)}
                             className="text-xs font-medium text-shinme-muted hover:text-shinme-ink"
-                            title="Thay đổi vai trò"
+                            title={lang === "vi" ? "Thay đổi vai trò" : "Change User Role"}
                           >
                             <UserCog className="size-3.5" />
                           </Button>
@@ -557,21 +613,29 @@ export default function UsersManagementPage() {
             <div className="p-6 space-y-4">
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
-                  <GraduationCap className="size-5 text-shinme-primary" /> Xếp lớp cho người dùng
+                  <GraduationCap className="size-5 text-shinme-primary" />
+                  {lang === "vi" ? "Xếp lớp cho người dùng" : "Assign User to Class"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Thành viên: <strong className="text-shinme-ink font-bold">{assignUser.fullName}</strong> ({assignUser.email})
+                  {lang === "vi" ? "Thành viên:" : "Member:"}{" "}
+                  <strong className="text-shinme-ink font-bold">{assignUser.fullName}</strong> ({assignUser.email})
                 </DialogDescription>
               </div>
 
               <div className="rounded-xl bg-shinme-bg p-3.5 border border-shinme-line text-xs space-y-1">
-                <p>Vai trò hiện tại: <strong className="uppercase text-shinme-primary">{assignUser.role}</strong></p>
-                <p>Lớp hiện tại: <strong>{assignUser.className || "Chưa vào lớp"}</strong></p>
+                <p>
+                  {lang === "vi" ? "Vai trò hiện tại:" : "Current Role:"}{" "}
+                  <strong className="uppercase text-shinme-primary">{assignUser.role}</strong>
+                </p>
+                <p>
+                  {lang === "vi" ? "Lớp hiện tại:" : "Current Class:"}{" "}
+                  <strong>{assignUser.className || (lang === "vi" ? "Chưa vào lớp" : "Unassigned")}</strong>
+                </p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Chọn lớp học tiếp nhận:
+                  {lang === "vi" ? "Chọn lớp học tiếp nhận:" : "Select target class:"}
                 </label>
                 <select
                   value={selectedClassId}
@@ -595,23 +659,27 @@ export default function UsersManagementPage() {
                     className="mt-0.5 rounded border-shinme-border text-shinme-primary focus:ring-shinme-primary"
                   />
                   <span className="text-xs text-shinme-ink font-medium leading-relaxed">
-                    Tự động nâng cấp vai trò từ <strong>Khách</strong> thành <strong>Học viên chính thức</strong> (cấp mã HV-...)
+                    {lang === "vi" ? (
+                      <>Tự động nâng cấp vai trò từ <strong>Khách</strong> thành <strong>Học viên chính thức</strong> (cấp mã HV-...)</>
+                    ) : (
+                      <>Automatically promote role from <strong>Guest</strong> to <strong>Enrolled Student</strong> (assign HV-... student code)</>
+                    )}
                   </span>
                 </label>
               )}
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setAssignUser(null)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleSaveClassAssignment} disabled={isAssigning}>
                   {isAssigning ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang xếp lớp...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang xếp lớp..." : "Assigning..."}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> Xác nhận xếp lớp
+                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Xác nhận xếp lớp" : "Confirm Assignment"}
                     </>
                   )}
                 </Button>
@@ -628,20 +696,26 @@ export default function UsersManagementPage() {
             <div className="p-6 space-y-4">
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
-                  <UserCheck className="size-5 text-shinme-primary" /> Bổ nhiệm Giáo viên (Sensei) & Phân lớp
+                  <UserCheck className="size-5 text-shinme-primary" />
+                  {lang === "vi" ? "Bổ nhiệm Giáo viên (Sensei) & Phân lớp" : "Appoint Teacher (Sensei) & Assign Classes"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Giáo viên: <strong className="text-shinme-ink font-bold">{teacherUser.fullName}</strong> ({teacherUser.email})
+                  {lang === "vi" ? "Giáo viên:" : "Instructor:"}{" "}
+                  <strong className="text-shinme-ink font-bold">{teacherUser.fullName}</strong> ({teacherUser.email})
                 </DialogDescription>
               </div>
 
               <div className="rounded-xl bg-shinme-leaf-faint p-3 border border-shinme-accent-soft/40 text-xs text-shinme-ink-soft leading-relaxed">
-                Khi xác nhận, người dùng này sẽ nhận vai trò <strong>Giáo viên (Sensei)</strong>, cấp mã định danh Sensei (<code>SS-...</code>), và hệ thống sẽ cập nhật tên giáo viên phụ trách vào các lớp học được tích chọn bên dưới.
+                {lang === "vi" ? (
+                  <>Khi xác nhận, người dùng này sẽ nhận vai trò <strong>Giáo viên (Sensei)</strong>, cấp mã định danh Sensei (<code>SS-...</code>), và hệ thống sẽ cập nhật tên giáo viên phụ trách vào các lớp học được tích chọn bên dưới.</>
+                ) : (
+                  <>Upon confirmation, this user will receive the <strong>Teacher (Sensei)</strong> role, be assigned a Sensei identifier (<code>SS-...</code>), and the system will update the assigned instructor for all selected classes below.</>
+                )}
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Chọn các lớp học phân công cho Sensei giảng dạy:
+                  {lang === "vi" ? "Chọn các lớp học phân công cho Sensei giảng dạy:" : "Select classes assigned to Sensei for teaching:"}
                 </label>
                 <div className="space-y-2 max-h-56 overflow-y-auto p-1 border border-shinme-border rounded-xl">
                   {classes.map((cls) => {
@@ -665,7 +739,7 @@ export default function UsersManagementPage() {
                           <div>
                             <span className="font-black">{cls.code}</span> — {cls.shortName || cls.name}
                             <p className="text-xs opacity-75 font-medium">
-                              Lịch học: {cls.schedule} ({cls.time})
+                              {lang === "vi" ? `Lịch học: ${cls.schedule} (${cls.time})` : `Schedule: ${cls.schedule} (${cls.time})`}
                             </p>
                           </div>
                         </div>
@@ -678,16 +752,16 @@ export default function UsersManagementPage() {
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setTeacherUser(null)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleSaveTeacherAssignment} disabled={isAssigningTeacher}>
                   {isAssigningTeacher ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang xử lý...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang xử lý..." : "Processing..."}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> Bổ nhiệm & Lưu phân công
+                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Bổ nhiệm & Lưu phân công" : "Appoint & Save Assignments"}
                     </>
                   )}
                 </Button>
@@ -704,41 +778,43 @@ export default function UsersManagementPage() {
             <div className="p-6 space-y-4">
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
-                  <UserCog className="size-5 text-shinme-primary" /> Thay đổi vai trò người dùng
+                  <UserCog className="size-5 text-shinme-primary" />
+                  {lang === "vi" ? "Thay đổi vai trò người dùng" : "Change User Role"}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  Thành viên: <strong className="text-shinme-ink font-bold">{roleChangeUser.fullName}</strong> ({roleChangeUser.email})
+                  {lang === "vi" ? "Thành viên:" : "Member:"}{" "}
+                  <strong className="text-shinme-ink font-bold">{roleChangeUser.fullName}</strong> ({roleChangeUser.email})
                 </DialogDescription>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  Chọn vai trò mới:
+                  {lang === "vi" ? "Chọn vai trò mới:" : "Select new role:"}
                 </label>
                 <select
                   value={newTargetRole}
                   onChange={(e) => setNewTargetRole(e.target.value as RoleId)}
                   className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="guest">Khách (Chưa xếp lớp)</option>
-                  <option value="student">Học viên chính thức</option>
-                  <option value="sensei">Giáo viên (Sensei)</option>
-                  <option value="admin">Quản trị viên (Admin)</option>
+                  <option value="guest">{lang === "vi" ? "Khách (Chưa xếp lớp)" : "Guest (Unassigned)"}</option>
+                  <option value="student">{lang === "vi" ? "Học viên chính thức" : "Enrolled Student"}</option>
+                  <option value="sensei">{lang === "vi" ? "Giáo viên (Sensei)" : "Teacher (Sensei)"}</option>
+                  <option value="admin">{lang === "vi" ? "Quản trị viên (Admin)" : "Administrator (Admin)"}</option>
                 </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setRoleChangeUser(null)}>
-                  Hủy
+                  {lang === "vi" ? "Hủy" : "Cancel"}
                 </Button>
                 <Button size="sm" onClick={handleSaveRoleChange} disabled={isChangingRole}>
                   {isChangingRole ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> Đang cập nhật...
+                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang cập nhật..." : "Updating..."}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> Lưu vai trò
+                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Lưu vai trò" : "Save Role"}
                     </>
                   )}
                 </Button>

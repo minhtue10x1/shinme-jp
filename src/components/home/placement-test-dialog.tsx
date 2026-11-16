@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PLACEMENT_TEST, recommendByScore } from "@/data/placement-test";
 import { cn } from "@/lib/utils";
 import { useHome } from "./home-context";
+import { useTranslation } from "@/lib/i18n/context";
 
 const TOTAL = PLACEMENT_TEST.length;
 const CURRENT_LEVEL_BY_SCORE = ["Mới bắt đầu", "Mới bắt đầu", "N5", "N4", "N3", "N2"];
@@ -25,6 +26,7 @@ export function PlacementTestDialog() {
 
 function Quiz() {
   const { firstAnswer, goToCourses, goToConsultation } = useHome();
+  const { t, lang } = useTranslation();
   const [answers, setAnswers] = useState<(number | null)[]>(() =>
     PLACEMENT_TEST.map((_, i) => (i === 0 ? firstAnswer : null)),
   );
@@ -56,9 +58,15 @@ function Quiz() {
     const rec = recommendByScore(score);
     return (
       <div className="p-6 sm:p-8">
-        <DialogTitle className="pr-10 text-2xl font-extrabold text-shinme-ink">Kết quả Thi thử Mini</DialogTitle>
+        <DialogTitle className="pr-10 text-2xl font-extrabold text-shinme-ink">
+          {t.home.placementDialog.resultTitle}
+        </DialogTitle>
         <DialogDescription className="mt-1 text-shinme-muted">
-          Bạn trả lời đúng <strong className="text-shinme-primary">{score}/{TOTAL}</strong> câu.
+          {lang === "vi" ? (
+            <>Bạn trả lời đúng <strong className="text-shinme-primary">{score}/{TOTAL}</strong> câu.</>
+          ) : (
+            <>You answered <strong className="text-shinme-primary">{score}/{TOTAL}</strong> questions correctly.</>
+          )}
         </DialogDescription>
 
         <ol className="mt-5 flex gap-2" aria-label="Đáp án từng câu">
@@ -74,7 +82,7 @@ function Quiz() {
               >
                 {ok ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
                 <span>
-                  Câu {i + 1} · {item.level}
+                  {lang === "vi" ? `Câu ${i + 1}` : `Q ${i + 1}`} · {item.level}
                 </span>
               </li>
             );
@@ -83,7 +91,7 @@ function Quiz() {
 
         <div className="mt-6 rounded-2xl bg-shinme-primary p-6 text-white">
           <p className="flex items-center gap-2 text-sm font-bold text-shinme-accent">
-            <Sprout className="size-4" /> Shinme gợi ý cho bạn
+            <Sprout className="size-4" /> {lang === "vi" ? "Shinme gợi ý cho bạn" : "Shinme Recommendation"}
           </p>
           <p className="mt-2 text-2xl font-black">{rec.title}</p>
           <p className="mt-2 leading-relaxed text-white/80">{rec.message}</p>
@@ -98,20 +106,22 @@ function Quiz() {
                 })
               }
             >
-              Nhận lộ trình chi tiết
+              {lang === "vi" ? "Nhận lộ trình chi tiết" : "Get Detailed Roadmap"}
               <ArrowRight />
             </Button>
             <Button variant="onDarkOutline" onClick={() => goToCourses(rec.level)}>
-              Xem lịch khóa {rec.level}
+              {lang === "vi" ? `Xem lịch khóa ${rec.level}` : `View ${rec.level} Schedule`}
             </Button>
           </div>
         </div>
 
         <p className="mt-4 text-sm text-shinme-muted">
-          Bài thi thử chỉ mang tính tham khảo. Sensei sẽ kiểm tra thêm kỹ năng nghe – nói khi bạn đến tư vấn.
+          {lang === "vi"
+            ? "Bài thi thử chỉ mang tính tham khảo. Sensei sẽ kiểm tra thêm kỹ năng nghe – nói khi bạn đến tư vấn."
+            : "Placement test is for guidance only. Senseis will further assess your speaking and listening skills during consultation."}
         </p>
-        <Button variant="ghost" size="sm" className="mt-3" onClick={restart}>
-          <RotateCcw /> Làm lại từ đầu
+        <Button variant="ghost" size="sm" className="mt-3 cursor-pointer" onClick={restart}>
+          <RotateCcw /> {lang === "vi" ? "Làm lại từ đầu" : "Retake Test"}
         </Button>
       </div>
     );
@@ -122,9 +132,13 @@ function Quiz() {
   return (
     <div className="p-6 sm:p-8">
       <div className="pr-10">
-        <DialogTitle className="text-lg font-extrabold text-shinme-ink">Thi thử Mini — 5 câu, ~3 phút</DialogTitle>
+        <DialogTitle className="text-lg font-extrabold text-shinme-ink">
+          {lang === "vi" ? "Thi thử Mini — 5 câu, ~3 phút" : "Mini Mock Test — 5 Questions, ~3 min"}
+        </DialogTitle>
         <DialogDescription className="sr-only">
-          Bài kiểm tra nhanh 5 câu từ N5 đến N2, chấm điểm ngay và gợi ý khóa học phù hợp.
+          {lang === "vi"
+            ? "Bài kiểm tra nhanh 5 câu từ N5 đến N2, chấm điểm ngay và gợi ý khóa học phù hợp."
+            : "Quick 5-question test from N5 to N2, instant scoring and course recommendation."}
         </DialogDescription>
       </div>
 
@@ -132,7 +146,7 @@ function Quiz() {
         <div
           className="h-2 flex-1 overflow-hidden rounded-full bg-shinme-bg-deep"
           role="progressbar"
-          aria-label="Tiến độ bài thi"
+          aria-label={lang === "vi" ? "Tiến độ bài thi" : "Test Progress"}
           aria-valuemin={0}
           aria-valuemax={TOTAL}
           aria-valuenow={index + (answered ? 1 : 0)}
@@ -172,7 +186,7 @@ function Quiz() {
                 disabled={answered && !isPicked && !isAnswer}
                 onClick={() => pick(i)}
                 className={cn(
-                  "flex min-h-14 items-center gap-3 rounded-xl border-2 px-4 text-left transition-[border-color,background-color,opacity] duration-200",
+                  "flex min-h-14 items-center gap-3 rounded-xl border-2 px-4 text-left transition-[border-color,background-color,opacity] duration-200 cursor-pointer",
                   !answered && "border-shinme-border hover:border-shinme-accent hover:bg-shinme-leaf-faint",
                   answered && isAnswer && "border-shinme-accent bg-shinme-leaf",
                   answered && isPicked && !isAnswer && "border-shinme-danger bg-shinme-danger-soft",
@@ -214,7 +228,9 @@ function Quiz() {
               )}
               <div>
                 <p className={cn("font-extrabold", correct ? "text-shinme-primary" : "text-shinme-danger")}>
-                  {correct ? "Chính xác! すごい！" : `Chưa đúng — đáp án là ${String.fromCharCode(65 + q.answer)}`}
+                  {correct
+                    ? (lang === "vi" ? "Chính xác! すごい！" : "Correct! Sugoi (Great)! 🎉")
+                    : (lang === "vi" ? `Chưa đúng — đáp án là ${String.fromCharCode(65 + q.answer)}` : `Incorrect — correct answer is ${String.fromCharCode(65 + q.answer)}`)}
                 </p>
                 <FuriganaText as="p" lang="vi" text={q.explain} className="mt-0.5 text-sm leading-[1.9] text-shinme-ink-soft" />
               </div>
@@ -225,10 +241,10 @@ function Quiz() {
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <Button variant="ghost" size="sm" disabled={index === 0} onClick={() => setIndex(index - 1)}>
-          Câu trước
+          {t.home.placementDialog.prevBtn}
         </Button>
         <Button disabled={!answered} onClick={next}>
-          {index < TOTAL - 1 ? "Câu tiếp theo" : "Xem kết quả"}
+          {index < TOTAL - 1 ? t.home.placementDialog.nextBtn : t.home.placementDialog.submitBtn}
           <ArrowRight />
         </Button>
       </div>

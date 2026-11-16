@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
+import { useTranslation } from "@/lib/i18n/context";
 import {
   getAllTests,
   getAllSubmissions,
@@ -30,6 +31,7 @@ import {
 import type { JLPTTestDoc, TestSubmissionDoc } from "@/lib/db/schema";
 
 export default function SenseiTestManagePage() {
+  const { lang, t } = useTranslation();
   const [tests, setTests] = useState<JLPTTestDoc[]>([]);
   const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function SenseiTestManagePage() {
       }
     } catch (err) {
       console.error("Failed to load tests for manage:", err);
-      toast.error("Không thể tải danh sách đề thi từ cơ sở dữ liệu.");
+      toast.error(lang === "vi" ? "Không thể tải danh sách đề thi từ cơ sở dữ liệu." : "Failed to load tests from database.");
     } finally {
       setIsLoading(false);
     }
@@ -69,12 +71,12 @@ export default function SenseiTestManagePage() {
       setTests((prev) => prev.map((t) => (t.id === test.id ? updated : t)));
       toast.success(
         updated.shuffleQuestions
-          ? `Đã bật trộn câu hỏi ngẫu nhiên cho "${test.code}"`
-          : `Đã tắt trộn câu hỏi ngẫu nhiên cho "${test.code}"`
+          ? (lang === "vi" ? `Đã bật trộn câu hỏi ngẫu nhiên cho "${test.code}"` : `Enabled random question shuffle for "${test.code}"`)
+          : (lang === "vi" ? `Đã tắt trộn câu hỏi ngẫu nhiên cho "${test.code}"` : `Disabled random question shuffle for "${test.code}"`)
       );
     } catch (err) {
       console.error("Toggle shuffle error:", err);
-      toast.error("Lỗi khi cập nhật cài đặt đề thi.");
+      toast.error(lang === "vi" ? "Lỗi khi cập nhật cài đặt đề thi." : "Error updating test settings.");
     }
   };
 
@@ -84,27 +86,27 @@ export default function SenseiTestManagePage() {
         ...test,
         id: `test-${Date.now().toString(36)}`,
         code: `${test.code}-COPY`,
-        title: `${test.title} (Bản sao)`,
+        title: `${test.title} (${lang === "vi" ? "Bản sao" : "Copy"})`,
         createdAt: new Date().toISOString().slice(0, 10),
       };
       await saveTestDoc(copy);
       setTests((prev) => [copy, ...prev]);
-      toast.success(`Đã nhân bản đề thi "${test.code}"`);
+      toast.success(lang === "vi" ? `Đã nhân bản đề thi "${test.code}"` : `Duplicated test "${test.code}"`);
     } catch (err) {
       console.error("Duplicate error:", err);
-      toast.error("Không thể nhân bản đề thi.");
+      toast.error(lang === "vi" ? "Không thể nhân bản đề thi." : "Failed to duplicate test.");
     }
   };
 
   const handleDelete = async (test: JLPTTestDoc) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa đề thi "${test.title}"?`)) return;
+    if (!confirm(lang === "vi" ? `Bạn có chắc chắn muốn xóa đề thi "${test.title}"?` : `Are you sure you want to delete test "${test.title}"?`)) return;
     try {
       await deleteTestDoc(test.id);
       setTests((prev) => prev.filter((t) => t.id !== test.id));
-      toast.info(`Đã xóa đề thi "${test.title}"`);
+      toast.info(lang === "vi" ? `Đã xóa đề thi "${test.title}"` : `Deleted test "${test.title}"`);
     } catch (err) {
       console.error("Delete test error:", err);
-      toast.error("Không thể xóa đề thi.");
+      toast.error(lang === "vi" ? "Không thể xóa đề thi." : "Failed to delete test.");
     }
   };
 
@@ -118,13 +120,15 @@ export default function SenseiTestManagePage() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#135E36] hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Quay lại Trung tâm Khảo thí
+            {lang === "vi" ? "Quay lại Trung tâm Khảo thí" : "Back to Testing Center"}
           </Link>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            Quản lý Kho Đề Thi JLPT (Sensei Test Manager)
+            {lang === "vi" ? "Quản lý Kho Đề Thi JLPT (Sensei Test Manager)" : "JLPT Exam Management (Sensei Test Manager)"}
           </h1>
           <p className="text-sm text-slate-600">
-            Kiểm tra cấu trúc câu hỏi, đáp án, lời giải Furigana và cấu hình trộn đề.
+            {lang === "vi"
+              ? "Kiểm tra cấu trúc câu hỏi, đáp án, lời giải Furigana và cấu hình trộn đề."
+              : "Verify question structures, answers, Furigana explanations, and shuffle configurations."}
           </p>
         </div>
 
@@ -134,14 +138,14 @@ export default function SenseiTestManagePage() {
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
           >
             <BarChart3 className="h-4 w-4 text-[#135E36]" />
-            Mở Sổ điểm bài kiểm tra
+            {lang === "vi" ? "Mở Sổ điểm bài kiểm tra" : "Open Test Gradebook"}
           </Link>
           <Link
             href="/portal/tests/create"
             className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a]"
           >
             <Plus className="h-4 w-4 text-[#6CC24A]" />
-            Soạn Đề Thi Mới
+            {lang === "vi" ? "Soạn Đề Thi Mới" : "Create New Exam"}
           </Link>
         </div>
       </div>
@@ -155,13 +159,17 @@ export default function SenseiTestManagePage() {
         </div>
       ) : tests.length === 0 ? (
         <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
-          <h3 className="text-lg font-black text-slate-900">Chưa có đề thi nào trên hệ thống</h3>
-          <p className="mt-1 text-xs text-slate-500">Hãy bấm "Soạn Đề Thi Mới" để tạo bài kiểm tra đầu tiên.</p>
+          <h3 className="text-lg font-black text-slate-900">
+            {lang === "vi" ? "Chưa có đề thi nào trên hệ thống" : "No exams in the system"}
+          </h3>
+          <p className="mt-1 text-xs text-slate-500">
+            {lang === "vi" ? 'Hãy bấm "Soạn Đề Thi Mới" để tạo bài kiểm tra đầu tiên.' : 'Click "Create New Exam" to create your first exam.'}
+          </p>
           <Link
             href="/portal/tests/create"
             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2 text-xs font-bold text-white"
           >
-            <Plus className="size-4" /> Soạn Đề Thi Mới
+            <Plus className="size-4" /> {lang === "vi" ? "Soạn Đề Thi Mới" : "Create New Exam"}
           </Link>
         </div>
       ) : (
@@ -198,8 +206,8 @@ export default function SenseiTestManagePage() {
                         {test.className}
                       </span>
                       <span className="text-xs text-slate-600">
-                        {(test.questions || []).length} câu hỏi · {test.totalPoints} điểm ·{" "}
-                        {test.durationMinutes} phút
+                        {(test.questions || []).length} {lang === "vi" ? "câu hỏi" : "questions"} · {test.totalPoints} {lang === "vi" ? "điểm" : "pts"} ·{" "}
+                        {test.durationMinutes} {lang === "vi" ? "phút" : "mins"}
                       </span>
                     </div>
 
@@ -217,12 +225,14 @@ export default function SenseiTestManagePage() {
                     {/* Performance quick badge */}
                     <div className="hidden rounded-xl bg-slate-50 px-3 py-1.5 text-right sm:block border border-slate-100">
                       <div className="text-xs font-medium text-slate-600">
-                        {testAttempts.length} lượt nộp
+                        {testAttempts.length} {lang === "vi" ? "lượt nộp" : "submissions"}
                       </div>
                       <div className="text-xs font-bold text-[#135E36]">
                         {testAttempts.length > 0
-                          ? `TB: ${avgScore}/${test.totalPoints}đ (${passCount} Đạt)`
-                          : "Chưa có lượt nộp"}
+                          ? (lang === "vi"
+                              ? `TB: ${avgScore}/${test.totalPoints}đ (${passCount} Đạt)`
+                              : `Avg: ${avgScore}/${test.totalPoints}pts (${passCount} Passed)`)
+                          : (lang === "vi" ? "Chưa có lượt nộp" : "No submissions")}
                       </div>
                     </div>
 
@@ -230,7 +240,7 @@ export default function SenseiTestManagePage() {
                     <button
                       type="button"
                       onClick={() => handleToggleShuffle(test)}
-                      title="Bật/Tắt trộn thứ tự câu hỏi khi học viên làm bài"
+                      title={lang === "vi" ? "Bật/Tắt trộn thứ tự câu hỏi khi học viên làm bài" : "Toggle question shuffle during examination"}
                       className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                         test.shuffleQuestions
                           ? "border-[#135E36] bg-emerald-50 text-[#135E36]"
@@ -238,14 +248,16 @@ export default function SenseiTestManagePage() {
                       }`}
                     >
                       <Shuffle className="h-3.5 w-3.5" />
-                      {test.shuffleQuestions ? "Trộn câu: BẬT" : "Trộn câu: TẮT"}
+                      {test.shuffleQuestions
+                        ? (lang === "vi" ? "Trộn câu: BẬT" : "Shuffle: ON")
+                        : (lang === "vi" ? "Trộn câu: TẮT" : "Shuffle: OFF")}
                     </button>
 
                     {/* Duplicate */}
                     <button
                       type="button"
                       onClick={() => handleDuplicate(test)}
-                      title="Nhân bản đề thi"
+                      title={lang === "vi" ? "Nhân bản đề thi" : "Duplicate test"}
                       className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                     >
                       <Copy className="h-4 w-4" />
@@ -254,18 +266,18 @@ export default function SenseiTestManagePage() {
                     {/* Test Take preview */}
                     <Link
                       href={`/portal/tests/${test.id}/take`}
-                      title="Thi thử với tư cách học viên"
+                      title={lang === "vi" ? "Thi thử với tư cách học viên" : "Preview exam as student"}
                       className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200"
                     >
                       <Play className="h-3.5 w-3.5 text-[#135E36]" />
-                      Thi thử
+                      {lang === "vi" ? "Thi thử" : "Preview"}
                     </Link>
 
                     {/* Delete */}
                     <button
                       type="button"
                       onClick={() => handleDelete(test)}
-                      title="Xóa đề thi"
+                      title={lang === "vi" ? "Xóa đề thi" : "Delete test"}
                       className="rounded-xl border border-rose-200 p-2 text-rose-600 hover:bg-rose-50"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -281,11 +293,11 @@ export default function SenseiTestManagePage() {
                     >
                       {isExpanded ? (
                         <>
-                          Thu gọn <ChevronUp className="h-3.5 w-3.5" />
+                          {lang === "vi" ? "Thu gọn" : "Collapse"} <ChevronUp className="h-3.5 w-3.5" />
                         </>
                       ) : (
                         <>
-                          Xem câu hỏi <ChevronDown className="h-3.5 w-3.5" />
+                          {lang === "vi" ? "Xem câu hỏi" : "View questions"} <ChevronDown className="h-3.5 w-3.5" />
                         </>
                       )}
                     </button>
@@ -297,10 +309,10 @@ export default function SenseiTestManagePage() {
                   <div className="border-t border-slate-100 bg-slate-50/60 p-5">
                     <div className="mb-3 flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Danh sách {(test.questions || []).length} câu hỏi chi tiết
+                        {lang === "vi" ? `Danh sách ${(test.questions || []).length} câu hỏi chi tiết` : `Detailed list of ${(test.questions || []).length} questions`}
                       </span>
                       <span className="text-xs text-slate-600">
-                        Cấu trúc Furigana chuẩn: 「漢字[かんじ]」
+                        {lang === "vi" ? "Cấu trúc Furigana chuẩn: 「漢字[かんじ]」" : "Standard Furigana notation: 「漢字[かんじ]」"}
                       </span>
                     </div>
 
@@ -313,7 +325,7 @@ export default function SenseiTestManagePage() {
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
                             <div className="flex items-center gap-2">
                               <span className="rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-800">
-                                Câu {idx + 1}
+                                {lang === "vi" ? `Câu ${idx + 1}` : `Question ${idx + 1}`}
                               </span>
                               <span
                                 className={`rounded px-1.5 py-0.5 font-semibold ${
@@ -327,14 +339,14 @@ export default function SenseiTestManagePage() {
                                 }`}
                               >
                                 {q.type === "star"
-                                  ? "Dấu sao ★"
+                                  ? (lang === "vi" ? "Dấu sao ★" : "Star ★")
                                   : q.type === "dokkai"
-                                  ? "Đọc hiểu Dokkai"
+                                  ? (lang === "vi" ? "Đọc hiểu Dokkai" : "Dokkai")
                                   : q.type === "choukai"
-                                  ? "Nghe Choukai"
-                                  : "Trắc nghiệm chuẩn"}
+                                  ? (lang === "vi" ? "Nghe Choukai" : "Choukai")
+                                  : (lang === "vi" ? "Trắc nghiệm chuẩn" : "Standard")}
                               </span>
-                              <span className="text-slate-600">{q.points} điểm</span>
+                              <span className="text-slate-600">{q.points} {lang === "vi" ? "điểm" : "pts"}</span>
                             </div>
 
                             <span className="font-semibold text-slate-600">
@@ -346,7 +358,7 @@ export default function SenseiTestManagePage() {
                           {q.passageText && (
                             <div className="my-2.5 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
                               <div className="mb-1 flex items-center gap-1 font-bold text-blue-900">
-                                <BookOpen className="h-3.5 w-3.5" /> Đoạn văn Đọc hiểu (Passage)
+                                <BookOpen className="h-3.5 w-3.5" /> {lang === "vi" ? "Đoạn văn Đọc hiểu (Passage)" : "Reading Passage"}
                               </div>
                               <FuriganaText
                                 text={q.passageText}
@@ -364,7 +376,7 @@ export default function SenseiTestManagePage() {
                           {q.type === "star" && (
                             <div className="my-2 rounded-md bg-amber-50/60 p-2 font-jp text-xs">
                               <span className="font-bold text-amber-900">
-                                Cấu trúc sắp xếp:
+                                {lang === "vi" ? "Cấu trúc sắp xếp:" : "Ordering structure:"}
                               </span>{" "}
                               {q.starPrefix || ""} ___ ___ ★ ___ {q.starSuffix || ""}
                             </div>
@@ -405,7 +417,7 @@ export default function SenseiTestManagePage() {
                           {q.explanation && (
                             <div className="mt-2.5 rounded-md bg-slate-100 p-2 text-xs text-slate-600">
                               <span className="font-bold text-slate-800">
-                                Lời giải:
+                                {lang === "vi" ? "Lời giải:" : "Explanation:"}
                               </span>{" "}
                               <FuriganaText text={q.explanation} />
                             </div>

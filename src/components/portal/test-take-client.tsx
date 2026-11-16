@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { useRole } from "@/lib/role-context";
+import { useTranslation } from "@/lib/i18n/context";
 import { getTestById, saveTestSubmission } from "@/lib/db/services";
 import type { JLPTTestDoc, TestSubmissionDoc } from "@/lib/db/schema";
 import {
@@ -65,6 +66,7 @@ function formatMMSS(totalSeconds: number): string {
 
 export function TestTakeClient({ testId }: { testId: string }) {
   const { user: currentUser, firebaseUser } = useRole();
+  const { lang, t } = useTranslation();
   const tests = useSyncExternalStore(
     subscribeTests,
     readTests,
@@ -260,10 +262,12 @@ export function TestTakeClient({ testId }: { testId: string }) {
       });
 
       if (isAutoSubmit) {
-        toast.warning("Hết giờ làm bài! Hệ thống đã tự động thu bài và chấm điểm.");
+        toast.warning(lang === "vi" ? "Hết giờ làm bài! Hệ thống đã tự động thu bài và chấm điểm." : "Time is up! Exam auto-submitted and scored.");
       } else {
         toast.success(
-          `Đã nộp bài thành công! Điểm của bạn: ${earned}/${total} điểm.`
+          lang === "vi"
+            ? `Đã nộp bài thành công! Điểm của bạn: ${earned}/${total} điểm.`
+            : `Submitted successfully! Your score: ${earned}/${total} points.`
         );
       }
     },
@@ -279,6 +283,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
       currentUser.code,
       currentUser.name,
       storageKey,
+      lang,
     ]
   );
 
@@ -369,7 +374,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
 
     if (limit > 0 && usedPlays >= limit) {
       toast.error(
-        `Bạn đã sử dụng hết ${limit}/${limit} lượt nghe cho phép của câu hỏi này.`
+        lang === "vi"
+          ? `Bạn đã sử dụng hết ${limit}/${limit} lượt nghe cho phép của câu hỏi này.`
+          : `You have reached the maximum ${limit}/${limit} audio plays allowed for this item.`
       );
       return;
     }
@@ -425,8 +432,8 @@ export function TestTakeClient({ testId }: { testId: string }) {
             }`}
           >
             {submittedResult.passed
-              ? "🎉 CHÚC MỪNG! BẠN ĐÃ VƯỢT QUA BÀI KIỂM TRA TIẾNG NHẬT JLPT"
-              : "🌱 CHƯA ĐẠT ĐIỂM CHUẨN — HÃY XEM KỸ LỜI GIẢI CỦA SENSEI ĐỂ PHỤC THÙ NHÉ!"}
+              ? (lang === "vi" ? "🎉 CHÚC MỪNG! BẠN ĐÃ VƯỢT QUA BÀI KIỂM TRA TIẾNG NHẬT JLPT" : "🎉 CONGRATULATIONS! YOU PASSED THE JLPT JAPANESE EXAM")
+              : (lang === "vi" ? "🌱 CHƯA ĐẠT ĐIỂM CHUẨN — HÃY XEM KỸ LỜI GIẢI CỦA SENSEI ĐỂ PHỤC THÙ NHÉ!" : "🌱 PASS MARK NOT MET — REVIEW SENSEI'S EXPLANATIONS BELOW!")}
           </div>
 
           <div className="grid items-center gap-6 p-6 lg:grid-cols-12">
@@ -446,12 +453,12 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   {submittedResult.passed ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-[#135E36]" />
-                      KẾT QUẢ: ĐẠT (GOUKAKU 合格)
+                      {lang === "vi" ? "KẾT QUẢ: ĐẠT (GOUKAKU 合格)" : "RESULT: PASSED (GOUKAKU 合格)"}
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4 text-rose-700" />
-                      KẾT QUẢ: CHƯA ĐẠT (Cần {test.passScore} điểm)
+                      {lang === "vi" ? `KẾT QUẢ: CHƯA ĐẠT (Cần ${test.passScore} điểm)` : `RESULT: NOT PASSED (Needs ${test.passScore} pts)`}
                     </>
                   )}
                 </span>
@@ -469,7 +476,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
               {/* 4 Score KPI Cards */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
-                  <p className="text-xs font-bold text-slate-500">Tổng điểm</p>
+                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Tổng điểm" : "Total Score"}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-[#135E36]">
                     {submittedResult.score}
                     <span className="text-sm font-semibold text-slate-500">
@@ -479,18 +486,18 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
-                  <p className="text-xs font-bold text-slate-500">Số câu đúng</p>
+                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Số câu đúng" : "Correct Answers"}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-slate-900">
                     {submittedResult.correctCount}
                     <span className="text-sm font-semibold text-slate-500">
-                      /{orderedQuestions.length} câu
+                      /{orderedQuestions.length} {lang === "vi" ? "câu" : "items"}
                     </span>
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
                   <p className="text-xs font-bold text-slate-500">
-                    Thời gian hoàn thành
+                    {lang === "vi" ? "Thời gian hoàn thành" : "Completion Time"}
                   </p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-slate-900">
                     {formatMMSS(submittedResult.durationSeconds)}
@@ -498,9 +505,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
-                  <p className="text-xs font-bold text-slate-500">Điểm chuẩn</p>
+                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Điểm chuẩn" : "Pass Mark"}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-[#135E36]">
-                    {test.passScore}đ
+                    {test.passScore}{lang === "vi" ? "đ" : "pts"}
                   </p>
                 </div>
               </div>
@@ -520,7 +527,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a]"
                 >
                   <RotateCcw className="h-4 w-4 text-[#6CC24A]" />
-                  Làm lại đề thi này
+                  {lang === "vi" ? "Làm lại đề thi này" : "Retake This Exam"}
                 </button>
 
                 <Link
@@ -528,7 +535,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   className="inline-flex items-center gap-2 rounded-xl border border-[#135E36]/20 bg-[#FAF8F2] px-4 py-2.5 text-xs font-bold text-[#135E36] hover:bg-emerald-50"
                 >
                   <BarChart3 className="h-4 w-4" />
-                  Xem Bảng điểm lớp & Phân tích câu sai
+                  {lang === "vi" ? "Xem Bảng điểm lớp & Phân tích câu sai" : "View Gradebook & Error Analysis"}
                 </Link>
 
                 <Link
@@ -536,7 +543,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Về danh sách bài thi
+                  {lang === "vi" ? "Về danh sách bài thi" : "Back to Exam List"}
                 </Link>
               </div>
             </div>
@@ -554,7 +561,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   />
                 </div>
                 <span className="absolute -top-2.5 -right-3 rounded-full bg-[#135E36] px-3 py-1 text-xs font-extrabold text-white shadow">
-                  Cố lên! ♡
+                  {lang === "vi" ? "Cố lên! ♡" : "Ganbatte! ♡"}
                 </span>
               </div>
               <p className="font-jp text-xs font-bold text-[#135E36]">
@@ -562,8 +569,12 @@ export function TestTakeClient({ testId }: { testId: string }) {
               </p>
               <p className="mt-1 text-xs leading-relaxed text-slate-600">
                 {submittedResult.passed
-                  ? "Tuyệt vời lắm! Hãy đọc lại giải thích chi tiết bên dưới để nhớ sâu hơn các cấu trúc ngữ pháp N3 nhé!"
-                  : "Đừng nản lòng nhé! Mỗi câu sai hôm nay là một điểm ngữ pháp bạn sẽ không bao giờ quên trong kỳ thi JLPT thật!"}
+                  ? (lang === "vi"
+                      ? "Tuyệt vời lắm! Hãy đọc lại giải thích chi tiết bên dưới để nhớ sâu hơn các cấu trúc ngữ pháp N3 nhé!"
+                      : "Fantastic job! Review Sensei's detailed explanations below to cement your knowledge!")
+                  : (lang === "vi"
+                      ? "Đừng nản lòng nhé! Mỗi câu sai hôm nay là một điểm ngữ pháp bạn sẽ không bao giờ quên trong kỳ thi JLPT thật!"
+                      : "Don't be discouraged! Every mistake today turns into solid mastery for the real JLPT test!")}
               </p>
             </div>
           </div>
@@ -573,10 +584,10 @@ export function TestTakeClient({ testId }: { testId: string }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-slate-900">
-              Chi tiết đáp án & Lời giải từ Sensei ({orderedQuestions.length} câu)
+              {lang === "vi" ? `Chi tiết đáp án & Lời giải từ Sensei (${orderedQuestions.length} câu)` : `Detailed Answers & Sensei Explanations (${orderedQuestions.length} items)`}
             </h2>
             <span className="text-xs font-semibold text-slate-500">
-              So sánh lựa chọn của bạn với đáp án chuẩn
+              {lang === "vi" ? "So sánh lựa chọn của bạn với đáp án chuẩn" : "Compare your choices against standard solutions"}
             </span>
           </div>
 
@@ -605,7 +616,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                       ) : (
                         <XCircle className="h-3.5 w-3.5" />
                       )}
-                      Câu {idx + 1} • {isCorrect ? `+${q.points}đ` : `0/${q.points}đ`}
+                      {lang === "vi" ? `Câu ${idx + 1}` : `Question ${idx + 1}`} • {isCorrect ? `+${q.points}${lang === "vi" ? "đ" : "pts"}` : `0/${q.points}${lang === "vi" ? "đ" : "pts"}`}
                     </span>
                     <span className="rounded-full bg-slate-100 px-3 py-0.5 text-xs font-bold text-slate-700">
                       {q.mondaiLabel}
@@ -621,10 +632,12 @@ export function TestTakeClient({ testId }: { testId: string }) {
                     }`}
                   >
                     {studentChoice === undefined
-                      ? "Bỏ trống (Chưa chọn)"
+                      ? (lang === "vi" ? "Bỏ trống (Chưa chọn)" : "Skipped (Unanswered)")
                       : isCorrect
-                        ? "Trả lời chính xác"
-                        : `Bạn chọn ${optionLetters[studentChoice]} • Đáp án đúng: ${optionLetters[q.correctIndex]}`}
+                        ? (lang === "vi" ? "Trả lời chính xác" : "Correct answer")
+                        : (lang === "vi"
+                            ? `Bạn chọn ${optionLetters[studentChoice]} • Đáp án đúng: ${optionLetters[q.correctIndex]}`
+                            : `You chose ${optionLetters[studentChoice]} • Correct: ${optionLetters[q.correctIndex]}`)}
                   </span>
                 </div>
 
@@ -651,7 +664,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 {q.type === "star" && (
                   <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 font-jp text-sm text-amber-950">
                     <span className="mr-2 text-xs font-extrabold text-amber-800">
-                      Câu sắp xếp hoàn chỉnh:
+                      {lang === "vi" ? "Câu sắp xếp hoàn chỉnh:" : "Complete sentence:"}
                     </span>
                     <FuriganaText text={q.starPrefix || ""} />{" "}
                     {(q.starCorrectOrder ?? [0, 1, 2, 3]).map((optIndex, slotIdx) => {
@@ -706,13 +719,13 @@ export function TestTakeClient({ testId }: { testId: string }) {
                           {isCorrectOpt && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#135E36] px-2 py-0.5 text-xs text-white">
                               <CheckCircle2 className="h-3 w-3 text-[#6CC24A]" />
-                              Đáp án đúng
+                              {lang === "vi" ? "Đáp án đúng" : "Correct"}
                             </span>
                           )}
                           {isStudentOpt && !isCorrectOpt && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-xs text-white">
                               <XCircle className="h-3 w-3" />
-                              Bạn đã chọn
+                              {lang === "vi" ? "Bạn đã chọn" : "Your choice"}
                             </span>
                           )}
                         </div>
@@ -725,7 +738,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 {q.type === "choukai" && q.audioScript && q.audioScript.length > 0 && (
                   <div className="mb-3 rounded-xl border border-purple-200 bg-purple-50/40 p-3.5">
                     <p className="mb-2 text-xs font-extrabold text-purple-900">
-                      🎧 Script Hội thoại Nghe hiểu (Choukai Transcript):
+                      {lang === "vi" ? "🎧 Script Hội thoại Nghe hiểu (Choukai Transcript):" : "🎧 Listening Audio Transcript (Choukai):"}
                     </p>
                     <div className="space-y-2">
                       {q.audioScript.map((line, lIdx) => (
@@ -750,7 +763,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 <div className="rounded-xl border border-[#135E36]/20 bg-[#FAF8F2] p-4">
                   <p className="mb-1 flex items-center gap-1.5 text-xs font-extrabold text-[#135E36]">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Giải thích đáp án từ Sensei:
+                    {lang === "vi" ? "Giải thích đáp án từ Sensei:" : "Explanation from Sensei:"}
                   </p>
                   <p className="font-jp text-sm leading-relaxed text-slate-800">
                     <FuriganaText text={q.explanation} />
@@ -785,12 +798,14 @@ export function TestTakeClient({ testId }: { testId: string }) {
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-[#135E36]">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Đã tự động lưu (`localStorage`)
+                {lang === "vi" ? "Đã tự động lưu (localStorage)" : "Auto-saved (localStorage)"}
               </span>
             </div>
             {restoredFromStorage && (
               <p className="text-xs font-semibold text-amber-700">
-                ⚡ Đã khôi phục tiến độ bài làm trước đó của bạn (F5 không mất bài).
+                {lang === "vi"
+                  ? "⚡ Đã khôi phục tiến độ bài làm trước đó của bạn (F5 không mất bài)."
+                  : "⚡ Restored your previous exam progress (safe against page refresh)."}
               </p>
             )}
           </div>
@@ -814,7 +829,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
               className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#0f4a2a]"
             >
               <Send className="h-3.5 w-3.5 text-[#6CC24A]" />
-              Nộp bài ({answeredCount}/{orderedQuestions.length})
+              {lang === "vi"
+                ? `Nộp bài (${answeredCount}/${orderedQuestions.length})`
+                : `Submit (${answeredCount}/${orderedQuestions.length})`}
             </button>
           </div>
         </div>
@@ -823,13 +840,13 @@ export function TestTakeClient({ testId }: { testId: string }) {
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600">
             <span>
-              Tiến độ hoàn thành:{" "}
+              {lang === "vi" ? "Tiến độ hoàn thành:" : "Exam Progress:"}{" "}
               <strong className="text-[#135E36]">
-                {answeredCount}/{orderedQuestions.length} câu ({progressPercent}%)
+                {answeredCount}/{orderedQuestions.length} {lang === "vi" ? "câu" : "items"} ({progressPercent}%)
               </strong>
             </span>
             <span>
-              Đánh dấu xem lại: <strong className="text-amber-700">{flaggedCount}</strong>
+              {lang === "vi" ? "Đánh dấu xem lại:" : "Flagged:"} <strong className="text-amber-700">{flaggedCount}</strong>
             </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -864,7 +881,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   className={`relative flex h-8 w-9 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
                     isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
                   }`}
-                  title={`Câu ${idx + 1}: ${q.mondaiLabel}`}
+                  title={`${lang === "vi" ? "Câu" : "Question"} ${idx + 1}: ${q.mondaiLabel}`}
                 >
                   {idx + 1}
                   {isFlagged && (
@@ -878,15 +895,15 @@ export function TestTakeClient({ testId }: { testId: string }) {
           {/* Palette Legend */}
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-[#135E36]" /> Đã làm
+              <span className="h-3 w-3 rounded-sm bg-[#135E36]" /> {lang === "vi" ? "Đã làm" : "Answered"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-sm border border-slate-300 bg-slate-50" />{" "}
-              Chưa làm
+              {lang === "vi" ? "Chưa làm" : "Unanswered"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-sm border border-amber-400 bg-amber-100" />{" "}
-              Đánh dấu xem lại
+              {lang === "vi" ? "Đánh dấu xem lại" : "Flagged"}
             </span>
           </div>
         </div>
@@ -899,7 +916,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="rounded-xl bg-[#135E36] px-3 py-1 font-mono text-xs font-extrabold text-white">
-                Câu {activeIndex + 1} / {orderedQuestions.length}
+                {lang === "vi" ? `Câu ${activeIndex + 1} / ${orderedQuestions.length}` : `Question ${activeIndex + 1} / ${orderedQuestions.length}`}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F2] px-3 py-1 text-xs font-bold text-[#135E36]">
                 {activeQuestion.type === "standard" && (
@@ -917,7 +934,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 {activeQuestion.mondaiLabel}
               </span>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold text-slate-700">
-                {activeQuestion.points} điểm
+                {activeQuestion.points} {lang === "vi" ? "điểm" : "pts"}
               </span>
             </div>
 
@@ -936,8 +953,8 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 }`}
               />
               {flagged[activeQuestion.id]
-                ? "Đã đánh dấu xem lại"
-                : "Đánh dấu xem lại"}
+                ? (lang === "vi" ? "Đã đánh dấu xem lại" : "Flagged")
+                : (lang === "vi" ? "Đánh dấu xem lại" : "Flag for review")}
             </button>
           </div>
 
@@ -951,10 +968,10 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 <div className="mb-3 flex items-center justify-between border-b border-slate-200 pb-2.5">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#135E36]">
                     <FileText className="h-4 w-4" />
-                    Văn bản Đọc hiểu (Dokkai Passage)
+                    {lang === "vi" ? "Văn bản Đọc hiểu (Dokkai Passage)" : "Reading Passage (Dokkai)"}
                   </span>
                   <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600">
-                    Đi kèm {dokkaiGroupQuestions.length} câu hỏi
+                    {lang === "vi" ? `Đi kèm ${dokkaiGroupQuestions.length} câu hỏi` : `${dokkaiGroupQuestions.length} paired questions`}
                   </span>
                 </div>
 
@@ -990,7 +1007,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="rounded-lg bg-[#135E36] px-2.5 py-0.5 font-mono text-xs font-bold text-white">
-                          Câu {subGlobalIdx + 1} ({subQ.points}đ)
+                          {lang === "vi" ? `Câu ${subGlobalIdx + 1} (${subQ.points}đ)` : `Question ${subGlobalIdx + 1} (${subQ.points}pts)`}
                         </span>
                         <button
                           type="button"
@@ -1003,7 +1020,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
                           }`}
                         >
                           <Flag className="h-3.5 w-3.5" />
-                          {flagged[subQ.id] ? "Đã đánh dấu" : "Xem lại"}
+                          {flagged[subQ.id]
+                            ? (lang === "vi" ? "Đã đánh dấu" : "Flagged")
+                            : (lang === "vi" ? "Xem lại" : "Review")}
                         </button>
                       </div>
 
@@ -1062,7 +1081,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
             <div className="space-y-5">
               {activeQuestion.instruction && (
                 <p className="text-xs font-bold text-slate-500">
-                  💡 Hướng dẫn: {activeQuestion.instruction}
+                  {lang === "vi" ? `💡 Hướng dẫn: ${activeQuestion.instruction}` : `💡 Instruction: ${activeQuestion.instruction}`}
                 </p>
               )}
 
@@ -1110,8 +1129,12 @@ export function TestTakeClient({ testId }: { testId: string }) {
                         </div>
                         <p className="mt-0.5 text-xs text-slate-600">
                           {playingQuestionId === activeQuestion.id
-                            ? "Đang phát băng nghe tiếng Nhật... Hãy chú ý lắng nghe!"
-                            : "Nhấn nút Play để bắt đầu nghe đoạn hội thoại."}
+                            ? (lang === "vi"
+                                ? "Đang phát băng nghe tiếng Nhật... Hãy chú ý lắng nghe!"
+                                : "Playing Japanese audio track... Listen attentively!")
+                            : (lang === "vi"
+                                ? "Nhấn nút Play để bắt đầu nghe đoạn hội thoại."
+                                : "Press Play button to start audio playback.")}
                         </p>
                       </div>
                     </div>
@@ -1119,12 +1142,16 @@ export function TestTakeClient({ testId }: { testId: string }) {
                     {/* Play Limit Counter Badge */}
                     <div className="rounded-xl border border-purple-200 bg-white px-4 py-2.5 text-right">
                       <p className="text-xs font-bold text-slate-500">
-                        Giới hạn số lần nghe
+                        {lang === "vi" ? "Giới hạn số lần nghe" : "Audio Play Limits"}
                       </p>
                       <p className="font-mono text-sm font-extrabold text-purple-900">
                         {(activeQuestion.audioPlayLimit ?? 0) === 0
-                          ? `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} lần (Không giới hạn)`
-                          : `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} lần`}
+                          ? (lang === "vi"
+                              ? `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} lần (Không giới hạn)`
+                              : `Played ${audioPlays[activeQuestion.id] ?? 0} times (Unlimited)`)
+                          : (lang === "vi"
+                              ? `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} lần`
+                              : `Played ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} times`)}
                       </p>
                     </div>
                   </div>
@@ -1152,7 +1179,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
                       <Star className="h-4 w-4 fill-amber-500 text-amber-600" />
-                      Khung lắp ghép câu 4 vị trí (Nhấn vào các mảnh từ bên dưới để điền vào ô và chọn đáp án ở vị trí ★)
+                      {lang === "vi"
+                        ? "Khung lắp ghép câu 4 vị trí (Nhấn vào các mảnh từ bên dưới để điền vào ô và chọn đáp án ở vị trí ★)"
+                        : "4-slot sentence frame (Click word chips below to place in slots; token at ★ is your answer)"}
                     </span>
                     <button
                       type="button"
@@ -1160,7 +1189,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                       className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100"
                     >
                       <RotateCcw className="h-3 w-3" />
-                      Xóa xếp lại
+                      {lang === "vi" ? "Xóa xếp lại" : "Reset slots"}
                     </button>
                   </div>
 
@@ -1195,7 +1224,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                             <FuriganaText text={filledText} />
                           ) : (
                             <span className="font-sans text-xs font-semibold text-slate-400">
-                              {isStar ? "Vị trí ★" : `Ô trống ${slotIdx + 1}`}
+                              {isStar ? (lang === "vi" ? "Vị trí ★" : "Slot ★") : (lang === "vi" ? `Ô trống ${slotIdx + 1}` : `Slot ${slotIdx + 1}`)}
                             </span>
                           )}
                         </div>
@@ -1252,7 +1281,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                       <div className="flex items-center gap-1.5">
                         {activeQuestion.type === "star" && slotOrder !== -1 && (
                           <span className="rounded-lg bg-amber-100 px-2 py-0.5 font-sans text-xs font-bold text-amber-900">
-                            Ô {slotOrder + 1}
+                            {lang === "vi" ? `Ô ${slotOrder + 1}` : `Slot ${slotOrder + 1}`}
                             {(activeQuestion.starSlotIndex ?? 2) === slotOrder
                               ? " (★)"
                               : ""}
@@ -1278,15 +1307,15 @@ export function TestTakeClient({ testId }: { testId: string }) {
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
-              Câu trước
+              {lang === "vi" ? "Câu trước" : "Previous"}
             </button>
 
             <span className="text-xs font-semibold text-slate-500">
-              Đã chọn{" "}
-              <strong className="text-[#135E36]">
-                {answeredCount}/{orderedQuestions.length}
-              </strong>{" "}
-              câu hỏi
+              {lang === "vi" ? (
+                <>Đã chọn <strong className="text-[#135E36]">{answeredCount}/{orderedQuestions.length}</strong> câu hỏi</>
+              ) : (
+                <>Answered <strong className="text-[#135E36]">{answeredCount}/{orderedQuestions.length}</strong> items</>
+              )}
             </span>
 
             {activeIndex < orderedQuestions.length - 1 ? (
@@ -1299,7 +1328,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 }
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0f4a2a]"
               >
-                Câu tiếp theo
+                {lang === "vi" ? "Câu tiếp theo" : "Next"}
                 <ChevronRight className="h-4 w-4" />
               </button>
             ) : (
@@ -1309,7 +1338,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-[#0f4a2a]"
               >
                 <Award className="h-4 w-4 text-[#6CC24A]" />
-                Hoàn thành & Nộp bài
+                {lang === "vi" ? "Hoàn thành & Nộp bài" : "Finish & Submit"}
               </button>
             )}
           </div>

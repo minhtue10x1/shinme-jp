@@ -21,54 +21,68 @@ import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/context";
 
 export type AudioTranscriptLine = {
   time: string;
-  speaker: string;
+  speakerVi: string;
+  speakerEn: string;
   speakerJa: string;
   textJa: string;
   textVi: string;
+  textEn: string;
 };
 
 const SAMPLE_TRANSCRIPT: AudioTranscriptLine[] = [
   {
     time: "00:03",
-    speaker: "Nam",
+    speakerVi: "Nam",
+    speakerEn: "Nam",
     speakerJa: "ナム",
     textJa: "すみません、東京[とうきょう]駅[えき]へ 行[い]きたいんですが、どの 電車[でんしゃ]に 乗[の]れば いいですか。",
     textVi: "Xin lỗi, tôi muốn đi đến ga Tokyo, tôi nên đi chuyến tàu nào ạ?",
+    textEn: "Excuse me, I'd like to go to Tokyo station. Which train should I take?",
   },
   {
     time: "00:10",
-    speaker: "Nhân viên ga",
+    speakerVi: "Nhân viên ga",
+    speakerEn: "Station Staff",
     speakerJa: "駅員[えきいん]",
     textJa: "あちらの 3番線[ばんせん]の 山手線[やまのてせん]に 乗[の]って ください。次[つぎ]の 電車[でんしゃ]は 10分後[じゅっぷんご]に 来[き]ますよ。",
     textVi: "Bạn hãy lên tuyến Yamanote ở đường ray số 3 đằng kia nhé. Chuyến tiếp theo sẽ đến sau 10 phút nữa.",
+    textEn: "Please take the Yamanote Line on Track 3 over there. The next train arrives in 10 minutes.",
   },
   {
     time: "00:18",
-    speaker: "Nam",
+    speakerVi: "Nam",
+    speakerEn: "Nam",
     speakerJa: "ナム",
     textJa: "わかりました！切符[きっぷ]は どこで 買[か]えますか。",
     textVi: "Tôi hiểu rồi! Tôi có thể mua vé ở đâu ạ?",
+    textEn: "Understood! Where can I buy tickets?",
   },
   {
     time: "00:24",
-    speaker: "Nhân viên ga",
+    speakerVi: "Nhân viên ga",
+    speakerEn: "Station Staff",
     speakerJa: "駅員[えきいん]",
     textJa: "あそこの 自動券売機[じどうけんばいき]で 買[か]えます。ICカードも 使[つか]えますよ。",
     textVi: "Bạn có thể mua tại máy bán vé tự động đằng kia. Cũng dùng được cả thẻ IC nữa nhé.",
+    textEn: "You can buy them at the automatic ticket machines over there. IC cards are also accepted.",
   },
   {
     time: "00:30",
-    speaker: "Nam",
+    speakerVi: "Nam",
+    speakerEn: "Nam",
     speakerJa: "ナム",
     textJa: "ありがとうございます！助[たす]かりました。",
     textVi: "Cảm ơn anh rất nhiều! May quá.",
+    textEn: "Thank you very much! That was a great help.",
   },
 ];
 
 export function ChokaiAudioPlayer() {
+  const { lang } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState<number>(1.0);
@@ -116,11 +130,15 @@ export function ChokaiAudioPlayer() {
                 Chokai Player
               </span>
               <h2 className="text-base font-black text-shinme-ink">
-                Luyện nghe: Bài 24 — Hội thoại tại ga tàu (駅での会話)
+                {lang === "vi"
+                  ? "Luyện nghe: Bài 24 — Hội thoại tại ga tàu (駅での会話)"
+                  : "Listening: Lesson 24 — Train Station Dialogue (駅での会話)"}
               </h2>
             </div>
             <p className="text-xs text-shinme-muted mt-0.5">
-              Tốc độ nghe điều chỉnh được · Kèm transcript Furigana & dịch nghĩa
+              {lang === "vi"
+                ? "Tốc độ nghe điều chỉnh được · Kèm transcript Furigana & dịch nghĩa"
+                : "Adjustable speed · Includes Furigana transcript & translations"}
             </p>
           </div>
         </div>
@@ -133,7 +151,9 @@ export function ChokaiAudioPlayer() {
             className="h-8 text-xs font-bold"
           >
             {showVi ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-            {showVi ? "Ẩn dịch tiếng Việt" : "Hiện dịch tiếng Việt"}
+            {showVi
+              ? (lang === "vi" ? "Ẩn dịch nghĩa" : "Hide Translation")
+              : (lang === "vi" ? "Hiện dịch nghĩa" : "Show Translation")}
           </Button>
         </div>
       </div>
@@ -161,7 +181,7 @@ export function ChokaiAudioPlayer() {
               type="button"
               onClick={() => setCurrentTime((t) => Math.max(0, t - 5))}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary transition-colors border border-shinme-border text-xs font-bold"
-              title="Lùi 5 giây"
+              title={lang === "vi" ? "Lùi 5 giây" : "Rewind 5s"}
             >
               -5s
             </button>
@@ -178,7 +198,7 @@ export function ChokaiAudioPlayer() {
               type="button"
               onClick={() => setCurrentTime((t) => Math.min(totalDuration, t + 5))}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary transition-colors border border-shinme-border text-xs font-bold"
-              title="Tua 5 giây"
+              title={lang === "vi" ? "Tua 5 giây" : "Forward 5s"}
             >
               +5s
             </button>
@@ -190,7 +210,7 @@ export function ChokaiAudioPlayer() {
                 setCurrentTime(0);
               }}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-muted hover:text-shinme-ink transition-colors border border-shinme-border"
-              title="Phát lại từ đầu"
+              title={lang === "vi" ? "Phát lại từ đầu" : "Replay from start"}
             >
               <RotateCcw className="size-4" />
             </button>
@@ -198,7 +218,9 @@ export function ChokaiAudioPlayer() {
 
           {/* Speed Selector */}
           <div className="flex items-center gap-1.5 rounded-full bg-shinme-surface p-1 border border-shinme-border">
-            <span className="px-2 text-xs font-black text-shinme-muted">Tốc độ:</span>
+            <span className="px-2 text-xs font-black text-shinme-muted">
+              {lang === "vi" ? "Tốc độ:" : "Speed:"}
+            </span>
             {[0.8, 1.0, 1.2].map((s) => (
               <button
                 key={s}
@@ -221,7 +243,7 @@ export function ChokaiAudioPlayer() {
       {/* Script Transcript */}
       <div className="mt-5 space-y-3">
         <h3 className="text-xs font-black uppercase text-shinme-muted tracking-wider">
-          Lời thoại (Transcript & Furigana)
+          {lang === "vi" ? "Lời thoại (Transcript & Furigana)" : "Dialogue (Transcript & Furigana)"}
         </h3>
 
         <div className="divide-y divide-shinme-line rounded-2xl border border-shinme-border bg-shinme-surface">
@@ -230,7 +252,7 @@ export function ChokaiAudioPlayer() {
               <div className="flex items-baseline gap-2">
                 <span className="font-mono text-xs font-bold text-shinme-accent tabular">{line.time}</span>
                 <span className="text-xs font-black text-shinme-primary">
-                  {line.speaker} (<FuriganaText text={line.speakerJa} />)
+                  {lang === "vi" ? line.speakerVi : line.speakerEn} (<FuriganaText text={line.speakerJa} />)
                 </span>
               </div>
               <p className="mt-1 text-base font-bold text-shinme-ink leading-relaxed">
@@ -238,7 +260,7 @@ export function ChokaiAudioPlayer() {
               </p>
               {showVi && (
                 <p className="mt-1 text-xs font-medium text-shinme-muted">
-                  {line.textVi}
+                  {lang === "vi" ? line.textVi : line.textEn}
                 </p>
               )}
             </div>
