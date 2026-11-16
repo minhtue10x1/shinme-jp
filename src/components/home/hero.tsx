@@ -27,7 +27,7 @@ export function Hero() {
           <FuriganaText
             as="p"
             text={t.home.hero.catchphrase}
-            className="text-[clamp(2.3rem,5.4vw,4.4rem)] font-black leading-[1.55] tracking-[0.02em] text-shinme-primary"
+            className="sm:whitespace-nowrap text-[clamp(1.75rem,3.2vw,2.85rem)] font-black leading-[1.55] tracking-[0.02em] text-shinme-primary"
             rtClassName="text-shinme-primary-soft tracking-[0.18em]"
           />
 
@@ -53,7 +53,7 @@ export function Hero() {
             </Button>
           </div>
 
-          <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-2 text-[0.95rem] font-semibold text-shinme-ink-soft">
+          <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-shinme-ink-soft">
             {bullets.map((txt) => (
               <li key={txt} className="flex items-center gap-2">
                 <span className="grid size-5 place-items-center rounded-full bg-shinme-leaf text-shinme-primary">
