@@ -54,7 +54,7 @@ export function Navbar() {
           <ShinmeLogo priority />
         </Link>
 
-        <ul className="ml-auto hidden items-center gap-1 xl:gap-2 lg:flex">
+        <ul className="ml-6 hidden items-center gap-1 xl:gap-2 xl:ml-8 lg:flex">
           {navLinks.map((l) => (
             <li key={l.href}>
               <a
@@ -67,14 +67,18 @@ export function Navbar() {
           ))}
         </ul>
 
-        {/* Action area: [|] [🎓 LMS] [👤 Avatar] [🌐 VI | EN] */}
+        {/* Action area: [こんにちは, User] [🎓 LMS] [👤 Avatar] | [🌐 VI | EN] */}
         <div className="ml-auto hidden items-center gap-3 lg:flex">
-          <div className="h-5 w-px bg-shinme-border/80" aria-hidden="true" />
-
           {isLoadingAuth ? (
             <div className="h-10 w-28 rounded-full bg-shinme-leaf/50 animate-pulse" />
           ) : firebaseUser ? (
             <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-shinme-ink-soft">
+                <span className="font-jp text-shinme-primary font-bold">こんにちは,</span>
+                <span className="max-w-[110px] truncate font-black text-shinme-ink xl:max-w-[150px]" title={user.name}>
+                  {user.name}
+                </span>
+              </div>
               <Button asChild size="md" className="gap-2 font-black">
                 <Link href="/portal">
                   <GraduationCap className="size-4" />
@@ -102,6 +106,8 @@ export function Navbar() {
               <Link href="/login">{t.nav.login}</Link>
             </Button>
           )}
+
+          <div className="h-5 w-px bg-shinme-border/80" aria-hidden="true" />
 
           <LanguageToggle variant="navbar" />
         </div>
