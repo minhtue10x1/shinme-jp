@@ -28,8 +28,8 @@ async function resolveActiveModels(ai: GoogleGenAI): Promise<string[]> {
     for await (const m of pager) {
       const rawName = (m.name || "").replace(/^models\//, "");
       if (!rawName.startsWith("gemini-")) continue;
-      // Skip non-text/non-PDF specialized models (embeddings, image-only, tts, live, robotics, etc.)
-      if (/(embed|imagen|veo|tts|audio|live|aqa|bisociat|robotics|computer-use|learnlm)/i.test(rawName)) {
+      // Skip non-text/non-PDF specialized models (embeddings, image generation, video, tts, live, etc.)
+      if (/(embed|image|veo|tts|audio|live|aqa|bisociat|robotics|computer-use|learnlm)/i.test(rawName)) {
         continue;
       }
       // Skip deprecated 1.x / 2.0 / 2.5 flash models that return 404 for new users
@@ -60,7 +60,11 @@ async function resolveActiveModels(ai: GoogleGenAI): Promise<string[]> {
     return score;
   };
 
-  discovered.sort((a, b) => scoreModel(b) - scoreModel(a));
+  // Pick a balanced mix of top Flash models AND top Pro models so if the Flash pool hits 503,
+  // we immediately fall back to the separate Pro GPU pool (usually much less congested on Tier 1 Paid).
+  const flashModels = discovered.filter((n) => n.includes("flash")).sort((a, b) => scoreModel(b) - scoreModel(a));
+  const proModels = discovered.filter((n) => n.includes("pro")).sort((a, b) => scoreModel(b) - scoreModel(a));
+  const mixedTop = [...flashModels.slice(0, 3), ...proModels.slice(0, 3)];
 
   const fallbackDefaults = [
     "gemini-3.5-flash-lite",
@@ -71,7 +75,7 @@ async function resolveActiveModels(ai: GoogleGenAI): Promise<string[]> {
   const finalList = Array.from(
     new Set([
       ...(customPrimary ? [customPrimary] : []),
-      ...(discovered.length > 0 ? discovered.slice(0, 5) : fallbackDefaults),
+      ...(mixedTop.length > 0 ? mixedTop : fallbackDefaults),
     ])
   );
 
