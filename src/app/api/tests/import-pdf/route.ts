@@ -6,14 +6,85 @@ import type { MondaiType, TestQuestion } from "@/lib/test-center-store";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const MAX_PDF_BYTES = 15 * 1024 * 1024; // 15MB safety cap
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+
+// Cache discovered active models for 10 minutes per serverless instance
+let cachedModels: { names: string[]; fetchedAt: number } | null = null;
+const MODEL_CACHE_TTL_MS = 10 * 60 * 1000;
+
+async function resolveActiveModels(ai: GoogleGenAI): Promise<string[]> {
+  const customPrimary = process.env.GEMINI_MODEL?.trim();
+  const now = Date.now();
+
+  if (cachedModels && now - cachedModels.fetchedAt < MODEL_CACHE_TTL_MS) {
+    return customPrimary
+      ? Array.from(new Set([customPrimary, ...cachedModels.names]))
+      : cachedModels.names;
+  }
+
+  const discovered: string[] = [];
+  try {
+    const pager = await ai.models.list();
+    for await (const m of pager) {
+      const rawName = (m.name || "").replace(/^models\//, "");
+      if (!rawName.startsWith("gemini-")) continue;
+      // Skip non-text/non-PDF specialized models (embeddings, image-only, tts, live, robotics, etc.)
+      if (/(embed|imagen|veo|tts|audio|live|aqa|bisociat|robotics|computer-use|learnlm)/i.test(rawName)) {
+        continue;
+      }
+      // Skip deprecated 1.x / 2.0 / 2.5 flash models that return 404 for new users
+      if (/^gemini-(1\.|2\.0|2\.5-flash)/i.test(rawName)) {
+        continue;
+      }
+      const actions = (m as { supportedActions?: string[] }).supportedActions;
+      if (Array.isArray(actions) && actions.length > 0 && !actions.includes("generateContent")) {
+        continue;
+      }
+      discovered.push(rawName);
+    }
+  } catch (err) {
+    console.warn("[api/tests/import-pdf] ListModels failed, using defaults:", err);
+  }
+
+  // Sort preferred models first: flash-lite -> flash -> pro (newest versions first)
+  const scoreModel = (name: string): number => {
+    let score = 0;
+    if (name.includes("flash-lite")) score += 30;
+    else if (name.includes("flash")) score += 25;
+    else if (name.includes("pro")) score += 15;
+    if (name.includes("3.8")) score += 10;
+    else if (name.includes("3.5")) score += 9;
+    else if (name.includes("3.0") || name.includes("3-")) score += 8;
+    else if (name.includes("2.5")) score += 5;
+    if (name.includes("exp") || name.includes("preview")) score -= 3;
+    return score;
+  };
+
+  discovered.sort((a, b) => scoreModel(b) - scoreModel(a));
+
+  const fallbackDefaults = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-2.5-pro",
+  ];
+
+  const finalList = Array.from(
+    new Set([
+      ...(customPrimary ? [customPrimary] : []),
+      ...(discovered.length > 0 ? discovered.slice(0, 5) : fallbackDefaults),
+    ])
+  );
+
+  cachedModels = { names: finalList, fetchedAt: now };
+  return finalList;
+}
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     suggestedTitle: {
       type: Type.STRING,
-      description: "Concise Vietnamese exam title inferred from the PDF header, e.g. 'Đề thi thử JLPT N3 — Từ vựng & Ngữ pháp'",
+      description: "Concise Vietnamese exam title inferred from the PDF header",
     },
     suggestedTitleJa: {
       type: Type.STRING,
@@ -27,53 +98,21 @@ const RESPONSE_SCHEMA = {
           type: {
             type: Type.STRING,
             enum: ["standard", "star", "dokkai", "choukai"],
-            description: "Question format: standard (Kanji/Vocab/Grammar), star (★ ordering), dokkai (reading passage), choukai (listening)",
           },
-          mondaiLabel: {
-            type: Type.STRING,
-            description: "Mondai header label, e.g. '問題1・漢字読み', '問題2・表記', '問題3・文脈規定', '問題4・文法', '問題5・★並べ替え', '問題6・読解'",
-          },
-          instruction: {
-            type: Type.STRING,
-            description: "Short instruction for this question or Mondai (in Japanese or Vietnamese)",
-          },
-          prompt: {
-            type: Type.STRING,
-            description: "The question text in Japanese. Wrap underlined target words in 【...】, e.g. '【毎日】学校へ行きます。'. Keep blanks as ＿＿＿.",
-          },
+          mondaiLabel: { type: Type.STRING },
+          instruction: { type: Type.STRING },
+          prompt: { type: Type.STRING },
           options: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
-            description: "Exactly 4 answer choices (1, 2, 3, 4 mapped to A, B, C, D) without leading numbers like '1.' or 'A.'",
           },
-          grammarPoint: {
-            type: Type.STRING,
-            description: "Short skill/topic tag, e.g. 'Kanji N3', 'Từ vựng N3', 'Ngữ pháp N3', 'Đọc hiểu trung văn'",
-          },
-          starPrefix: {
-            type: Type.STRING,
-            description: "For type='star' only: text before the 4 slots",
-          },
-          starSuffix: {
-            type: Type.STRING,
-            description: "For type='star' only: text after the 4 slots",
-          },
-          starSlotIndex: {
-            type: Type.INTEGER,
-            description: "For type='star' only: 0-based index (0..3) of the ★ slot (usually 2 for ___ ___ ★ ___)",
-          },
-          passageGroupId: {
-            type: Type.STRING,
-            description: "For type='dokkai' only: shared group ID (e.g. 'dokkai-1') for questions belonging to the same reading passage",
-          },
-          passageTitle: {
-            type: Type.STRING,
-            description: "For type='dokkai' only: title or label of the reading passage",
-          },
-          passageText: {
-            type: Type.STRING,
-            description: "For type='dokkai' only: full Japanese reading passage text",
-          },
+          grammarPoint: { type: Type.STRING },
+          starPrefix: { type: Type.STRING },
+          starSuffix: { type: Type.STRING },
+          starSlotIndex: { type: Type.INTEGER },
+          passageGroupId: { type: Type.STRING },
+          passageTitle: { type: Type.STRING },
+          passageText: { type: Type.STRING },
         },
         required: ["type", "mondaiLabel", "prompt", "options", "grammarPoint"],
       },
@@ -131,7 +170,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file");
     const levelHint = String(formData.get("level") || "").trim();
-    const pageRange = String(formData.get("pageRange") || "").trim();
+    const chunkLabel = String(formData.get("chunkLabel") || "").trim();
     const includeChoukai = String(formData.get("includeChoukai") || "false") === "true";
 
     if (!(file instanceof File)) {
@@ -143,134 +182,80 @@ export async function POST(request: Request) {
     }
 
     if (file.size === 0 || file.size > MAX_PDF_BYTES) {
-      return NextResponse.json(
-        { error: "Dung lượng tệp PDF phải nhỏ hơn 15MB." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Dung lượng tệp PDF phải nhỏ hơn 15MB." }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const base64Pdf = Buffer.from(arrayBuffer).toString("base64");
 
-    // 3. Call Gemini 2.5 Flash with native PDF input & strict JSON schema
+    // 3. Dynamically discover active Gemini models for this API key
     const ai = new GoogleGenAI({ apiKey });
+    const modelCandidates = await resolveActiveModels(ai);
 
     const systemPrompt = [
       "You are an expert Japanese JLPT exam digitizer for a Japanese language center (Shinme).",
-      "Extract ALL multiple-choice exam questions accurately from the attached JLPT PDF (which may be scanned paper, 2-column layout, or digital print).",
+      "Extract ALL multiple-choice exam questions accurately from the attached JLPT PDF pages (may be scanned paper, 2-column layout, or digital print).",
       "",
       "CRITICAL EXTRACTION RULES:",
       "1. Preserve Japanese text (Kanji, Hiragana, Katakana) faithfully without translating the Japanese question or choices.",
-      "2. For underlined words in Vocabulary/Kanji questions (問題1, 問題2, etc.), wrap the underlined target word in Japanese lenticular brackets 【...】, e.g. '【毎日】学校へ行きます。'.",
+      "2. For underlined words in Vocabulary/Kanji questions (問題1, 問題2, etc.), wrap the underlined target word in 【...】, e.g. '【毎日】学校へ行きます。'.",
       "3. For fill-in-the-blank questions, use '＿＿＿' for the blank.",
-      "4. For ★ star-ordering questions (文の組み立て / ___ ___ ★ ___): set type='star', put text before the 4 slots in starPrefix, text after the 4 slots in starSuffix, set starSlotIndex (0..3, usually 2 for the 3rd slot), and put the 4 fragments in options.",
+      "4. For ★ star-ordering questions (文の組み立て / ___ ___ ★ ___): set type='star', put text before the 4 slots in starPrefix, text after the 4 slots in starSuffix, set starSlotIndex (0..3, usually 2), and put the 4 fragments in options.",
       "5. For Reading Comprehension (読解 / Dokkai): set type='dokkai'. If multiple questions share the same passage, give them the exact same passageGroupId (e.g. 'dokkai-1') and include the full passageText and passageTitle.",
       includeChoukai
-        ? "6. Include Listening (聴解 / Choukai) questions with type='choukai' if present in the PDF."
-        : "6. SKIP Listening (聴解 / Choukai) sections if present, because PDFs do not contain audio files.",
-      "7. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①' from each option string.",
-      "8. Do NOT invent answers or explanations. Only extract the questions and choices as printed in the PDF.",
-      "9. If a question references a printed image/chart/table in the PDF, add a short note like '[Xem hình ở trang PDF]' in `instruction`.",
-      levelHint ? `10. Exam level hint from teacher: JLPT ${levelHint}.` : "",
-      pageRange ? `11. ONLY extract questions from pages: ${pageRange}. Ignore other pages.` : "",
+        ? "6. Include Listening (聴解 / Choukai) questions with type='choukai' if present."
+        : "6. SKIP Listening (聴解 / Choukai) sections if present.",
+      "7. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①'.",
+      "8. If a page is ONLY a cover page, instructions page, or answer sheet with NO multiple-choice questions, return an empty `questions: []` array.",
+      "9. Do NOT invent answers or explanations.",
+      levelHint ? `10. Exam level hint: JLPT ${levelHint}.` : "",
+      chunkLabel ? `11. Current PDF slice: ${chunkLabel}.` : "",
     ]
       .filter(Boolean)
       .join("\n");
 
-    const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash-lite";
-    // Only use current Gemini 3.x models (no deprecated 2.x models)
-    const fallbackChain = Array.from(
-      new Set([
-        primaryModel,
-        "gemini-3.5-flash-lite",
-        "gemini-3.8-flash",
-        "gemini-3.8-pro",
-      ])
-    );
-
-    const isRetryableError = (err: unknown): boolean => {
-      const msg = err instanceof Error ? err.message : String(err);
-      return (
-        msg.includes("503") ||
-        msg.includes("UNAVAILABLE") ||
-        msg.includes("429") ||
-        msg.includes("RESOURCE_EXHAUSTED") ||
-        msg.includes("high demand") ||
-        msg.includes("404") ||
-        msg.includes("NOT_FOUND")
-      );
+    const filePart = {
+      inlineData: {
+        mimeType: "application/pdf",
+        data: base64Pdf,
+      },
     };
-
-    // Upload PDF via Gemini Files API (more reliable & faster than huge inline base64 payloads)
-    let uploadedFileName: string | null = null;
-    let filePart:
-      | { fileData: { fileUri: string; mimeType: string } }
-      | { inlineData: { mimeType: string; data: string } };
-
-    try {
-      const uploaded = await ai.files.upload({
-        file: new Blob([arrayBuffer], { type: "application/pdf" }),
-        config: { mimeType: "application/pdf" },
-      });
-      if (uploaded.uri && uploaded.name) {
-        uploadedFileName = uploaded.name;
-        filePart = {
-          fileData: {
-            fileUri: uploaded.uri,
-            mimeType: "application/pdf",
-          },
-        };
-      } else {
-        filePart = { inlineData: { mimeType: "application/pdf", data: base64Pdf } };
-      }
-    } catch (uploadErr) {
-      console.warn("[api/tests/import-pdf] Files API upload failed, falling back to inlineData:", uploadErr);
-      filePart = { inlineData: { mimeType: "application/pdf", data: base64Pdf } };
-    }
 
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | null = null;
     const attemptLogs: string[] = [];
-    let usedModel = primaryModel;
+    let usedModel = modelCandidates[0] || "gemini-3.5-flash-lite";
 
-    try {
-      for (const candidateModel of fallbackChain) {
-        try {
-          response = await ai.models.generateContent({
-            model: candidateModel,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  filePart,
-                  {
-                    text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
-                  },
-                ],
-              },
-            ],
-            config: {
-              systemInstruction: systemPrompt,
-              responseMimeType: "application/json",
-              responseSchema: RESPONSE_SCHEMA,
-              temperature: 0.1,
+    for (const candidateModel of modelCandidates) {
+      try {
+        response = await ai.models.generateContent({
+          model: candidateModel,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                filePart,
+                {
+                  text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm JLPT có trong các trang PDF đính kèm theo đúng JSON schema.",
+                },
+              ],
             },
-          });
-          usedModel = candidateModel;
-          break;
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          attemptLogs.push(`${candidateModel}: ${msg.slice(0, 160)}`);
-          console.warn(`[api/tests/import-pdf] ${candidateModel} failed:`, msg.slice(0, 200));
+          ],
+          config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.1,
+          },
+        });
+        usedModel = candidateModel;
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        attemptLogs.push(`${candidateModel}: ${msg.slice(0, 120)}`);
+        console.warn(`[api/tests/import-pdf] ${candidateModel} failed:`, msg.slice(0, 200));
 
-          if (!isRetryableError(err) && !msg.includes("400") && !msg.includes("INVALID_ARGUMENT")) {
-            throw err;
-          }
-        }
-      }
-    } finally {
-      // Always clean up temporary uploaded PDF from Google Files API
-      if (uploadedFileName) {
-        ai.files.delete({ name: uploadedFileName }).catch(() => undefined);
+        // Brief pause before trying next discovered model
+        await new Promise((r) => setTimeout(r, 800));
       }
     }
 
@@ -281,21 +266,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: isOverloaded
-            ? `Các model Gemini 3.x đang quá tải tạm thời (503). Vui lòng thử lại sau vài giây. (${summary})`
-            : `Không thể bóc đề qua Gemini 3.x: ${summary}`,
+            ? `Toàn bộ các model Gemini đang bận (503). Đã thử: ${modelCandidates.join(", ")}. Vui lòng thử lại sau ít phút.`
+            : `Không thể bóc đề qua Gemini (${modelCandidates.join(", ")}): ${summary}`,
         },
         { status: isOverloaded ? 503 : 500 }
       );
     }
 
-    console.info(`[api/tests/import-pdf] Successfully parsed PDF using model: ${usedModel}`);
+    console.info(`[api/tests/import-pdf] Parsed ${chunkLabel || "PDF"} with ${usedModel}`);
 
     const rawText = response.text?.trim();
     if (!rawText) {
-      return NextResponse.json(
-        { error: "AI không trích xuất được nội dung nào từ file PDF này." },
-        { status: 422 }
-      );
+      return NextResponse.json({
+        suggestedTitle: "",
+        suggestedTitleJa: "",
+        questions: [],
+        count: 0,
+        usedModel,
+      });
     }
 
     let parsed: {
@@ -321,22 +309,13 @@ export async function POST(request: Request) {
       parsed = JSON.parse(rawText);
     } catch {
       return NextResponse.json(
-        { error: "Kết quả AI trả về không đúng định dạng JSON. Vui lòng thử lại hoặc chia nhỏ số trang PDF." },
+        { error: "Kết quả AI trả về không đúng định dạng JSON. Vui lòng thử lại." },
         { status: 502 }
       );
     }
 
     const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
-    if (rawQuestions.length === 0) {
-      return NextResponse.json(
-        { error: "Không tìm thấy câu hỏi trắc nghiệm JLPT nào trong file PDF này." },
-        { status: 422 }
-      );
-    }
-
-    const batchId = Date.now().toString(36);
-    const defaultPts = rawQuestions.length <= 20 ? 5 : Math.max(1, Math.round(100 / rawQuestions.length));
-
+    const batchId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
     const validTypes: MondaiType[] = ["standard", "star", "dokkai", "choukai"];
 
     const normalizedQuestions: TestQuestion[] = rawQuestions.map((q, idx) => {
@@ -357,11 +336,10 @@ export async function POST(request: Request) {
         id: `q-pdf-${batchId}-${idx + 1}`,
         type: qType,
         mondaiLabel: (q.mondaiLabel || `問題${idx + 1}`).trim(),
-        points: defaultPts,
+        points: 5,
         instruction: (q.instruction || "").trim(),
         prompt: (q.prompt || "").trim(),
         options: fixedOptions,
-        // Intentionally left unselected (-1) so Sensei manually reviews & selects the answer key
         correctIndex: -1,
         explanation: "",
         grammarPoint: (q.grammarPoint || (levelHint ? `JLPT ${levelHint}` : "JLPT")).trim(),
@@ -370,9 +348,10 @@ export async function POST(request: Request) {
       if (qType === "star") {
         base.starPrefix = (q.starPrefix || "").trim();
         base.starSuffix = (q.starSuffix || "").trim();
-        const slotIdx = typeof q.starSlotIndex === "number" && q.starSlotIndex >= 0 && q.starSlotIndex <= 3
-          ? q.starSlotIndex
-          : 2;
+        const slotIdx =
+          typeof q.starSlotIndex === "number" && q.starSlotIndex >= 0 && q.starSlotIndex <= 3
+            ? q.starSlotIndex
+            : 2;
         base.starSlotIndex = slotIdx;
       }
 
@@ -395,6 +374,7 @@ export async function POST(request: Request) {
       suggestedTitleJa: parsed.suggestedTitleJa?.trim() || "",
       questions: normalizedQuestions,
       count: normalizedQuestions.length,
+      usedModel,
     });
   } catch (err) {
     console.error("[api/tests/import-pdf] Error:", err);
