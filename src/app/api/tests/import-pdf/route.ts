@@ -177,8 +177,10 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
+    const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: modelName,
       contents: [
         {
           role: "user",
