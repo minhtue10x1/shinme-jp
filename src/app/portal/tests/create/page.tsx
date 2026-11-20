@@ -18,9 +18,13 @@ import {
   Eye,
   HelpCircle,
   CopyPlus,
+  FileUp,
+  AlertTriangle,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
+import { PdfImportDialog } from "@/components/portal/pdf-import-dialog";
 import { useTranslation } from "@/lib/i18n/context";
 import { getClasses, saveTestDoc } from "@/lib/db/services";
 import type { ClassDoc } from "@/lib/db/schema";
@@ -207,8 +211,28 @@ export default function SenseiTestCreatePage() {
     createTemplateQuestion("dokkai", 3),
     createTemplateQuestion("choukai", 4),
   ]);
+  const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
+  const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
 
   const totalPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
+  const unansweredCount = questions.filter((q) => q.correctIndex < 0 || q.correctIndex > 3).length;
+  const answeredCount = questions.length - unansweredCount;
+
+  const handlePdfImported = (result: {
+    questions: TestQuestion[];
+    suggestedTitle?: string;
+    suggestedTitleJa?: string;
+    mode: "replace" | "append";
+  }) => {
+    if (result.mode === "replace") {
+      setQuestions(result.questions);
+      if (result.suggestedTitle) setTitle(result.suggestedTitle);
+      if (result.suggestedTitleJa) setTitleJa(result.suggestedTitleJa);
+    } else {
+      setQuestions((prev) => [...prev, ...result.questions]);
+    }
+    setShowUnansweredOnly(false);
+  };
 
   const handleAddQuestion = (type: MondaiType, sharedPassage?: { groupId: string; title: string; text: string }) => {
     const newQ = createTemplateQuestion(
@@ -266,6 +290,28 @@ export default function SenseiTestCreatePage() {
 
     if (!targetClass) {
       toast.error(lang === "vi" ? "Vui lòng chọn lớp học hợp lệ." : "Please select a valid class.");
+      return;
+    }
+
+    // Ensure Sensei has manually reviewed and selected the correct answer for every question
+    const missingNums = questions
+      .map((q, i) => (q.correctIndex < 0 || q.correctIndex > 3 ? i + 1 : -1))
+      .filter((n) => n !== -1);
+    if (missingNums.length > 0) {
+      setShowUnansweredOnly(true);
+      toast.error(
+        lang === "vi"
+          ? `Còn ${missingNums.length} câu chưa chọn đáp án đúng!`
+          : lang === "ja"
+            ? `正解が未選択の問題が${missingNums.length}問あります！`
+            : `${missingNums.length} questions still need a correct answer!`,
+        {
+          description:
+            lang === "vi"
+              ? `Vui lòng chọn đáp án A/B/C/D cho các câu: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`
+              : `Please select A/B/C/D for questions: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`,
+        }
+      );
       return;
     }
 
@@ -333,6 +379,18 @@ export default function SenseiTestCreatePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsPdfImportOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#135E36]/30 bg-[#FAF8F2] px-4 py-2.5 text-xs font-extrabold text-[#135E36] shadow-xs transition hover:border-[#135E36] hover:bg-emerald-50"
+          >
+            <FileUp className="h-4 w-4 text-[#135E36]" />
+            {lang === "vi"
+              ? "Nhập đề từ PDF (AI)"
+              : lang === "ja"
+                ? "PDFから取り込む (AI)"
+                : "Import from PDF (AI)"}
+          </button>
           <Link
             href="/portal/tests/manage"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
@@ -660,16 +718,70 @@ export default function SenseiTestCreatePage() {
           </div>
         </section>
 
+        {/* ANSWER KEY REVIEW STATUS BAR */}
+        {(unansweredCount > 0 || showUnansweredOnly) && (
+          <div className="flex flex-col justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/80 p-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-xs font-extrabold text-amber-950">
+                  {lang === "vi"
+                    ? `Rà soát đáp án: Đã chọn ${answeredCount}/${questions.length} câu · Còn ${unansweredCount} câu chưa chọn đáp án đúng`
+                    : lang === "ja"
+                      ? `正解チェック：選択済み ${answeredCount}/${questions.length}問 · 未選択 ${unansweredCount}問`
+                      : `Answer Key Review: ${answeredCount}/${questions.length} selected · ${unansweredCount} remaining`}
+                </p>
+                <p className="mt-0.5 text-xs text-amber-800">
+                  {lang === "vi"
+                    ? "Hãy kiểm tra nhanh nội dung đề đã bóc và tích chọn đáp án A/B/C/D cho tất cả các câu trước khi xuất bản."
+                    : lang === "ja"
+                      ? "公開前に各問題の内容を確認し、正解（A/B/C/D）を選択してください。"
+                      : "Review extracted questions and select the correct A/B/C/D answer for every question before publishing."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowUnansweredOnly((prev) => !prev)}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition ${
+                showUnansweredOnly
+                  ? "border-amber-600 bg-amber-600 text-white"
+                  : "border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {showUnansweredOnly
+                ? lang === "vi"
+                  ? "Hiện tất cả câu hỏi"
+                  : lang === "ja"
+                    ? "すべての問題を表示"
+                    : "Show All Questions"
+                : lang === "vi"
+                  ? `Chỉ hiện câu chưa chọn (${unansweredCount})`
+                  : lang === "ja"
+                    ? `未選択のみ表示 (${unansweredCount})`
+                    : `Unanswered Only (${unansweredCount})`}
+            </button>
+          </div>
+        )}
+
         {/* SECTION 3: QUESTION EDITORS */}
         <div className="space-y-5">
           {questions.map((q, idx) => {
+            const isMissingAnswer = q.correctIndex < 0 || q.correctIndex > 3;
+            if (showUnansweredOnly && !isMissingAnswer) return null;
+
             const meta = MONDAI_META[q.type];
             const optionLetters = ["A", "B", "C", "D"];
 
             return (
               <div
                 key={q.id}
-                className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm"
+                className={`rounded-2xl border p-6 shadow-sm ${
+                  isMissingAnswer
+                    ? "border-amber-300 bg-amber-50/15"
+                    : "border-slate-200/90 bg-white"
+                }`}
               >
                 {/* Question Card Header */}
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -682,6 +794,12 @@ export default function SenseiTestCreatePage() {
                     >
                       {meta.label}
                     </span>
+                    {isMissingAnswer && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+                        <AlertTriangle className="h-3 w-3" />
+                        {lang === "vi" ? "Chưa chọn đáp án" : lang === "ja" ? "正解未選択" : "Needs Answer"}
+                      </span>
+                    )}
 
                     <select
                       value={q.type}
@@ -1127,6 +1245,13 @@ export default function SenseiTestCreatePage() {
           </div>
         </div>
       </form>
+
+      <PdfImportDialog
+        open={isPdfImportOpen}
+        onOpenChange={setIsPdfImportOpen}
+        defaultLevel={classes.find((c) => c.id === classId)?.level || "N3"}
+        onImported={handlePdfImported}
+      />
     </div>
   );
 }
