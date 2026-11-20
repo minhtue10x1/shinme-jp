@@ -177,33 +177,105 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+    const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+    const fallbackChain = Array.from(
+      new Set([
+        primaryModel,
+        "gemini-3.8-flash",
+        "gemini-3.8-flash-lite",
+        "gemini-2.5-flash-lite",
+      ])
+    );
 
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType: "application/pdf",
-                data: base64Pdf,
+    const isRetryableError = (err: unknown): boolean => {
+      const msg = err instanceof Error ? err.message : String(err);
+      return (
+        msg.includes("503") ||
+        msg.includes("UNAVAILABLE") ||
+        msg.includes("429") ||
+        msg.includes("RESOURCE_EXHAUSTED") ||
+        msg.includes("high demand") ||
+        msg.includes("404") ||
+        msg.includes("NOT_FOUND")
+      );
+    };
+
+    let response: Awaited<ReturnType<typeof ai.models.generateContent>> | null = null;
+    let lastError: unknown = null;
+    let usedModel = primaryModel;
+
+    for (const candidateModel of fallbackChain) {
+      // Up to 2 attempts per model (fast retry on transient 503 spike)
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+            model: candidateModel,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: "application/pdf",
+                      data: base64Pdf,
+                    },
+                  },
+                  {
+                    text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
+                  },
+                ],
               },
+            ],
+            config: {
+              systemInstruction: systemPrompt,
+              responseMimeType: "application/json",
+              responseSchema: RESPONSE_SCHEMA,
+              temperature: 0.1,
             },
-            {
-              text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
-            },
-          ],
+          });
+          usedModel = candidateModel;
+          break;
+        } catch (err) {
+          lastError = err;
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(
+            `[api/tests/import-pdf] Model ${candidateModel} attempt ${attempt} failed:`,
+            msg.slice(0, 200)
+          );
+
+          // If 404 (model not found), immediately skip to next fallback model
+          if (msg.includes("404") || msg.includes("NOT_FOUND")) {
+            break;
+          }
+
+          if (!isRetryableError(err)) {
+            throw err;
+          }
+
+          // Brief backoff before retry
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 1500));
+          }
+        }
+      }
+      if (response) break;
+    }
+
+    if (!response) {
+      const errMsg = lastError instanceof Error ? lastError.message : String(lastError || "");
+      const isOverloaded =
+        errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("high demand");
+      return NextResponse.json(
+        {
+          error: isOverloaded
+            ? "Máy chủ AI Google Gemini hiện đang quá tải tạm thời (503). Hệ thống đã thử tự động chuyển model dự phòng nhưng vẫn bận — bạn vui lòng đợi 10–15 giây rồi bấm thử lại nhé."
+            : errMsg || "Không thể kết nối tới Gemini API.",
         },
-      ],
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
-        temperature: 0.1,
-      },
-    });
+        { status: isOverloaded ? 503 : 500 }
+      );
+    }
+
+    console.info(`[api/tests/import-pdf] Successfully parsed PDF using model: ${usedModel}`);
 
     const rawText = response.text?.trim();
     if (!rawText) {
