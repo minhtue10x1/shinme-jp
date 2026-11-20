@@ -278,11 +278,15 @@ export function TestTakeClient({ testId }: { testId: string }) {
             }
           } else {
             const errBody = await res.json().catch(() => ({}));
+            console.error("[exam] Server submit failed:", res.status, errBody);
             if (errBody?.code !== "ADMIN_NOT_CONFIGURED") {
               toast.error(
                 lang === "vi"
                   ? "Không thể chấm bài trên máy chủ. Vui lòng thử lại."
-                  : "Could not grade exam on server. Please try again."
+                  : "Could not grade exam on server. Please try again.",
+                {
+                  description: errBody?.error ? `HTTP ${res.status}: ${errBody.error}` : `HTTP ${res.status}`,
+                }
               );
               return;
             }

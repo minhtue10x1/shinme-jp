@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb, getAdminInitError, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
 import type { JLPTTestDoc, TestAnswerKeyDoc, TestAnswerKeyEntry, TestSubmissionDoc } from "@/lib/db/schema";
 
 type SubmitPayload = {
@@ -13,24 +13,28 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!isFirebaseAdminConfigured()) {
-    return NextResponse.json(
-      {
-        error: "Server-side grading is not configured yet (missing FIREBASE_SERVICE_ACCOUNT_KEY).",
-        code: "ADMIN_NOT_CONFIGURED",
-      },
-      { status: 503 }
-    );
-  }
+  try {
+    if (!isFirebaseAdminConfigured()) {
+      return NextResponse.json(
+        {
+          error: getAdminInitError() || "Server-side grading is not configured yet (missing Firebase Admin env vars).",
+          code: "ADMIN_NOT_CONFIGURED",
+        },
+        { status: 503 }
+      );
+    }
 
-  const adminAuth = getAdminAuth();
-  const adminDb = getAdminDb();
-  if (!adminAuth || !adminDb) {
-    return NextResponse.json(
-      { error: "Firebase Admin initialization failed.", code: "ADMIN_INIT_FAILED" },
-      { status: 503 }
-    );
-  }
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
+    if (!adminAuth || !adminDb) {
+      return NextResponse.json(
+        {
+          error: getAdminInitError() || "Firebase Admin initialization failed (check FIREBASE_PRIVATE_KEY format).",
+          code: "ADMIN_INIT_FAILED",
+        },
+        { status: 503 }
+      );
+    }
 
   // 1. Verify Bearer ID token
   const authHeader = request.headers.get("authorization") || "";
@@ -160,4 +164,9 @@ export async function POST(
     correctCount,
     answerKey: answerKeyMap,
   });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unexpected server error";
+    console.error("[api/tests/submit] Unhandled error:", err);
+    return NextResponse.json({ error: message, code: "SERVER_ERROR" }, { status: 500 });
+  }
 }
