@@ -4,7 +4,7 @@ import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/fireb
 import type { MondaiType, TestQuestion } from "@/lib/test-center-store";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024; // 15MB safety cap
 
@@ -254,6 +254,11 @@ export async function POST(request: Request) {
                 responseMimeType: "application/json",
                 responseSchema: RESPONSE_SCHEMA,
                 temperature: 0.1,
+                maxOutputTokens: 16384,
+                // Disable thinking tokens on Flash models for 3-5x faster verbatim PDF extraction
+                ...(candidateModel.includes("flash")
+                  ? { thinkingConfig: { thinkingBudget: 0 } }
+                  : {}),
               },
             });
             usedModel = candidateModel;
