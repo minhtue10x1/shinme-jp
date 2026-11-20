@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo } from "
 import type { Language, I18nDictionary } from "./types";
 import { vi } from "./translations/vi";
 import { en } from "./translations/en";
+import { ja } from "./translations/ja";
 
 interface LanguageContextType {
   lang: Language;
@@ -13,7 +14,7 @@ interface LanguageContextType {
   interpolate: (text: string, vars?: Record<string, string | number>) => string;
 }
 
-const dictionaries: Record<Language, I18nDictionary> = { vi, en };
+const dictionaries: Record<Language, I18nDictionary> = { vi, en, ja };
 
 const STORAGE_KEY = "shinme_language";
 
@@ -25,7 +26,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
-      if (saved === "vi" || saved === "en") {
+      if (saved === "vi" || saved === "en" || saved === "ja") {
         setLangState(saved);
         document.documentElement.lang = saved;
       } else {
@@ -48,7 +49,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleLang = () => {
-    setLang(lang === "vi" ? "en" : "vi");
+    const order: Language[] = ["vi", "en", "ja"];
+    const next = order[(order.indexOf(lang) + 1) % order.length];
+    setLang(next);
   };
 
   const interpolate = (text: string, vars?: Record<string, string | number>): string => {

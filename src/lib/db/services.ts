@@ -8,11 +8,11 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   limit,
 } from "firebase/firestore";
 import {
   ref as storageRef,
+  uploadBytes,
   uploadBytesResumable,
   getDownloadURL,
   deleteObject,
@@ -23,6 +23,8 @@ import type {
   UserProfileDoc,
   ClassDoc,
   JLPTTestDoc,
+  TestAnswerKeyDoc,
+  TestAnswerKeyEntry,
   TestSubmissionDoc,
   AnnouncementDoc,
   LeadDoc,
@@ -42,13 +44,13 @@ export async function getUserProfile(uid: string): Promise<UserProfileDoc | null
 
 export async function getAllUsers(): Promise<UserProfileDoc[]> {
   const ref = collection(db, "users");
-  const snap = await getDocs(ref);
+  const snap = await getDocs(query(ref, limit(500)));
   return snap.docs.map((d) => d.data() as UserProfileDoc);
 }
 
 export async function getUsersByClass(classId: string): Promise<UserProfileDoc[]> {
   const ref = collection(db, "users");
-  const q = query(ref, where("classId", "==", classId));
+  const q = query(ref, where("classId", "==", classId), limit(200));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as UserProfileDoc);
 }
@@ -63,7 +65,7 @@ export async function updateUserClassByAdmin(
   const snap = await getDoc(ref);
   const data = snap.data() as UserProfileDoc | undefined;
 
-  const updates: Record<string, any> = {
+  const updates: Record<string, unknown> = {
     classId,
     className,
     updatedAt: new Date().toISOString(),
@@ -94,7 +96,7 @@ export async function assignTeacherAndClasses(
     .map((id) => classes.find((c) => c.id === id)?.shortName || id)
     .join(", ");
 
-  const userUpdates: Record<string, any> = {
+  const userUpdates: Record<string, unknown> = {
     role: "sensei",
     classId: primaryClass ? primaryClass.id : "ALL",
     className: classNames ? `Phụ trách: ${classNames}` : "Giảng viên Shinme",
@@ -107,7 +109,6 @@ export async function assignTeacherAndClasses(
 
   await updateDoc(userRef, userUpdates);
 
-  // Update selected classes in Firestore
   for (const cid of classIds) {
     const classRef = doc(db, "classes", cid);
     await updateDoc(classRef, {
@@ -122,7 +123,7 @@ export async function updateUserRole(uid: string, newRole: RoleId): Promise<void
   const snap = await getDoc(userRef);
   const data = snap.data() as UserProfileDoc | undefined;
 
-  const updates: Record<string, any> = {
+  const updates: Record<string, unknown> = {
     role: newRole,
     updatedAt: new Date().toISOString(),
   };
@@ -145,12 +146,27 @@ export async function updateUserAvatar(uid: string, avatarUrl: string): Promise<
   });
 }
 
+/**
+ * Upload compressed avatar Blob to Firebase Storage (`avatars/{uid}/avatar.webp`).
+ * Returns public download URL so Firestore `users/{uid}.avatarUrl` stays lightweight.
+ */
+export async function uploadUserAvatarToStorage(uid: string, blob: Blob): Promise<string> {
+  const ext = blob.type === "image/webp" ? "webp" : "jpg";
+  const path = `avatars/${uid}/avatar_${Date.now()}.${ext}`;
+  const avatarStorageRef = storageRef(storage, path);
+  await uploadBytes(avatarStorageRef, blob, {
+    contentType: blob.type || "image/webp",
+    cacheControl: "public, max-age=604800",
+  });
+  return getDownloadURL(avatarStorageRef);
+}
+
 /* =====================================================================
  * CLASSES SERVICE
  * ===================================================================== */
 export async function getClasses(): Promise<ClassDoc[]> {
   const ref = collection(db, "classes");
-  const snap = await getDocs(ref);
+  const snap = await getDocs(query(ref, limit(100)));
   return snap.docs.map((d) => d.data() as ClassDoc);
 }
 
@@ -165,19 +181,20 @@ export async function deleteClass(classId: string): Promise<void> {
 }
 
 /* =====================================================================
- * TESTS & EXAMS SERVICE
+ * TESTS & EXAMS SERVICE (with secure answer-key separation)
  * ===================================================================== */
 export async function getAllTests(): Promise<JLPTTestDoc[]> {
   const ref = collection(db, "tests");
-  const snap = await getDocs(ref);
+  const snap = await getDocs(query(ref, limit(200)));
   return snap.docs.map((d) => d.data() as JLPTTestDoc);
 }
 
 export async function getTestsByClass(classId: string): Promise<JLPTTestDoc[]> {
   const ref = collection(db, "tests");
-  const q = classId === "ALL" 
-    ? ref 
-    : query(ref, where("classId", "==", classId));
+  const q =
+    !classId || classId === "ALL"
+      ? query(ref, limit(200))
+      : query(ref, where("classId", "in", [classId, "ALL"]), limit(100));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as JLPTTestDoc);
 }
@@ -188,14 +205,80 @@ export async function getTestById(testId: string): Promise<JLPTTestDoc | null> {
   return snap.exists() ? (snap.data() as JLPTTestDoc) : null;
 }
 
+export async function getTestAnswerKey(testId: string): Promise<TestAnswerKeyDoc | null> {
+  const ref = doc(db, "test_answer_keys", testId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? (snap.data() as TestAnswerKeyDoc) : null;
+}
+
+/**
+ * Saves a JLPT test securely:
+ * - Strips answer keys (`correctIndex`, `explanation`, `starCorrectOrder`, `audioScript`)
+ *   from `tests/{testId}` so students cannot read answers from browser DevTools.
+ * - Stores the answer key in `test_answer_keys/{testId}` (readable only by Sensei/Admin/Server).
+ */
 export async function saveTestDoc(test: JLPTTestDoc): Promise<void> {
-  const ref = doc(db, "tests", test.id);
-  await setDoc(ref, test, { merge: true });
+  const hasRealAnswers = (test.questions || []).some(
+    (q) => typeof q.correctIndex === "number" && q.correctIndex >= 0
+  );
+
+  if (hasRealAnswers) {
+    const answers: Record<string, TestAnswerKeyEntry> = {};
+    for (const q of test.questions) {
+      answers[q.id] = {
+        correctIndex: q.correctIndex,
+        explanation: q.explanation || "",
+        ...(q.starCorrectOrder ? { starCorrectOrder: q.starCorrectOrder } : {}),
+        ...(q.audioScript ? { audioScript: q.audioScript } : {}),
+      };
+    }
+
+    const answerKeyDoc: TestAnswerKeyDoc = {
+      testId: test.id,
+      passScore: test.passScore,
+      totalPoints: test.totalPoints,
+      answers,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await setDoc(doc(db, "test_answer_keys", test.id), answerKeyDoc, { merge: true });
+  }
+
+  const sanitizedTest: JLPTTestDoc = {
+    ...test,
+    questions: (test.questions || []).map((q) => {
+      const { starCorrectOrder: _star, audioScript: _script, ...rest } = q;
+      void _star;
+      void _script;
+      return {
+        ...rest,
+        correctIndex: -1,
+        explanation: "",
+      };
+    }),
+  };
+
+  await setDoc(doc(db, "tests", test.id), sanitizedTest, { merge: true });
+}
+
+export async function duplicateTestDoc(sourceTestId: string, copy: JLPTTestDoc): Promise<void> {
+  const sourceKey = await getTestAnswerKey(sourceTestId);
+  await setDoc(doc(db, "tests", copy.id), copy, { merge: true });
+
+  if (sourceKey) {
+    await setDoc(doc(db, "test_answer_keys", copy.id), {
+      ...sourceKey,
+      testId: copy.id,
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
 
 export async function deleteTestDoc(testId: string): Promise<void> {
-  const ref = doc(db, "tests", testId);
-  await deleteDoc(ref);
+  await Promise.all([
+    deleteDoc(doc(db, "tests", testId)),
+    deleteDoc(doc(db, "test_answer_keys", testId)).catch(() => undefined),
+  ]);
 }
 
 /* =====================================================================
@@ -208,21 +291,21 @@ export async function saveTestSubmission(sub: TestSubmissionDoc): Promise<void> 
 
 export async function getSubmissionsByTest(testId: string): Promise<TestSubmissionDoc[]> {
   const ref = collection(db, "test_submissions");
-  const q = query(ref, where("testId", "==", testId));
+  const q = query(ref, where("testId", "==", testId), limit(300));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as TestSubmissionDoc);
 }
 
 export async function getSubmissionsByStudent(studentId: string): Promise<TestSubmissionDoc[]> {
   const ref = collection(db, "test_submissions");
-  const q = query(ref, where("studentId", "==", studentId));
+  const q = query(ref, where("studentId", "==", studentId), limit(200));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as TestSubmissionDoc);
 }
 
 export async function getAllSubmissions(): Promise<TestSubmissionDoc[]> {
   const ref = collection(db, "test_submissions");
-  const snap = await getDocs(ref);
+  const snap = await getDocs(query(ref, limit(500)));
   return snap.docs.map((d) => d.data() as TestSubmissionDoc);
 }
 
@@ -231,10 +314,14 @@ export async function getAllSubmissions(): Promise<TestSubmissionDoc[]> {
  * ===================================================================== */
 export async function getAnnouncements(classId?: string): Promise<AnnouncementDoc[]> {
   const ref = collection(db, "announcements");
-  const snap = await getDocs(ref);
-  const all = snap.docs.map((d) => d.data() as AnnouncementDoc);
-  if (!classId || classId === "ALL") return all;
-  return all.filter((a) => a.classId === classId || a.classId === "ALL");
+  const q =
+    classId && classId !== "ALL"
+      ? query(ref, where("classId", "in", [classId, "ALL"]), limit(60))
+      : query(ref, limit(100));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data() as AnnouncementDoc)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function saveAnnouncementDoc(ann: AnnouncementDoc): Promise<void> {
@@ -264,8 +351,10 @@ export async function saveLeadDoc(lead: LeadDoc): Promise<void> {
 
 export async function getLeads(): Promise<LeadDoc[]> {
   const ref = collection(db, "leads");
-  const snap = await getDocs(ref);
-  return snap.docs.map((d) => d.data() as LeadDoc);
+  const snap = await getDocs(query(ref, limit(300)));
+  return snap.docs
+    .map((d) => d.data() as LeadDoc)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 /* =====================================================================
@@ -273,10 +362,14 @@ export async function getLeads(): Promise<LeadDoc[]> {
  * ===================================================================== */
 export async function getMaterials(classId?: string): Promise<MaterialDoc[]> {
   const ref = collection(db, "materials");
-  const snap = await getDocs(ref);
-  const list = snap.docs.map((d) => d.data() as MaterialDoc);
-  if (!classId || classId === "ALL") return list;
-  return list.filter((m) => m.classId === classId || m.classId === "ALL");
+  const q =
+    classId && classId !== "ALL"
+      ? query(ref, where("classId", "in", [classId, "ALL"]), limit(100))
+      : query(ref, limit(200));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data() as MaterialDoc)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function saveMaterialDoc(material: MaterialDoc): Promise<void> {
@@ -302,11 +395,9 @@ export async function uploadMaterialFile(
   folder = "materials",
   onProgress?: (percent: number) => void
 ): Promise<{ url: string; sizeFormatted: string }> {
-  // Format size: KB / MB
   const sizeKb = file.size / 1024;
   const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${Math.round(sizeKb)} KB`;
 
-  // Clean filename and make unique
   const timestamp = Date.now();
   const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `${folder}/${timestamp}_${cleanName}`;
@@ -333,17 +424,52 @@ export async function uploadMaterialFile(
 }
 
 /* =====================================================================
- * ASSIGNMENTS SERVICE (`assignments`)
+ * ASSIGNMENTS SERVICE (`assignments` + `submissions` subcollection)
  * ===================================================================== */
-export async function getAssignments(classId?: string): Promise<AssignmentDoc[]> {
+export async function getAssignments(
+  classId?: string,
+  studentUidForScope?: string
+): Promise<AssignmentDoc[]> {
   const colRef = collection(db, "assignments");
-  const snap = await getDocs(colRef);
-  let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as AssignmentDoc));
-  if (classId && classId !== "ALL") {
-    list = list.filter((a) => a.classId === "ALL" || a.classId === classId);
-  }
-  // Sort by createdAt desc or dueDate
-  return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  const q =
+    classId && classId !== "ALL"
+      ? query(colRef, where("classId", "in", [classId, "ALL"]), limit(100))
+      : query(colRef, limit(150));
+
+  const snap = await getDocs(q);
+  const rawList = snap.docs.map((d) => ({ id: d.id, ...d.data() } as AssignmentDoc));
+
+  // Hydrate subcollection `assignments/{asgId}/submissions` and merge with legacy map
+  const hydrated = await Promise.all(
+    rawList.map(async (asg) => {
+      const mergedSubmissions: Record<string, AssignmentSubmissionInfo> = {
+        ...(asg.submissions || {}),
+      };
+
+      try {
+        if (studentUidForScope) {
+          const subSnap = await getDoc(doc(db, "assignments", asg.id, "submissions", studentUidForScope));
+          if (subSnap.exists()) {
+            mergedSubmissions[studentUidForScope] = subSnap.data() as AssignmentSubmissionInfo;
+          }
+        } else {
+          const subsSnap = await getDocs(collection(db, "assignments", asg.id, "submissions"));
+          for (const sDoc of subsSnap.docs) {
+            mergedSubmissions[sDoc.id] = sDoc.data() as AssignmentSubmissionInfo;
+          }
+        }
+      } catch {
+        // Gracefully keep legacy map if subcollection read is unavailable
+      }
+
+      return {
+        ...asg,
+        submissions: mergedSubmissions,
+      };
+    })
+  );
+
+  return hydrated.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function saveAssignment(assignment: AssignmentDoc): Promise<void> {
@@ -356,19 +482,27 @@ export async function deleteAssignment(id: string): Promise<void> {
   await deleteDoc(ref);
 }
 
+/**
+ * Writes student assignment submission to scalable subcollection
+ * `assignments/{assignmentId}/submissions/{studentId}` (avoids 1MB doc limit).
+ */
 export async function submitAssignmentAnswer(
   assignmentId: string,
   studentId: string,
   submission: Partial<AssignmentSubmissionInfo>
 ): Promise<void> {
-  const ref = doc(db, "assignments", assignmentId);
-  await updateDoc(ref, {
-    [`submissions.${studentId}`]: {
-      ...submission,
-      status: submission.status || "submitted",
+  const subRef = doc(db, "assignments", assignmentId, "submissions", studentId);
+  await setDoc(
+    subRef,
+    {
+      studentAnswer: submission.studentAnswer || "",
+      studentName: submission.studentName || "",
+      studentCode: submission.studentCode || "",
+      status: "submitted",
       submittedAt: submission.submittedAt || new Date().toISOString(),
     },
-  });
+    { merge: true }
+  );
 }
 
 export async function gradeAssignmentSubmission(
@@ -376,14 +510,16 @@ export async function gradeAssignmentSubmission(
   studentId: string,
   grading: Partial<AssignmentSubmissionInfo>
 ): Promise<void> {
-  const ref = doc(db, "assignments", assignmentId);
-  await updateDoc(ref, {
-    [`submissions.${studentId}.score`]: grading.score,
-    [`submissions.${studentId}.maxScore`]: grading.maxScore,
-    [`submissions.${studentId}.feedback`]: grading.feedback,
-    [`submissions.${studentId}.status`]: "graded",
-    [`submissions.${studentId}.gradedAt`]: new Date().toISOString(),
-  });
+  const subRef = doc(db, "assignments", assignmentId, "submissions", studentId);
+  await setDoc(
+    subRef,
+    {
+      score: grading.score,
+      maxScore: grading.maxScore,
+      feedback: grading.feedback,
+      status: "graded",
+      gradedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }
-
-

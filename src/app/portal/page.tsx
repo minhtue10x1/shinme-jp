@@ -37,6 +37,7 @@ import {
   getAllSubmissions,
   getSubmissionsByStudent,
   getAllTests,
+  getTestsByClass,
 } from "@/lib/db/services";
 import type { ClassDoc, UserProfileDoc, TestSubmissionDoc, JLPTTestDoc } from "@/lib/db/schema";
 
@@ -149,7 +150,11 @@ function StudentDashboard() {
 
   useEffect(() => {
     const uid = firebaseUser?.uid || user.id;
-    Promise.all([getClasses(), getSubmissionsByStudent(uid), getAllTests()])
+    Promise.all([
+      getClasses(),
+      getSubmissionsByStudent(uid),
+      user.classId ? getTestsByClass(user.classId) : getAllTests(),
+    ])
       .then(([cList, sList, tList]) => {
         setClasses(cList);
         setSubmissions(sList);

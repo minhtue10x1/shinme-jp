@@ -23,6 +23,7 @@ import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import {
   getAllTests,
+  getTestsByClass,
   getClasses,
   getAllUsers,
   getAllSubmissions,
@@ -61,7 +62,7 @@ export default function GradebookPage() {
       setIsLoading(true);
       const uid = firebaseUser?.uid || user.id;
       const [testList, classList, userList, subList] = await Promise.all([
-        getAllTests(),
+        role === "student" && user.classId ? getTestsByClass(user.classId) : getAllTests(),
         getClasses(),
         role === "student" ? Promise.resolve([]) : getAllUsers(),
         role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),

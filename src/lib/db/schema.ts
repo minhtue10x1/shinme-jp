@@ -66,6 +66,24 @@ export type JLPTTestDoc = {
 };
 
 /* =====================================================================
+ * 3B. TEST ANSWER KEYS COLLECTION: `test_answer_keys` (Server & Sensei/Admin only)
+ * ===================================================================== */
+export type TestAnswerKeyEntry = {
+  correctIndex: number;
+  explanation: string;
+  starCorrectOrder?: [number, number, number, number];
+  audioScript?: { speaker: string; textJa: string; textVi: string }[];
+};
+
+export type TestAnswerKeyDoc = {
+  testId: string;
+  passScore: number;
+  totalPoints: number;
+  answers: Record<string, TestAnswerKeyEntry>;
+  updatedAt: string;
+};
+
+/* =====================================================================
  * 4. TEST SUBMISSIONS COLLECTION: `test_submissions`
  * ===================================================================== */
 export type TestSubmissionDoc = {

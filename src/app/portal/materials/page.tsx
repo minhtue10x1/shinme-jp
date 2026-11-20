@@ -82,7 +82,7 @@ export default function MaterialsPage() {
       setIsLoading(true);
       const [classList, materialList] = await Promise.all([
         getClasses(),
-        getMaterials(),
+        getMaterials(role === "student" ? user.classId : undefined),
       ]);
       setClasses(classList);
       setMaterials(materialList);
@@ -96,7 +96,7 @@ export default function MaterialsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [role, user.classId]);
 
   // Filtered Materials
   const filteredMaterials = useMemo(() => {

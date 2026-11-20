@@ -1,10 +1,11 @@
-export type Language = "vi" | "en";
+export type Language = "vi" | "en" | "ja";
 
 export interface I18nDictionary {
   common: {
     language: string;
     vietnamese: string;
     english: string;
+    japanese: string;
     save: string;
     saved: string;
     cancel: string;

@@ -26,6 +26,7 @@ import {
   getAllTests,
   getAllSubmissions,
   saveTestDoc,
+  duplicateTestDoc,
   deleteTestDoc,
 } from "@/lib/db/services";
 import type { JLPTTestDoc, TestSubmissionDoc } from "@/lib/db/schema";
@@ -89,7 +90,7 @@ export default function SenseiTestManagePage() {
         title: `${test.title} (${lang === "vi" ? "Bản sao" : "Copy"})`,
         createdAt: new Date().toISOString().slice(0, 10),
       };
-      await saveTestDoc(copy);
+      await duplicateTestDoc(test.id, copy);
       setTests((prev) => [copy, ...prev]);
       toast.success(lang === "vi" ? `Đã nhân bản đề thi "${test.code}"` : `Duplicated test "${test.code}"`);
     } catch (err) {

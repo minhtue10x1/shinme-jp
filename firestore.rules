@@ -22,6 +22,10 @@ service cloud.firestore {
       return userExists() ? getUserData().role : 'guest';
     }
 
+    function getUserClassId() {
+      return userExists() && ('classId' in getUserData()) ? getUserData().classId : '';
+    }
+
     function isAdmin() {
       return isSignedIn() && getUserRole() == 'admin';
     }
@@ -34,12 +38,24 @@ service cloud.firestore {
       return isSignedIn() && getUserRole() in ['student', 'sensei', 'admin'];
     }
 
+    // Kiểm tra quyền đọc tài nguyên gắn với lớp học (class-level isolation)
+    function canReadClassResource(resourceClassId) {
+      return isTeacherOrAdmin()
+        || (isStudentOrAbove() && (resourceClassId == 'ALL' || resourceClassId == getUserClassId()));
+    }
+
     // ===============================================================
     // 1. USERS & PROFILES (`users`)
     // ===============================================================
     match /users/{userId} {
-      // Học viên chính thức/Sensei/Admin được đọc danh sách; Khách chỉ đọc được hồ sơ của chính mình
-      allow read: if isSignedIn() && (request.auth.uid == userId || isStudentOrAbove());
+      // - Sensei/Admin đọc được tất cả hồ sơ
+      // - Chủ tài khoản luôn đọc được hồ sơ của chính mình
+      // - Học viên chỉ đọc được thành viên cùng lớp (classId khớp)
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId
+        || isTeacherOrAdmin()
+        || (isStudentOrAbove() && ('classId' in resource.data) && resource.data.classId == getUserClassId())
+      );
 
       // Tự đăng ký mới: BẮT BUỘC chỉ được tạo cho chính UID của mình,
       // mặc định role = 'guest' và KHÔNG được tự gán classId
@@ -78,11 +94,18 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // 3. JLPT TESTS (`tests`)
+    // 3. JLPT TESTS (`tests`) & ANSWER KEYS (`test_answer_keys`)
     // ===============================================================
     match /tests/{testId} {
-      allow read: if isStudentOrAbove();
+      // Học viên chỉ đọc được đề thi của lớp mình hoặc đề chung ("ALL")
+      allow read: if canReadClassResource(resource.data.classId);
       allow create, update, delete: if isTeacherOrAdmin();
+    }
+
+    match /test_answer_keys/{testId} {
+      // TUYỆT ĐỐI khóa học viên đọc đáp án từ trình duyệt.
+      // Chỉ Sensei/Admin và Server (Firebase Admin SDK) mới có quyền truy cập.
+      allow read, write: if isTeacherOrAdmin();
     }
 
     // ===============================================================
@@ -93,7 +116,9 @@ service cloud.firestore {
       allow read: if isTeacherOrAdmin()
         || (isStudentOrAbove() && resource.data.studentId == request.auth.uid);
 
-      // Học viên chỉ được nộp bài cho chính UID của mình
+      // LƯU Ý PRODUCTION: Sau khi đã cấu hình FIREBASE_SERVICE_ACCOUNT_KEY trên Vercel
+      // để chấm điểm 100% qua `/api/tests/[id]/submit`, hãy đổi dòng dưới thành:
+      // allow create: if false;
       allow create: if isStudentOrAbove()
         && request.resource.data.studentId == request.auth.uid;
 
@@ -102,15 +127,17 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // 5. ASSIGNMENTS (`assignments`)
+    // 5. ASSIGNMENTS (`assignments`) & SUBMISSIONS SUBCOLLECTION
     // ===============================================================
     match /assignments/{asgId} {
-      allow read: if isStudentOrAbove();
+      // Học viên chỉ đọc được bài tập của lớp mình hoặc bài chung ("ALL")
+      allow read: if canReadClassResource(resource.data.classId);
       allow create, delete: if isTeacherOrAdmin();
 
-      // Sensei/Admin toàn quyền; Học viên CHỈ được phép ghi bài nộp vào đúng key UID của mình
+      // Legacy map update (giữ tương thích ngược cho dữ liệu cũ)
       allow update: if isTeacherOrAdmin() || (
         isStudentOrAbove()
+        && canReadClassResource(resource.data.classId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submissions'])
         && (
           !('submissions' in resource.data)
@@ -119,14 +146,31 @@ service cloud.firestore {
         )
         && request.resource.data.submissions[request.auth.uid].status == 'submitted'
       );
+
+      // Subcollection chuẩn scale: `assignments/{asgId}/submissions/{studentId}`
+      match /submissions/{studentId} {
+        allow read: if isTeacherOrAdmin()
+          || (isStudentOrAbove() && request.auth.uid == studentId);
+
+        // Học viên chỉ được nộp/sửa bài của chính mình ở trạng thái 'submitted',
+        // tuyệt đối không được tự ghi score / feedback / gradedAt
+        allow create, update: if isTeacherOrAdmin() || (
+          isStudentOrAbove()
+          && request.auth.uid == studentId
+          && request.resource.data.status == 'submitted'
+          && !request.resource.data.keys().hasAny(['score', 'feedback', 'gradedAt'])
+        );
+
+        allow delete: if isTeacherOrAdmin();
+      }
     }
 
     // ===============================================================
     // 6. ANNOUNCEMENTS (`announcements`)
     // ===============================================================
     match /announcements/{annId} {
-      // Tài khoản Khách (guest) không được phép đọc bảng tin lớp học
-      allow read: if isStudentOrAbove();
+      // Tài khoản Khách không được đọc; Học viên chỉ đọc thông báo lớp mình hoặc "ALL"
+      allow read: if canReadClassResource(resource.data.classId);
       allow create, update, delete: if isTeacherOrAdmin();
     }
 
@@ -134,7 +178,8 @@ service cloud.firestore {
     // 7. STUDY MATERIALS (`materials`)
     // ===============================================================
     match /materials/{matId} {
-      allow read: if isStudentOrAbove();
+      // Học viên chỉ đọc tài liệu của lớp mình hoặc "ALL"
+      allow read: if canReadClassResource(resource.data.classId);
       allow create, update, delete: if isTeacherOrAdmin();
     }
 
@@ -146,7 +191,9 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasAll(['fullName', 'phone'])
         && request.resource.data.fullName is string
         && request.resource.data.phone is string
+        && request.resource.data.fullName.size() >= 2
         && request.resource.data.fullName.size() <= 100
+        && request.resource.data.phone.size() >= 8
         && request.resource.data.phone.size() <= 30;
 
       // Chỉ Admin mới có quyền đọc danh sách khách hàng và cập nhật trạng thái tư vấn
@@ -154,4 +201,3 @@ service cloud.firestore {
     }
   }
 }
-

@@ -5,6 +5,7 @@ export const vi: I18nDictionary = {
     language: "Ngôn ngữ",
     vietnamese: "Tiếng Việt",
     english: "English",
+    japanese: "日本語",
     save: "Lưu thay đổi",
     saved: "Đã lưu",
     cancel: "Hủy bỏ",

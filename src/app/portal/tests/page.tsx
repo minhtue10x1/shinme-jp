@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
-import { getAllTests, getAllSubmissions, getSubmissionsByStudent, getClasses } from "@/lib/db/services";
+import { getAllTests, getTestsByClass, getAllSubmissions, getSubmissionsByStudent, getClasses } from "@/lib/db/services";
 import type { JLPTTestDoc, TestSubmissionDoc, ClassDoc } from "@/lib/db/schema";
 import { toast } from "sonner";
 
@@ -48,7 +48,7 @@ export default function TestsHubPage() {
       setIsLoading(true);
       const uid = firebaseUser?.uid || user.id;
       const [testList, subList, classList] = await Promise.all([
-        getAllTests(),
+        role === "student" && user.classId ? getTestsByClass(user.classId) : getAllTests(),
         role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),
         getClasses(),
       ]);

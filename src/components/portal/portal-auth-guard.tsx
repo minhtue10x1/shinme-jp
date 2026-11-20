@@ -48,7 +48,11 @@ export function PortalAuthGuard({ children }: { children: ReactNode }) {
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
           <p className="text-sm font-bold text-shinme-muted">
-            {lang === "vi" ? "Đang xác thực phiên làm việc Shinme..." : "Authenticating Shinme session..."}
+            {lang === "vi"
+              ? "Đang xác thực phiên làm việc Shinme..."
+              : lang === "ja"
+                ? "Shinmeセッションを認証中..."
+                : "Authenticating Shinme session..."}
           </p>
         </div>
       </div>
@@ -63,15 +67,19 @@ export function PortalAuthGuard({ children }: { children: ReactNode }) {
             <Lock className="size-7" />
           </div>
           <h2 className="text-lg font-black text-shinme-ink">
-            {lang === "vi" ? "Yêu cầu đăng nhập" : "Login Required"}
+            {lang === "vi" ? "Yêu cầu đăng nhập" : lang === "ja" ? "ログインが必要です" : "Login Required"}
           </h2>
           <p className="text-xs font-medium text-shinme-muted">
             {lang === "vi"
               ? "Bạn cần đăng nhập để truy cập Cổng học tập trực tuyến Shinme. Đang chuyển hướng..."
-              : "You must be logged in to access the Shinme Learning Portal. Redirecting..."}
+              : lang === "ja"
+                ? "Shinme学習ポータルへアクセスするにはログインが必要です。リダイレクト中..."
+                : "You must be logged in to access the Shinme Learning Portal. Redirecting..."}
           </p>
           <Button asChild size="sm">
-            <Link href="/login">{lang === "vi" ? "Đi tới trang Đăng nhập" : "Go to Login"}</Link>
+            <Link href="/login">
+              {lang === "vi" ? "Đi tới trang Đăng nhập" : lang === "ja" ? "ログインページへ" : "Go to Login"}
+            </Link>
           </Button>
         </div>
       </div>
@@ -98,20 +106,26 @@ export function PortalRouteGuard({ children }: { children: ReactNode }) {
             <ShieldAlert className="size-7" />
           </div>
           <h2 className="text-xl font-black text-shinme-ink">
-            {lang === "vi" ? "Không có quyền truy cập" : "Access Denied"}
+            {lang === "vi" ? "Không có quyền truy cập" : lang === "ja" ? "アクセス権限がありません" : "Access Denied"}
           </h2>
           <p className="text-xs font-medium leading-relaxed text-shinme-muted">
             {role === "guest"
               ? (lang === "vi"
                   ? "Tài khoản Khách (chưa xếp lớp) chỉ có thể xem Tổng quan và Hồ sơ cá nhân. Vui lòng đợi Admin xếp lớp học cho bạn."
-                  : "Guest accounts can only view Overview and Profile. Please wait for an Admin to place you into a class.")
+                  : lang === "ja"
+                    ? "ゲストアカウントはダッシュボードとプロフィールのみ閲覧可能です。管理者がクラスを配属するまでお待ちください。"
+                    : "Guest accounts can only view Overview and Profile. Please wait for an Admin to place you into a class.")
               : (lang === "vi"
                   ? "Tài khoản của bạn không có quyền mở trang chức năng này."
-                  : "Your account does not have permission to view this page.")}
+                  : lang === "ja"
+                    ? "このページを表示する権限がありません。"
+                    : "Your account does not have permission to view this page.")}
           </p>
           <div className="pt-2">
             <Button asChild size="sm">
-              <Link href="/portal">{lang === "vi" ? "Quay về Tổng quan Portal" : "Back to Portal Overview"}</Link>
+              <Link href="/portal">
+                {lang === "vi" ? "Quay về Tổng quan Portal" : lang === "ja" ? "ダッシュボードへ戻る" : "Back to Portal Overview"}
+              </Link>
             </Button>
           </div>
         </div>

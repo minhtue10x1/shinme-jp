@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTeacherOrAdmin() {
+      return isSignedIn() && getUserRole() in ['sensei', 'admin'];
+    }
+
+    function isStudentOrAbove() {
+      return isSignedIn() && getUserRole() in ['student', 'sensei', 'admin'];
+    }
+
+    // ===============================================================
+    // 1. STUDY MATERIALS (`materials/{fileName}`)
+    // ===============================================================
+    match /materials/{allPaths=**} {
+      // Chỉ học viên chính thức, Sensei và Admin mới được tải tài liệu
+      allow read: if isStudentOrAbove();
+
+      // Chỉ Sensei/Admin được upload, giới hạn tối đa 25MB, chỉ cho phép định dạng học liệu an toàn
+      allow write: if isTeacherOrAdmin()
+        && request.resource.size <= 25 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('audio/.*')
+          || request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('application/vnd\\..*')
+          || request.resource.contentType.matches('application/msword')
+        );
+
+      allow delete: if isTeacherOrAdmin();
+    }
+
+    // ===============================================================
+    // 2. USER AVATARS (`avatars/{userId}/{fileName}`)
+    // ===============================================================
+    match /avatars/{userId}/{allPaths=**} {
+      // Ảnh đại diện cho phép thành viên đã đăng nhập xem
+      allow read: if isSignedIn();
+
+      // Chủ tài khoản chỉ được upload ảnh đại diện của chính mình, tối đa 2MB, định dạng ảnh
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Mặc định chặn toàn bộ đường dẫn khác
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

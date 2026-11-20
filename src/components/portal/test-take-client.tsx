@@ -209,43 +209,123 @@ export function TestTakeClient({ testId }: { testId: string }) {
       }
       setPlayingQuestionId(null);
 
-      let earned = 0;
-      let correctCount = 0;
-      for (const q of orderedQuestions) {
-        if (answers[q.id] === q.correctIndex) {
-          earned += q.points;
-          correctCount += 1;
-        }
-      }
-
-      const total = test.totalPoints;
-      const passed = earned >= test.passScore;
       const elapsedSeconds = Math.max(
         15,
         test.durationMinutes * 60 - remainingSeconds
       );
 
-      const subPayload: TestSubmissionDoc = {
-        id: `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-        testId: test.id,
-        studentId: firebaseUser?.uid || currentUser.id || "std-01",
-        studentCode: currentUser.code || "HV-202601",
-        studentName: currentUser.name || "Học viên Shinme",
-        score: earned,
-        totalPoints: total,
-        passed,
-        durationSeconds: elapsedSeconds,
-        answers,
-        submittedAt: new Date().toISOString(),
-      };
+      let earned = 0;
+      let total = test.totalPoints;
+      let passed = false;
+      let correctCount = 0;
+      let gradedOnServer = false;
+      let finalSubmission: TestSubmissionDoc | null = null;
 
-      try {
-        await saveTestSubmission(subPayload);
-      } catch (err) {
-        console.error("Failed to save submission to Firestore:", err);
+      // Prefer server-side grading API (`/api/tests/[id]/submit`) for anti-cheat integrity
+      if (firebaseUser) {
+        try {
+          const idToken = await firebaseUser.getIdToken();
+          const res = await fetch(`/api/tests/${encodeURIComponent(test.id)}/submit`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              answers,
+              durationSeconds: elapsedSeconds,
+              studentCode: currentUser.code,
+              studentName: currentUser.name,
+            }),
+          });
+
+          if (res.ok) {
+            const data = (await res.json()) as {
+              submission: TestSubmissionDoc;
+              correctCount: number;
+              answerKey?: Record<
+                string,
+                {
+                  correctIndex: number;
+                  explanation: string;
+                  starCorrectOrder?: [number, number, number, number];
+                  audioScript?: { speaker: string; textJa: string; textVi: string }[];
+                }
+              >;
+            };
+            finalSubmission = data.submission;
+            earned = data.submission.score;
+            total = data.submission.totalPoints;
+            passed = data.submission.passed;
+            correctCount = data.correctCount;
+            gradedOnServer = true;
+
+            // Hydrate answer key & explanations only after server confirms submission
+            if (data.answerKey) {
+              setOrderedQuestions((prev) =>
+                prev.map((q) => {
+                  const key = data.answerKey?.[q.id];
+                  if (!key) return q;
+                  return {
+                    ...q,
+                    correctIndex: key.correctIndex,
+                    explanation: key.explanation || q.explanation,
+                    ...(key.starCorrectOrder ? { starCorrectOrder: key.starCorrectOrder } : {}),
+                    ...(key.audioScript ? { audioScript: key.audioScript } : {}),
+                  };
+                })
+              );
+            }
+          } else {
+            const errBody = await res.json().catch(() => ({}));
+            if (errBody?.code !== "ADMIN_NOT_CONFIGURED") {
+              toast.error(
+                lang === "vi"
+                  ? "Không thể chấm bài trên máy chủ. Vui lòng thử lại."
+                  : "Could not grade exam on server. Please try again."
+              );
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("[exam] Server grading unavailable, falling back if legacy keys exist:", err);
+        }
       }
 
-      saveAttempt(subPayload as any);
+      // Fallback for local dev before FIREBASE_SERVICE_ACCOUNT_KEY is configured
+      if (!gradedOnServer) {
+        for (const q of orderedQuestions) {
+          if (q.correctIndex >= 0 && answers[q.id] === q.correctIndex) {
+            earned += q.points;
+            correctCount += 1;
+          }
+        }
+        passed = earned >= test.passScore;
+
+        finalSubmission = {
+          id: `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          testId: test.id,
+          studentId: firebaseUser?.uid || currentUser.id || "std-01",
+          studentCode: currentUser.code || "HV-202601",
+          studentName: currentUser.name || "Học viên Shinme",
+          score: earned,
+          totalPoints: total,
+          passed,
+          durationSeconds: elapsedSeconds,
+          answers,
+          submittedAt: new Date().toISOString(),
+        };
+
+        try {
+          await saveTestSubmission(finalSubmission);
+        } catch (err) {
+          console.error("Failed to save submission to Firestore:", err);
+        }
+      }
+
+      if (finalSubmission) {
+        saveAttempt(finalSubmission as unknown as Parameters<typeof saveAttempt>[0]);
+      }
 
       try {
         window.localStorage.removeItem(storageKey);

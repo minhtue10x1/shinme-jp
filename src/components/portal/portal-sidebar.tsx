@@ -66,11 +66,23 @@ export function PortalSidebar() {
       setIsLoggingOut(true);
       await logout();
       setIsLogoutOpen(false);
-      toast.success(lang === "vi" ? "Đã đăng xuất tài khoản." : "Successfully logged out.");
+      toast.success(
+        lang === "vi"
+          ? "Đã đăng xuất tài khoản."
+          : lang === "ja"
+            ? "ログアウトしました。"
+            : "Successfully logged out."
+      );
       router.push("/login");
     } catch (err) {
       console.error("Logout failed:", err);
-      toast.error(lang === "vi" ? "Không thể đăng xuất. Vui lòng thử lại." : "Could not log out. Please try again.");
+      toast.error(
+        lang === "vi"
+          ? "Không thể đăng xuất. Vui lòng thử lại."
+          : lang === "ja"
+            ? "ログアウトできませんでした。もう一度お試しください。"
+            : "Could not log out. Please try again."
+      );
     } finally {
       setIsLoggingOut(false);
     }

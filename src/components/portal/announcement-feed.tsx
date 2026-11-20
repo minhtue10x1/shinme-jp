@@ -59,7 +59,7 @@ export function AnnouncementFeed() {
     try {
       setIsLoading(true);
       const [annList, classList] = await Promise.all([
-        getAnnouncements(),
+        getAnnouncements(role === "student" ? user.classId : undefined),
         getClasses(),
       ]);
       setAnnouncements(annList);
@@ -77,7 +77,7 @@ export function AnnouncementFeed() {
     } else {
       setIsLoading(false);
     }
-  }, [role]);
+  }, [role, user.classId]);
 
   // Filter announcements:
   // If student: only show announcements for their assigned class (user.classId) or ALL

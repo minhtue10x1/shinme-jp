@@ -101,6 +101,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
     note: "",
   });
   const [course, setCourse] = useState(prefill.course ?? "");
+  const [honeypot, setHoneypot] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof Values, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -150,21 +151,57 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
     }
 
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    const lead = saveLead({
-      fullName: values.fullName.trim(),
-      phone: normalizePhone(values.phone),
-      level: values.level,
-      goal: values.goal,
-      note: [course && `Interested: ${course}`, values.note.trim()].filter(Boolean).join(" · ") || undefined,
-      source: prefill.testScore !== undefined ? "Thi thử Mini" : "Form tư vấn",
-      testScore: prefill.testScore,
-    });
+    const fullNameClean = values.fullName.trim();
+    const phoneClean = normalizePhone(values.phone);
+    const noteClean = [course && `Interested: ${course}`, values.note.trim()].filter(Boolean).join(" · ") || undefined;
+
+    let savedViaApi = false;
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: fullNameClean,
+          phone: phoneClean,
+          currentLevel: values.level,
+          targetGoal: values.goal,
+          notes: noteClean,
+          website: honeypot,
+        }),
+      });
+      if (res.status === 429) {
+        setSubmitting(false);
+        toast.error(
+          lang === "vi"
+            ? "Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút."
+            : "Too many submissions. Please try again in a few minutes."
+        );
+        return;
+      }
+      if (res.ok) {
+        savedViaApi = true;
+      }
+    } catch {
+      // Fall back to direct Firestore write below
+    }
+
+    if (!savedViaApi) {
+      saveLead({
+        fullName: fullNameClean,
+        phone: phoneClean,
+        level: values.level,
+        goal: values.goal,
+        note: noteClean,
+        source: prefill.testScore !== undefined ? "Thi thử Mini" : "Form tư vấn",
+        testScore: prefill.testScore,
+      });
+    }
+
     setSubmitting(false);
     toast.success(
       lang === "vi"
-        ? `Cảm ơn ${lead.fullName}! ありがとうございます`
-        : `Thank you, ${lead.fullName}! ありがとうございます`,
+        ? `Cảm ơn ${fullNameClean}! ありがとうございます`
+        : `Thank you, ${fullNameClean}! ありがとうございます`,
       {
         description:
           lang === "vi"
@@ -174,6 +211,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
     );
     setValues({ fullName: "", phone: "", level: "", goal: "", note: "" });
     setCourse("");
+    setHoneypot("");
     setTouched({});
     setErrors({});
   };
@@ -200,6 +238,17 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
       aria-labelledby="consult-title"
       className="rounded-2xl border border-shinme-border bg-shinme-surface p-6 text-shinme-ink shadow-[var(--shadow-lift)] sm:p-8"
     >
+      {/* Honeypot anti-bot field */}
+      <input
+        type="text"
+        name="website"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="sr-only"
+      />
       {prefill.testScore !== undefined && (
         <p className="mb-5 rounded-xl bg-shinme-leaf px-4 py-3 text-sm font-bold text-shinme-primary">
           {lang === "vi"

@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
-import { compressImageToAvatar } from "@/lib/image-utils";
+import { compressImageToAvatar, dataUrlToBlob } from "@/lib/image-utils";
 import { isSafeHttpUrl } from "@/lib/utils";
 import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
@@ -34,6 +34,7 @@ import {
   getUserProfile,
   updateUserClassByAdmin,
   updateUserAvatar,
+  uploadUserAvatarToStorage,
   getAllUsers,
   getClasses,
 } from "@/lib/db/services";
@@ -202,10 +203,20 @@ export default function ProfilePage() {
     try {
       setIsUploadingAvatar(true);
       const compressedDataUrl = await compressImageToAvatar(file, 256, 0.82);
-      await updateUserAvatar(firebaseUser.uid, compressedDataUrl);
+
+      // Prefer Firebase Storage URL so Firestore user docs stay lightweight when listing users
+      let finalAvatarUrl = compressedDataUrl;
+      try {
+        const blob = dataUrlToBlob(compressedDataUrl);
+        finalAvatarUrl = await uploadUserAvatarToStorage(firebaseUser.uid, blob);
+      } catch (storageErr) {
+        console.warn("Firebase Storage avatar upload unavailable, falling back to compressed DataURL:", storageErr);
+      }
+
+      await updateUserAvatar(firebaseUser.uid, finalAvatarUrl);
 
       if (dbProfile) {
-        const updated = { ...dbProfile, avatarUrl: compressedDataUrl };
+        const updated = { ...dbProfile, avatarUrl: finalAvatarUrl };
         setDbProfile(updated);
         setUserProfile(updated);
       }

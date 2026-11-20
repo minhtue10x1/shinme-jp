@@ -67,7 +67,7 @@ const QUICK_FEEDBACKS_EN = [
 ];
 
 export default function AssignmentsPage() {
-  const { role, user } = useRole();
+  const { role, user, firebaseUser } = useRole();
   const { lang, t } = useTranslation();
   const [assignments, setAssignments] = useState<AssignmentDoc[]>([]);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
@@ -111,8 +111,9 @@ export default function AssignmentsPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      const studentScopeUid = role === "student" ? (firebaseUser?.uid || user.id) : undefined;
       const [asgList, classList, userList] = await Promise.all([
-        getAssignments(role === "student" ? user.classId : undefined),
+        getAssignments(role === "student" ? user.classId : undefined, studentScopeUid),
         getClasses(),
         role === "student" ? Promise.resolve([]) : getAllUsers(),
       ]);

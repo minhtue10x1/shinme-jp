@@ -5,6 +5,7 @@ export const en: I18nDictionary = {
     language: "Language",
     vietnamese: "Tiếng Việt",
     english: "English",
+    japanese: "日本語",
     save: "Save Changes",
     saved: "Saved",
     cancel: "Cancel",
