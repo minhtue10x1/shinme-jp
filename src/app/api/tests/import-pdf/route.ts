@@ -178,12 +178,13 @@ export async function POST(request: Request) {
       .join("\n");
 
     const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+    // Only use current Gemini 3.x models (no deprecated 2.x models)
     const fallbackChain = Array.from(
       new Set([
         primaryModel,
         "gemini-3.8-flash",
-        "gemini-3.8-flash-lite",
-        "gemini-2.5-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-pro",
       ])
     );
 
@@ -200,76 +201,100 @@ export async function POST(request: Request) {
       );
     };
 
+    // Upload PDF via Gemini Files API (more reliable & faster than huge inline base64 payloads)
+    let uploadedFileName: string | null = null;
+    let filePart:
+      | { fileData: { fileUri: string; mimeType: string } }
+      | { inlineData: { mimeType: string; data: string } };
+
+    try {
+      const uploaded = await ai.files.upload({
+        file: new Blob([arrayBuffer], { type: "application/pdf" }),
+        config: { mimeType: "application/pdf" },
+      });
+      if (uploaded.uri && uploaded.name) {
+        uploadedFileName = uploaded.name;
+        filePart = {
+          fileData: {
+            fileUri: uploaded.uri,
+            mimeType: "application/pdf",
+          },
+        };
+      } else {
+        filePart = { inlineData: { mimeType: "application/pdf", data: base64Pdf } };
+      }
+    } catch (uploadErr) {
+      console.warn("[api/tests/import-pdf] Files API upload failed, falling back to inlineData:", uploadErr);
+      filePart = { inlineData: { mimeType: "application/pdf", data: base64Pdf } };
+    }
+
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | null = null;
-    let lastError: unknown = null;
+    const attemptLogs: string[] = [];
     let usedModel = primaryModel;
 
-    for (const candidateModel of fallbackChain) {
-      // Up to 2 attempts per model (fast retry on transient 503 spike)
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          response = await ai.models.generateContent({
-            model: candidateModel,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    inlineData: {
-                      mimeType: "application/pdf",
-                      data: base64Pdf,
+    try {
+      for (const candidateModel of fallbackChain) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            response = await ai.models.generateContent({
+              model: candidateModel,
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    filePart,
+                    {
+                      text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
                     },
-                  },
-                  {
-                    text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
-                  },
-                ],
+                  ],
+                },
+              ],
+              config: {
+                systemInstruction: systemPrompt,
+                responseMimeType: "application/json",
+                responseSchema: RESPONSE_SCHEMA,
+                temperature: 0.1,
               },
-            ],
-            config: {
-              systemInstruction: systemPrompt,
-              responseMimeType: "application/json",
-              responseSchema: RESPONSE_SCHEMA,
-              temperature: 0.1,
-            },
-          });
-          usedModel = candidateModel;
-          break;
-        } catch (err) {
-          lastError = err;
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(
-            `[api/tests/import-pdf] Model ${candidateModel} attempt ${attempt} failed:`,
-            msg.slice(0, 200)
-          );
-
-          // If 404 (model not found), immediately skip to next fallback model
-          if (msg.includes("404") || msg.includes("NOT_FOUND")) {
+            });
+            usedModel = candidateModel;
             break;
-          }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            attemptLogs.push(`${candidateModel}#${attempt}: ${msg.slice(0, 140)}`);
+            console.warn(`[api/tests/import-pdf] ${candidateModel} attempt ${attempt} failed:`, msg.slice(0, 200));
 
-          if (!isRetryableError(err)) {
-            throw err;
-          }
+            // If 404 (model unavailable), immediately move to next model
+            if (msg.includes("404") || msg.includes("NOT_FOUND")) {
+              break;
+            }
 
-          // Brief backoff before retry
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 1500));
+            if (!isRetryableError(err)) {
+              throw err;
+            }
+
+            if (attempt < 2) {
+              await new Promise((r) => setTimeout(r, 2000));
+            }
           }
         }
+        if (response) break;
       }
-      if (response) break;
+    } finally {
+      // Always clean up temporary uploaded PDF from Google Files API
+      if (uploadedFileName) {
+        ai.files.delete({ name: uploadedFileName }).catch(() => undefined);
+      }
     }
 
     if (!response) {
-      const errMsg = lastError instanceof Error ? lastError.message : String(lastError || "");
+      const summary = attemptLogs.join(" | ");
       const isOverloaded =
-        errMsg.includes("503") || errMsg.includes("UNAVAILABLE") || errMsg.includes("high demand");
+        summary.includes("503") || summary.includes("UNAVAILABLE") || summary.includes("high demand");
       return NextResponse.json(
         {
           error: isOverloaded
-            ? "Máy chủ AI Google Gemini hiện đang quá tải tạm thời (503). Hệ thống đã thử tự động chuyển model dự phòng nhưng vẫn bận — bạn vui lòng đợi 10–15 giây rồi bấm thử lại nhé."
-            : errMsg || "Không thể kết nối tới Gemini API.",
+            ? `Các model Gemini 3.x đang quá tải tạm thời (503). Vui lòng thử lại sau vài giây. (${summary})`
+            : `Không thể bóc đề qua Gemini 3.x: ${summary}`,
         },
         { status: isOverloaded ? 503 : 500 }
       );
