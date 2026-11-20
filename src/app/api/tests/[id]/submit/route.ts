@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb, getAdminInitError, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
 import type { JLPTTestDoc, TestAnswerKeyDoc, TestAnswerKeyEntry, TestSubmissionDoc } from "@/lib/db/schema";
 
+export const runtime = "nodejs";
+
 type SubmitPayload = {
   answers?: Record<string, number>;
   durationSeconds?: number;

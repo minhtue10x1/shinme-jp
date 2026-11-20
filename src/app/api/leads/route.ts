@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
 import type { LeadDoc } from "@/lib/db/schema";
 
+export const runtime = "nodejs";
+
 // Lightweight sliding-window IP rate limiter (per serverless instance)
 const RATE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_REQUESTS_PER_WINDOW = 5;
