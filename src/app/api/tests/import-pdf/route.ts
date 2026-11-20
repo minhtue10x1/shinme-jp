@@ -177,13 +177,13 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+    const primaryModel = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash-lite";
     // Only use current Gemini 3.x models (no deprecated 2.x models)
     const fallbackChain = Array.from(
       new Set([
         primaryModel,
-        "gemini-3.8-flash",
         "gemini-3.5-flash-lite",
+        "gemini-3.8-flash",
         "gemini-3.8-pro",
       ])
     );
@@ -234,55 +234,38 @@ export async function POST(request: Request) {
 
     try {
       for (const candidateModel of fallbackChain) {
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          try {
-            response = await ai.models.generateContent({
-              model: candidateModel,
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    filePart,
-                    {
-                      text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
-                    },
-                  ],
-                },
-              ],
-              config: {
-                systemInstruction: systemPrompt,
-                responseMimeType: "application/json",
-                responseSchema: RESPONSE_SCHEMA,
-                temperature: 0.1,
-                maxOutputTokens: 16384,
-                // Disable thinking tokens on Flash models for 3-5x faster verbatim PDF extraction
-                ...(candidateModel.includes("flash")
-                  ? { thinkingConfig: { thinkingBudget: 0 } }
-                  : {}),
+        try {
+          response = await ai.models.generateContent({
+            model: candidateModel,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  filePart,
+                  {
+                    text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm từ đề thi JLPT trong file PDF này theo đúng JSON schema đã quy định.",
+                  },
+                ],
               },
-            });
-            usedModel = candidateModel;
-            break;
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            attemptLogs.push(`${candidateModel}#${attempt}: ${msg.slice(0, 140)}`);
-            console.warn(`[api/tests/import-pdf] ${candidateModel} attempt ${attempt} failed:`, msg.slice(0, 200));
+            ],
+            config: {
+              systemInstruction: systemPrompt,
+              responseMimeType: "application/json",
+              responseSchema: RESPONSE_SCHEMA,
+              temperature: 0.1,
+            },
+          });
+          usedModel = candidateModel;
+          break;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          attemptLogs.push(`${candidateModel}: ${msg.slice(0, 160)}`);
+          console.warn(`[api/tests/import-pdf] ${candidateModel} failed:`, msg.slice(0, 200));
 
-            // If 404 (model unavailable), immediately move to next model
-            if (msg.includes("404") || msg.includes("NOT_FOUND")) {
-              break;
-            }
-
-            if (!isRetryableError(err)) {
-              throw err;
-            }
-
-            if (attempt < 2) {
-              await new Promise((r) => setTimeout(r, 2000));
-            }
+          if (!isRetryableError(err) && !msg.includes("400") && !msg.includes("INVALID_ARGUMENT")) {
+            throw err;
           }
         }
-        if (response) break;
       }
     } finally {
       // Always clean up temporary uploaded PDF from Google Files API
