@@ -105,10 +105,15 @@ const RESPONSE_SCHEMA = {
           },
           mondaiLabel: { type: Type.STRING },
           instruction: { type: Type.STRING },
-          prompt: { type: Type.STRING },
+          prompt: {
+            type: Type.STRING,
+            description:
+              "Exact Japanese question text. Wrap ONLY the visually underlined span (from exact left end to exact right end of the underline bar, including all underlined Kanji + okurigana/kana) in 【...】. Preserve ONLY furigana printed on the PDF using Kanji[furigana] syntax (e.g. 会議[かいぎ]). NEVER wrap non-underlined furigana words in 【...】.",
+          },
           options: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
+            description: "Exactly 4 choices without leading numbers. Preserve any printed furigana using Kanji[furigana].",
           },
           grammarPoint: { type: Type.STRING },
           starPrefix: { type: Type.STRING },
@@ -200,20 +205,29 @@ export async function POST(request: Request) {
       "You are an expert Japanese JLPT exam digitizer for a Japanese language center (Shinme).",
       "Extract ALL multiple-choice exam questions accurately from the attached JLPT PDF pages (may be scanned paper, 2-column layout, or digital print).",
       "",
-      "CRITICAL EXTRACTION RULES:",
+      "CRITICAL EXTRACTION RULES (READ VERY CAREFULLY):",
       "1. Preserve Japanese text (Kanji, Hiragana, Katakana) faithfully without translating the Japanese question or choices.",
-      "2. For underlined words in Vocabulary/Kanji questions (問題1, 問題2, etc.), wrap the underlined target word in 【...】, e.g. '【毎日】学校へ行きます。'.",
-      "3. For fill-in-the-blank questions, use '＿＿＿' for the blank.",
-      "4. For ★ star-ordering questions (文の組み立て / ___ ___ ★ ___): set type='star', put text before the 4 slots in starPrefix, text after the 4 slots in starSuffix, set starSlotIndex (0..3, usually 2), and put the 4 fragments in options.",
-      "5. For Reading Comprehension (読解 / Dokkai): set type='dokkai'. If multiple questions share the same passage, give them the exact same passageGroupId (e.g. 'dokkai-1') and include the full passageText and passageTitle.",
+      "2. VISUAL UNDERLINE RULE (【...】) — EXTREMELY IMPORTANT:",
+      "   - Inspect the ACTUAL horizontal underline bar drawn beneath characters on the PDF image.",
+      "   - Wrap the ENTIRE underlined span from the EXACT start to the EXACT end of the underline bar in 【...】 — including ALL underlined Kanji AND any underlined okurigana/hiragana/katakana (e.g., if the underline covers all of 困って, output 【困って】, NOT 【困】って; if it covers 申し込む, output 【申し込む】).",
+      "   - ONLY wrap text that physically has an underline bar beneath it. NEVER wrap a word in 【...】 just because it has furigana printed above it!",
+      "   - If a question has NO underline bar (e.g. fill-in-the-blank ＿＿＿ or grammar choice), do NOT use 【...】.",
+      "3. PRINTED FURIGANA PRESERVATION RULE (漢字[かんじ]):",
+      "   - Whenever a Kanji anywhere in the sentence, options, or reading passage has small furigana printed directly above it on the PDF page, PRESERVE that printed furigana using bracket syntax: 漢字[かんじ] (attach [reading] immediately after the Kanji only, NOT after okurigana, e.g. 会議[かいぎ], 遅[おく]れて).",
+      "   - If an underlined span ALSO has furigana printed above it (e.g. in 問題4/問題5), combine both cleanly: 【予算[よさん]】 or 【困[こま]って】.",
+      "   - Example: If 会議 has furigana かいぎ above it (NOT underlined) and 困って has an underline bar under all 3 characters (NO furigana above it), output: 会議[かいぎ]に 遅[おく]れて 【困って】 います。",
+      "   - NEVER invent furigana that is NOT printed on the PDF (especially NEVER add furigana to Kanji being tested for reading in 問題1!).",
+      "4. For fill-in-the-blank questions, use '＿＿＿' for the blank.",
+      "5. For ★ star-ordering questions (文の組み立て / ___ ___ ★ ___): set type='star', put text before the 4 slots in starPrefix, text after the 4 slots in starSuffix, set starSlotIndex (0..3, usually 2), and put the 4 fragments in options.",
+      "6. For Reading Comprehension (読解 / Dokkai): set type='dokkai'. If multiple questions share the same passage, give them the exact same passageGroupId (e.g. 'dokkai-1') and include the full passageText (preserving any printed furigana as 漢字[かんじ]) and passageTitle.",
       includeChoukai
-        ? "6. Include Listening (聴解 / Choukai) questions with type='choukai' if present."
-        : "6. SKIP Listening (聴解 / Choukai) sections if present.",
-      "7. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①'.",
-      "8. If a page is ONLY a cover page, instructions page, or answer sheet with NO multiple-choice questions, return an empty `questions: []` array.",
-      "9. Do NOT invent answers or explanations.",
-      levelHint ? `10. Exam level hint: JLPT ${levelHint}.` : "",
-      chunkLabel ? `11. Current PDF slice: ${chunkLabel}.` : "",
+        ? "7. Include Listening (聴解 / Choukai) questions with type='choukai' if present."
+        : "7. SKIP Listening (聴解 / Choukai) sections if present.",
+      "8. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①'.",
+      "9. If a page is ONLY a cover page, instructions page, or answer sheet with NO multiple-choice questions, return an empty `questions: []` array.",
+      "10. Do NOT invent answers or explanations.",
+      levelHint ? `11. Exam level hint: JLPT ${levelHint}.` : "",
+      chunkLabel ? `12. Current PDF slice: ${chunkLabel}.` : "",
     ]
       .filter(Boolean)
       .join("\n");
