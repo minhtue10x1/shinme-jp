@@ -2,9 +2,6 @@
   "name": "shinme-jp",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +13,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^13.2.0",
-    "firebase-admin": "^14.5.1",
+    "firebase-admin": "^13.10.0",
     "lucide-react": "^1.70.0",
     "next": "16.4.5",
     "react": "19.3.0",
