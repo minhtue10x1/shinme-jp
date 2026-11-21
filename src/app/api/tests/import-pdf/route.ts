@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
 import { normalizeUnderlinedFurigana } from "@/lib/furigana";
 import { formatBaremForPrompt, resolveQuestionPoints } from "@/lib/jlpt-barem";
-import type { MondaiType, TestQuestion } from "@/lib/test-center-store";
+import type { ExamSectionId, MondaiType, TestQuestion } from "@/lib/test-center-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -406,9 +406,18 @@ export async function POST(request: Request) {
             aiPoints: q.points,
           });
 
+      const section: ExamSectionId | undefined = isAssignmentMode
+        ? undefined
+        : qType === "choukai" || q.skill === "listening"
+          ? "choukai"
+          : qType === "dokkai" || qType === "star" || q.skill === "grammar" || q.skill === "reading"
+            ? "bunpou_dokkai"
+            : "goi";
+
       const base: TestQuestion = {
         id: `q-pdf-${batchId}-${idx + 1}`,
         type: qType,
+        ...(section ? { section } : {}),
         mondaiLabel: isAssignmentMode ? "" : (q.mondaiLabel || `問題${idx + 1}`).trim(),
         points,
         instruction: normalizeUnderlinedFurigana((q.instruction || "").trim()),

@@ -2,11 +2,113 @@
 
 export type MondaiType = "standard" | "star" | "dokkai" | "choukai";
 
+export type ExamSectionId = "goi" | "bunpou_dokkai" | "choukai";
+
+export const EXAM_SECTION_META: Record<
+  ExamSectionId,
+  { id: ExamSectionId; order: number; labelJa: string; labelVi: string; labelEn: string; shortLabel: string }
+> = {
+  goi: {
+    id: "goi",
+    order: 1,
+    labelJa: "文字・語彙",
+    labelVi: "Phần 1: Từ vựng & Hán tự (Goi)",
+    labelEn: "Section 1: Vocabulary & Kanji (Goi)",
+    shortLabel: "1. 文字・語彙 (Goi)",
+  },
+  bunpou_dokkai: {
+    id: "bunpou_dokkai",
+    order: 2,
+    labelJa: "文法・読解",
+    labelVi: "Phần 2: Ngữ pháp & Đọc hiểu (Bunpou・Dokkai)",
+    labelEn: "Section 2: Grammar & Reading (Bunpou・Dokkai)",
+    shortLabel: "2. 文法・読解 (Bunpou・Dokkai)",
+  },
+  choukai: {
+    id: "choukai",
+    order: 3,
+    labelJa: "聴解",
+    labelVi: "Phần 3: Nghe hiểu (Choukai)",
+    labelEn: "Section 3: Listening (Choukai)",
+    shortLabel: "3. 聴解 (Choukai)",
+  },
+};
+
+export function inferQuestionSection(q: Pick<TestQuestion, "section" | "type" | "mondaiLabel" | "grammarPoint">): ExamSectionId {
+  if (q.section === "goi" || q.section === "bunpou_dokkai" || q.section === "choukai") {
+    return q.section;
+  }
+  if (q.type === "choukai") return "choukai";
+  if (q.type === "dokkai" || q.type === "star") return "bunpou_dokkai";
+  const text = `${q.mondaiLabel || ""} ${q.grammarPoint || ""}`.toLowerCase();
+  if (/(聴解|choukai|chokai|nghe hiểu|listening)/i.test(text)) return "choukai";
+  if (/(文法|読解|bunpou|dokkai|ngữ pháp|đọc hiểu|grammar|reading|dấu sao|並べ替え)/i.test(text)) {
+    return "bunpou_dokkai";
+  }
+  return "goi";
+}
+
+/**
+ * Computes authentic JLPT per-section numbering:
+ * - `goi`: 1..N
+ * - `bunpou_dokkai`: 1..M
+ * - `choukai`: resets 1..K per Mondai group (`mondaiLabel`)
+ */
+export function buildQuestionNumberMap(
+  questions: TestQuestion[]
+): Record<string, { section: ExamSectionId; localNumber: number; sectionTotal: number; mondaiGroupKey?: string }> {
+  const result: Record<
+    string,
+    { section: ExamSectionId; localNumber: number; sectionTotal: number; mondaiGroupKey?: string }
+  > = {};
+
+  const sectionTotals: Record<ExamSectionId, number> = {
+    goi: 0,
+    bunpou_dokkai: 0,
+    choukai: 0,
+  };
+  for (const q of questions) {
+    sectionTotals[inferQuestionSection(q)] += 1;
+  }
+
+  const sectionCounters: Record<ExamSectionId, number> = {
+    goi: 0,
+    bunpou_dokkai: 0,
+    choukai: 0,
+  };
+  const choukaiMondaiCounters: Record<string, number> = {};
+
+  for (const q of questions) {
+    const sec = inferQuestionSection(q);
+    if (sec === "choukai") {
+      const mKey = (q.mondaiLabel || "問題1").trim();
+      choukaiMondaiCounters[mKey] = (choukaiMondaiCounters[mKey] || 0) + 1;
+      result[q.id] = {
+        section: sec,
+        localNumber: choukaiMondaiCounters[mKey],
+        sectionTotal: sectionTotals[sec],
+        mondaiGroupKey: mKey,
+      };
+    } else {
+      sectionCounters[sec] += 1;
+      result[q.id] = {
+        section: sec,
+        localNumber: sectionCounters[sec],
+        sectionTotal: sectionTotals[sec],
+      };
+    }
+  }
+
+  return result;
+}
+
 export type AudioPlayLimit = 0 | 1 | 2; // 0 = unlimited
 
 export type TestQuestion = {
   id: string;
   type: MondaiType;
+  /** JLPT exam section: 1 = goi, 2 = bunpou_dokkai, 3 = choukai */
+  section?: ExamSectionId;
   mondaiLabel: string;
   points: number;
   /** Question prompt using bracket furigana syntax, e.g. 日本語[にほんご] */

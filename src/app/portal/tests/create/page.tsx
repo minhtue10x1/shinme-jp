@@ -40,6 +40,10 @@ import { compressPosterImage } from "@/lib/image-utils";
 import type { ClassDoc } from "@/lib/db/schema";
 import {
   saveTest,
+  EXAM_SECTION_META,
+  buildQuestionNumberMap,
+  inferQuestionSection,
+  type ExamSectionId,
   type MondaiType,
   type AudioPlayLimit,
   type TestQuestion,
@@ -228,8 +232,10 @@ function SenseiTestCreateContent() {
   ]);
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
+  const [activeSectionTab, setActiveSectionTab] = useState<"ALL" | ExamSectionId>("ALL");
   const [uploadingPosterQid, setUploadingPosterQid] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const questionNumberMap = buildQuestionNumberMap(questions);
   // Idempotency key + synchronous lock: guarantees rapid multi-clicks NEVER create duplicate tests
   const draftTestIdRef = useRef<string>(
     editId || `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -378,6 +384,15 @@ function SenseiTestCreateContent() {
       sharedPassage,
       Date.now().toString(36)
     );
+    const defaultSection: ExamSectionId =
+      type === "choukai"
+        ? "choukai"
+        : type === "dokkai" || type === "star"
+          ? "bunpou_dokkai"
+          : activeSectionTab !== "ALL"
+            ? activeSectionTab
+            : "goi";
+    newQ.section = defaultSection;
     setQuestions((prev) => [...prev, newQ]);
     toast.success(lang === "vi" ? `Đã thêm câu hỏi ${MONDAI_META[type].shortLabel}` : `Added question ${MONDAI_META[type].shortLabel}`);
   };
@@ -920,12 +935,51 @@ function SenseiTestCreateContent() {
           </div>
         )}
 
+        {/* SECTION 2B: JLPT EXAM SECTION TABS (1. 文字・語彙 / 2. 文法・読解 / 3. 聴解) */}
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+          {(["ALL", "goi", "bunpou_dokkai", "choukai"] as const).map((tab) => {
+            const count =
+              tab === "ALL"
+                ? questions.length
+                : questions.filter((q) => inferQuestionSection(q) === tab).length;
+            const label =
+              tab === "ALL"
+                ? (lang === "vi" ? "Tất cả phần thi" : "All Sections")
+                : EXAM_SECTION_META[tab].shortLabel;
+            const active = activeSectionTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveSectionTab(tab)}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
+                  active
+                    ? "border-[#135E36] bg-[#135E36] text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-emerald-50"
+                }`}
+              >
+                <span className="font-jp">{label}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 font-mono text-xs ${
+                    active ? "bg-white/20 text-white" : "bg-white text-slate-600"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* SECTION 3: QUESTION EDITORS */}
         <div className="space-y-5">
           {questions.map((q, idx) => {
+            const qSection = inferQuestionSection(q);
+            if (activeSectionTab !== "ALL" && qSection !== activeSectionTab) return null;
             const isMissingAnswer = q.correctIndex < 0 || q.correctIndex > 3;
             if (showUnansweredOnly && !isMissingAnswer) return null;
 
+            const numMeta = questionNumberMap[q.id];
             const meta = MONDAI_META[q.type];
             const optionLetters = ["A", "B", "C", "D"];
 
@@ -941,9 +995,21 @@ function SenseiTestCreateContent() {
                 {/* Question Card Header */}
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#135E36] font-mono text-xs font-bold text-white">
-                      {idx + 1}
+                    <span className="inline-flex h-7 items-center justify-center rounded-lg bg-[#135E36] px-2.5 font-mono text-xs font-bold text-white">
+                      {EXAM_SECTION_META[qSection].labelJa} #{numMeta?.localNumber ?? idx + 1}
                     </span>
+                    <select
+                      value={qSection}
+                      onChange={(e) =>
+                        handleUpdateQuestion(q.id, { section: e.target.value as ExamSectionId })
+                      }
+                      className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-xs font-bold text-[#135E36]"
+                      title="Phần thi JLPT"
+                    >
+                      <option value="goi">1. 文字・語彙 (Goi)</option>
+                      <option value="bunpou_dokkai">2. 文法・読解 (Bunpou・Dokkai)</option>
+                      <option value="choukai">3. 聴解 (Choukai)</option>
+                    </select>
                     <span
                       className={`rounded-full border px-3 py-0.5 text-xs font-bold ${meta.badgeClass}`}
                     >

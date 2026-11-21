@@ -46,6 +46,10 @@ import {
   getTestsServerSnapshot,
   subscribeTests,
   saveAttempt,
+  EXAM_SECTION_META,
+  buildQuestionNumberMap,
+  inferQuestionSection,
+  type ExamSectionId,
   type JLPTTest,
   type TestQuestion,
 } from "@/lib/test-center-store";
@@ -574,6 +578,19 @@ export function TestTakeClient({
   };
 
   const activeQuestion = orderedQuestions[activeIndex] ?? orderedQuestions[0];
+  const questionNumberMap = buildQuestionNumberMap(orderedQuestions);
+  const sectionOrder: ExamSectionId[] = ["goi", "bunpou_dokkai", "choukai"];
+  const presentSections = sectionOrder.filter((sec) =>
+    orderedQuestions.some((q) => inferQuestionSection(q) === sec)
+  );
+  const activeSection: ExamSectionId = activeQuestion
+    ? inferQuestionSection(activeQuestion)
+    : presentSections[0] || "goi";
+  const activeSectionItems = orderedQuestions
+    .map((q, idx) => ({ q, idx, meta: questionNumberMap[q.id] }))
+    .filter((item) => item.meta?.section === activeSection);
+  const activeNumMeta = activeQuestion ? questionNumberMap[activeQuestion.id] : undefined;
+
   const answeredCount = orderedQuestions.filter(
     (q) => answers[q.id] !== undefined
   ).length;
@@ -793,6 +810,9 @@ export function TestTakeClient({
             const studentChoice = answers[q.id];
             const isCorrect = studentChoice === q.correctIndex;
             const optionLetters = ["A", "B", "C", "D"];
+            const qMeta = questionNumberMap[q.id];
+            const displayNum = qMeta?.localNumber ?? idx + 1;
+            const secMeta = qMeta ? EXAM_SECTION_META[qMeta.section] : null;
 
             return (
               <div
@@ -814,8 +834,13 @@ export function TestTakeClient({
                       ) : (
                         <XCircle className="h-3.5 w-3.5" />
                       )}
-                      {lang === "vi" ? `Câu ${idx + 1}` : `Question ${idx + 1}`} • {isCorrect ? `+${q.points}${lang === "vi" ? "đ" : "pts"}` : `0/${q.points}${lang === "vi" ? "đ" : "pts"}`}
+                      {lang === "vi" ? `Câu ${displayNum}` : `Question ${displayNum}`} • {isCorrect ? `+${q.points}${lang === "vi" ? "đ" : "pts"}` : `0/${q.points}${lang === "vi" ? "đ" : "pts"}`}
                     </span>
+                    {secMeta && (
+                      <span className="rounded-full bg-[#135E36]/10 px-2.5 py-0.5 font-jp text-xs font-bold text-[#135E36]">
+                        {secMeta.labelJa}
+                      </span>
+                    )}
                     <span className="rounded-full bg-slate-100 px-3 py-0.5 text-xs font-bold text-slate-700">
                       {q.mondaiLabel}
                     </span>
@@ -1133,40 +1158,125 @@ export function TestTakeClient({
           </div>
         </div>
 
-        {/* Question Navigator Palette (Answered / Unanswered / Flagged) */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {orderedQuestions.map((q, idx) => {
-              const isCurrent = idx === activeIndex;
-              const isAnswered = answers[q.id] !== undefined;
-              const isFlagged = Boolean(flagged[q.id]);
-
-              let btnClass =
-                "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100";
-              if (isFlagged) {
-                btnClass = "border-amber-400 bg-amber-100 text-amber-900";
-              } else if (isAnswered) {
-                btnClass = "border-[#135E36] bg-[#135E36] text-white";
-              }
+        {/* JLPT Section Switcher Tabs (1. 文字・語彙 / 2. 文法・読解 / 3. 聴解) */}
+        {presentSections.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+            {presentSections.map((sec) => {
+              const secMeta = EXAM_SECTION_META[sec];
+              const secQs = orderedQuestions.filter((q) => inferQuestionSection(q) === sec);
+              const secDone = secQs.filter((q) => answers[q.id] !== undefined).length;
+              const isCurrentSec = sec === activeSection;
+              const firstIdxInSec = orderedQuestions.findIndex(
+                (q) => inferQuestionSection(q) === sec
+              );
 
               return (
                 <button
-                  key={q.id}
+                  key={sec}
                   type="button"
-                  onClick={() => setActiveIndex(idx)}
-                  className={`relative flex h-8 w-9 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
-                    isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
+                  onClick={() => firstIdxInSec >= 0 && setActiveIndex(firstIdxInSec)}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
+                    isCurrentSec
+                      ? "border-[#135E36] bg-[#135E36] text-white shadow-xs"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:border-[#135E36]/40 hover:bg-emerald-50/50"
                   }`}
-                  title={`${lang === "vi" ? "Câu" : "Question"} ${idx + 1}: ${q.mondaiLabel}`}
                 >
-                  {idx + 1}
-                  {isFlagged && (
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
-                  )}
+                  <span className="font-jp">{secMeta.shortLabel}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-xs ${
+                      isCurrentSec
+                        ? "bg-white/20 text-white"
+                        : "bg-white text-slate-600"
+                    }`}
+                  >
+                    {secDone}/{secQs.length}
+                  </span>
                 </button>
               );
             })}
           </div>
+        )}
+
+        {/* Per-Section Question Navigator Palette (Resets 1..N per section, and 1..K per Mondai for Choukai) */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          {activeSection === "choukai" ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {Array.from(
+                new Set(activeSectionItems.map((i) => i.meta?.mondaiGroupKey || "問題1"))
+              ).map((mKey) => (
+                <div key={mKey} className="flex flex-wrap items-center gap-1.5 rounded-xl border border-purple-200/70 bg-purple-50/40 px-2.5 py-1.5">
+                  <span className="mr-1 font-jp text-xs font-extrabold text-purple-900">
+                    {mKey}
+                  </span>
+                  {activeSectionItems
+                    .filter((i) => (i.meta?.mondaiGroupKey || "問題1") === mKey)
+                    .map(({ q, idx, meta }) => {
+                      const isCurrent = idx === activeIndex;
+                      const isAnswered = answers[q.id] !== undefined;
+                      const isFlagged = Boolean(flagged[q.id]);
+
+                      let btnClass =
+                        "border-slate-200 bg-white text-slate-700 hover:bg-slate-100";
+                      if (isFlagged) {
+                        btnClass = "border-amber-400 bg-amber-100 text-amber-900";
+                      } else if (isAnswered) {
+                        btnClass = "border-[#135E36] bg-[#135E36] text-white";
+                      }
+
+                      return (
+                        <button
+                          key={q.id}
+                          type="button"
+                          onClick={() => setActiveIndex(idx)}
+                          className={`relative flex h-7 w-8 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
+                            isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
+                          }`}
+                          title={`${mKey} · ${lang === "vi" ? "Câu" : "Q"} ${meta?.localNumber ?? idx + 1}`}
+                        >
+                          {meta?.localNumber ?? idx + 1}
+                          {isFlagged && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeSectionItems.map(({ q, idx, meta }) => {
+                const isCurrent = idx === activeIndex;
+                const isAnswered = answers[q.id] !== undefined;
+                const isFlagged = Boolean(flagged[q.id]);
+
+                let btnClass =
+                  "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100";
+                if (isFlagged) {
+                  btnClass = "border-amber-400 bg-amber-100 text-amber-900";
+                } else if (isAnswered) {
+                  btnClass = "border-[#135E36] bg-[#135E36] text-white";
+                }
+
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => setActiveIndex(idx)}
+                    className={`relative flex h-8 w-9 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
+                      isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
+                    }`}
+                    title={`${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${meta?.localNumber ?? idx + 1}: ${q.mondaiLabel}`}
+                  >
+                    {meta?.localNumber ?? idx + 1}
+                    {isFlagged && (
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Palette Legend */}
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
@@ -1192,7 +1302,13 @@ export function TestTakeClient({
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="rounded-xl bg-[#135E36] px-3 py-1 font-mono text-xs font-extrabold text-white">
-                {lang === "vi" ? `Câu ${activeIndex + 1} / ${orderedQuestions.length}` : `Question ${activeIndex + 1} / ${orderedQuestions.length}`}
+                {activeNumMeta
+                  ? activeSection === "choukai"
+                    ? `${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${activeNumMeta.localNumber}`
+                    : `${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${activeNumMeta.localNumber} / ${activeNumMeta.sectionTotal}`
+                  : lang === "vi"
+                    ? `Câu ${activeIndex + 1} / ${orderedQuestions.length}`
+                    : `Question ${activeIndex + 1} / ${orderedQuestions.length}`}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F2] px-3 py-1 text-xs font-bold text-[#135E36]">
                 {activeQuestion.type === "standard" && (
