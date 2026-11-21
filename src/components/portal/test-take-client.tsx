@@ -124,6 +124,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
   );
   // Poster image lightbox state for 情報検索 Dokkai questions
   const [zoomedPosterUrl, setZoomedPosterUrl] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
   const [audioProgress, setAudioProgress] = useState<number>(0);
   const audioTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -205,7 +206,8 @@ export function TestTakeClient({ testId }: { testId: string }) {
 
   const handleSubmitExam = useCallback(
     async (isAutoSubmit = false) => {
-      if (submittedResult) return;
+      if (submittedResult || isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
 
       // Stop audio if playing
       if (audioTimerRef.current) {
@@ -293,6 +295,7 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   description: errBody?.error ? `HTTP ${res.status}: ${errBody.error}` : `HTTP ${res.status}`,
                 }
               );
+              isSubmittingRef.current = false;
               return;
             }
           }

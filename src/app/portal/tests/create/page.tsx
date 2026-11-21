@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -219,6 +219,12 @@ export default function SenseiTestCreatePage() {
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const [uploadingPosterQid, setUploadingPosterQid] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  // Idempotency key + synchronous lock: guarantees rapid multi-clicks NEVER create duplicate tests
+  const draftTestIdRef = useRef<string>(
+    `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+  );
+  const isSavingRef = useRef(false);
 
   const handleUploadPoster = async (questionId: string, groupId: string | undefined, file: File) => {
     try {
@@ -343,6 +349,7 @@ export default function SenseiTestCreatePage() {
 
   const handleSaveTest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingRef.current) return;
     if (!title.trim()) {
       toast.error(lang === "vi" ? "Vui lòng nhập tên bài kiểm tra." : "Please enter the exam title.");
       return;
@@ -378,7 +385,7 @@ export default function SenseiTestCreatePage() {
     }
 
     const newTest: JLPTTest = {
-      id: `test-${Date.now().toString(36)}`,
+      id: draftTestIdRef.current,
       code: code.trim() || "N3-CUSTOM",
       title: title.trim(),
       titleJa: titleJa.trim() || "日本語[にほんご]テスト",
@@ -397,6 +404,8 @@ export default function SenseiTestCreatePage() {
     };
 
     try {
+      isSavingRef.current = true;
+      setIsSaving(true);
       await saveTestDoc(newTest as any);
       saveTest(newTest);
       toast.success(lang === "vi" ? "Đã xuất bản đề thi thành công!" : "Exam published successfully!", {
@@ -408,6 +417,8 @@ export default function SenseiTestCreatePage() {
     } catch (err) {
       console.error("Save test error:", err);
       toast.error(lang === "vi" ? "Lỗi khi lưu đề thi vào cơ sở dữ liệu." : "Error saving exam to database.");
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -461,13 +472,20 @@ export default function SenseiTestCreatePage() {
           </Link>
           <button
             type="button"
+            disabled={isSaving}
             onClick={handleSaveTest}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0f4a2a]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0f4a2a] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save className="h-4 w-4 text-[#6CC24A]" />
-            {lang === "vi"
-              ? `Xuất bản đề thi (${questions.length} câu · ${totalPoints}đ)`
-              : `Publish Exam (${questions.length} items · ${totalPoints}pts)`}
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin text-[#6CC24A]" />
+            ) : (
+              <Save className="h-4 w-4 text-[#6CC24A]" />
+            )}
+            {isSaving
+              ? (lang === "vi" ? "Đang xuất bản..." : lang === "ja" ? "公開中..." : "Publishing...")
+              : lang === "vi"
+                ? `Xuất bản đề thi (${questions.length} câu · ${totalPoints}đ)`
+                : `Publish Exam (${questions.length} items · ${totalPoints}pts)`}
           </button>
         </div>
       </div>
@@ -1391,10 +1409,19 @@ export default function SenseiTestCreatePage() {
             </Link>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0f4a2a]"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0f4a2a] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Save className="h-4 w-4 text-[#6CC24A]" />
-              {lang === "vi" ? "Lưu & Xuất bản Đề thi" : "Save & Publish Exam"}
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[#6CC24A]" />
+              ) : (
+                <Save className="h-4 w-4 text-[#6CC24A]" />
+              )}
+              {isSaving
+                ? (lang === "vi" ? "Đang lưu đề..." : lang === "ja" ? "保存中..." : "Saving...")
+                : lang === "vi"
+                  ? "Lưu & Xuất bản Đề thi"
+                  : "Save & Publish Exam"}
             </button>
           </div>
         </div>
