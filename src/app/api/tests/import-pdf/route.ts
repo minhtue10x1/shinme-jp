@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
+import { normalizeUnderlinedFurigana } from "@/lib/furigana";
 import { formatBaremForPrompt, resolveQuestionPoints } from "@/lib/jlpt-barem";
 import type { MondaiType, TestQuestion } from "@/lib/test-center-store";
 
@@ -237,7 +238,7 @@ export async function POST(request: Request) {
       "   - If a question has NO underline bar (e.g. fill-in-the-blank ＿＿＿ or grammar choice), do NOT use 【...】.",
       "3. PRINTED FURIGANA PRESERVATION RULE (漢字[かんじ]):",
       "   - Whenever a Kanji anywhere in the sentence, options, or reading passage has small furigana printed directly above it on the PDF page, PRESERVE that printed furigana using bracket syntax: 漢字[かんじ] (attach [reading] immediately after the Kanji only, NOT after okurigana, e.g. 会議[かいぎ], 遅[おく]れて).",
-      "   - If an underlined span ALSO has furigana printed above it (e.g. in 問題4/問題5), combine both cleanly: 【予算[よさん]】 or 【困[こま]って】.",
+      "   - If an underlined span ALSO has furigana printed above it (e.g. in 問題4/問題5 synonym questions), ALWAYS put [reading] INSIDE 【...】 immediately after the Kanji: 【毎日[まいにち]】, 【予算[よさん]】, 【困[こま]って】. NEVER put [reading] outside 】 (WRONG: 【毎日】[まいにち]).",
       "   - Example: If 会議 has furigana かいぎ above it (NOT underlined) and 困って has an underline bar under all 3 characters (NO furigana above it), output: 会議[かいぎ]に 遅[おく]れて 【困って】 います。",
       "   - NEVER invent furigana that is NOT printed on the PDF (especially NEVER add furigana to Kanji being tested for reading in 問題1!).",
       "4. For fill-in-the-blank questions, use '＿＿＿' for the blank.",
@@ -383,7 +384,9 @@ export async function POST(request: Request) {
         ? (q.type as MondaiType)
         : "standard";
 
-      const opts = Array.isArray(q.options) ? q.options.map((o) => String(o || "").trim()) : [];
+      const opts = Array.isArray(q.options)
+        ? q.options.map((o) => normalizeUnderlinedFurigana(String(o || "").trim()))
+        : [];
       while (opts.length < 4) opts.push("");
       const fixedOptions: [string, string, string, string] = [
         opts[0] || "",
@@ -408,8 +411,8 @@ export async function POST(request: Request) {
         type: qType,
         mondaiLabel: isAssignmentMode ? "" : (q.mondaiLabel || `問題${idx + 1}`).trim(),
         points,
-        instruction: (q.instruction || "").trim(),
-        prompt: (q.prompt || "").trim(),
+        instruction: normalizeUnderlinedFurigana((q.instruction || "").trim()),
+        prompt: normalizeUnderlinedFurigana((q.prompt || "").trim()),
         options: fixedOptions,
         correctIndex: -1,
         explanation: "",
@@ -419,8 +422,8 @@ export async function POST(request: Request) {
       };
 
       if (qType === "star") {
-        base.starPrefix = (q.starPrefix || "").trim();
-        base.starSuffix = (q.starSuffix || "").trim();
+        base.starPrefix = normalizeUnderlinedFurigana((q.starPrefix || "").trim());
+        base.starSuffix = normalizeUnderlinedFurigana((q.starSuffix || "").trim());
         const slotIdx =
           typeof q.starSlotIndex === "number" && q.starSlotIndex >= 0 && q.starSlotIndex <= 3
             ? q.starSlotIndex
@@ -430,8 +433,8 @@ export async function POST(request: Request) {
 
       if (qType === "dokkai") {
         base.passageGroupId = (q.passageGroupId || `dokkai-${batchId}-${idx + 1}`).trim();
-        base.passageTitle = (q.passageTitle || "読解 (Bài đọc hiểu)").trim();
-        base.passageText = (q.passageText || "").trim();
+        base.passageTitle = normalizeUnderlinedFurigana((q.passageTitle || "読解 (Bài đọc hiểu)").trim());
+        base.passageText = normalizeUnderlinedFurigana((q.passageText || "").trim());
       }
 
       if (qType === "choukai") {

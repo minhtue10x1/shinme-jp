@@ -19,7 +19,28 @@ const KANJI = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ]/;
 const PIPES = ["|", "｜"];
 const BRACKETS: Record<string, string> = { "[": "]", "［": "］" };
 
-export function parseFurigana(input: string): FuriganaSegment[] {
+/**
+ * Normalizes accidental out-of-bracket furigana around underlined words:
+ *   `【毎日】[まいにち]`   -> `【毎日[まいにち]】`
+ *   `【申し込む】[もうしこむ]` -> `【|申し込む[もうしこむ]】`
+ */
+export function normalizeUnderlinedFurigana(input: string): string {
+  if (!input || !input.includes("】")) return input;
+  return input
+    // Pure Kanji inside 【...】 followed by [reading]
+    .replace(
+      /【([\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ]+)】[\[［]([^\]］]+)[\]］]/g,
+      "【$1[$2]】"
+    )
+    // Mixed Kanji + Kana inside 【...】 followed by [reading]
+    .replace(
+      /【([^】\[]*[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ][^】\[]*)】[\[［]([^\]］]+)[\]］]/g,
+      "【|$1[$2]】"
+    );
+}
+
+export function parseFurigana(rawInput: string): FuriganaSegment[] {
+  const input = normalizeUnderlinedFurigana(rawInput);
   const segments: FuriganaSegment[] = [];
   let buffer = "";
   let i = 0;
