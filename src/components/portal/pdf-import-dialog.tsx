@@ -173,6 +173,99 @@ export function PdfImportDialog({
       const failedChunkLabels: string[] = [];
       let lastChunkError = "";
       const passageTextToGroupId = new Map<string, string>();
+      const MAX_CHUNK_UPLOAD_BYTES = Math.floor(3.8 * 1024 * 1024); // Stay safely under Vercel's 4.5MB body limit
+
+      const mergeExtractedQuestions = (rawList: TestQuestion[], scopeTag: string) => {
+        const chunkQuestions = rawList.map((q) => {
+          if (q.type !== "dokkai") return q;
+          const normText = (q.passageText || "").replace(/\s+/g, "").slice(0, 120);
+          if (normText.length >= 24) {
+            const existingGid = passageTextToGroupId.get(normText);
+            if (existingGid) {
+              return { ...q, passageGroupId: existingGid };
+            }
+            const scopedGid = q.passageGroupId
+              ? `${scopeTag}-${q.passageGroupId}`
+              : `${scopeTag}-dokkai-${q.id}`;
+            passageTextToGroupId.set(normText, scopedGid);
+            return { ...q, passageGroupId: scopedGid };
+          }
+          const scopedGid = q.passageGroupId
+            ? q.passageGroupId === "info-retrieval"
+              ? "info-retrieval-37-38"
+              : `${scopeTag}-${q.passageGroupId}`
+            : `${scopeTag}-dokkai-${q.id}`;
+          return { ...q, passageGroupId: scopedGid };
+        });
+        allExtracted.push(...chunkQuestions);
+      };
+
+      const sendSlice = async (
+        sliceIndices: number[],
+        scopeTag: string
+      ): Promise<{ ok: boolean; error?: string; oversized?: boolean }> => {
+        const firstP = sliceIndices[0] + 1;
+        const lastP = sliceIndices[sliceIndices.length - 1] + 1;
+        const sliceLabel = firstP === lastP ? `Trang ${firstP}` : `Trang ${firstP}-${lastP}`;
+
+        const chunkPdf = await PDFDocument.create();
+        const copiedPages = await chunkPdf.copyPages(srcPdf, sliceIndices);
+        for (const p of copiedPages) {
+          chunkPdf.addPage(p);
+        }
+        const chunkBytes = await chunkPdf.save();
+
+        // If a multi-page slice exceeds Vercel's ~4.5MB serverless limit, immediately split into 1-page slices
+        if (sliceIndices.length > 1 && chunkBytes.byteLength > MAX_CHUNK_UPLOAD_BYTES) {
+          return {
+            ok: false,
+            oversized: true,
+            error: `Cụm ${sliceLabel} nặng ${(chunkBytes.byteLength / (1024 * 1024)).toFixed(1)}MB (> 3.8MB)`,
+          };
+        }
+
+        const chunkBlob = new Blob([new Uint8Array(chunkBytes)], { type: "application/pdf" });
+        const chunkFile = new File([chunkBlob], `chunk_${firstP}_${lastP}.pdf`, {
+          type: "application/pdf",
+        });
+
+        const formData = new FormData();
+        formData.append("file", chunkFile);
+        formData.append("mode", modeType);
+        formData.append("level", level);
+        formData.append("chunkLabel", sliceLabel);
+        formData.append("includeChoukai", String(includeChoukai));
+
+        try {
+          const res = await fetch("/api/tests/import-pdf", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` },
+            body: formData,
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            return {
+              ok: false,
+              error: data?.error || (res.status === 413 ? "File cụm trang quá nặng (413)" : `HTTP ${res.status}`),
+            };
+          }
+
+          if (!suggestedTitle && data.suggestedTitle) suggestedTitle = data.suggestedTitle;
+          if (!suggestedTitleJa && data.suggestedTitleJa) suggestedTitleJa = data.suggestedTitleJa;
+
+          if (Array.isArray(data.questions) && data.questions.length > 0) {
+            mergeExtractedQuestions(data.questions as TestQuestion[], scopeTag);
+          }
+
+          return { ok: true };
+        } catch (fetchErr) {
+          return {
+            ok: false,
+            error: fetchErr instanceof Error ? fetchErr.message : "Network error",
+          };
+        }
+      };
 
       for (let cIdx = 0; cIdx < chunks.length; cIdx++) {
         const indices = chunks[cIdx];
@@ -192,64 +285,30 @@ export function PdfImportDialog({
               : `Extracting batch ${cIdx + 1}/${chunks.length} (${label}) · ${allExtracted.length} questions so far...`
         );
 
-        // Slice real PDF pages into a tiny standalone PDF Blob
-        const chunkPdf = await PDFDocument.create();
-        const copiedPages = await chunkPdf.copyPages(srcPdf, indices);
-        for (const p of copiedPages) {
-          chunkPdf.addPage(p);
-        }
-        const chunkBytes = await chunkPdf.save();
-        const chunkBlob = new Blob([new Uint8Array(chunkBytes)], { type: "application/pdf" });
-        const chunkFile = new File([chunkBlob], `chunk_${firstPageNum}_${lastPageNum}.pdf`, {
-          type: "application/pdf",
-        });
+        const result = await sendSlice(indices, `c${cIdx + 1}`);
 
-        const formData = new FormData();
-        formData.append("file", chunkFile);
-        formData.append("mode", modeType);
-        formData.append("level", level);
-        formData.append("chunkLabel", label);
-        formData.append("includeChoukai", String(includeChoukai));
-
-        const res = await fetch("/api/tests/import-pdf", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${idToken}` },
-          body: formData,
-        });
-
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          failedChunkLabels.push(label);
-          lastChunkError = data?.error || `HTTP ${res.status}`;
-          continue;
-        }
-
-        if (!suggestedTitle && data.suggestedTitle) suggestedTitle = data.suggestedTitle;
-        if (!suggestedTitleJa && data.suggestedTitleJa) suggestedTitleJa = data.suggestedTitleJa;
-
-        if (Array.isArray(data.questions) && data.questions.length > 0) {
-          const chunkQuestions = (data.questions as TestQuestion[]).map((q) => {
-            if (q.type !== "dokkai") return q;
-            const normText = (q.passageText || "").replace(/\s+/g, "").slice(0, 120);
-            if (normText.length >= 24) {
-              const existingGid = passageTextToGroupId.get(normText);
-              if (existingGid) {
-                return { ...q, passageGroupId: existingGid };
+        if (!result.ok) {
+          // Auto-fallback: if a multi-page slice fails (e.g. heavy cover page, dense Goi pages, or 502/413/timeout),
+          // automatically split and retry page-by-page so we don't drop all 3 pages!
+          if (indices.length > 1) {
+            for (let pPos = 0; pPos < indices.length; pPos++) {
+              const singlePageIdx = indices[pPos];
+              const singleLabel = `Trang ${singlePageIdx + 1}`;
+              setProgressText(
+                lang === "vi"
+                  ? `Cụm ${label} quá dày/nặng — đang tự tách bóc lẻ ${singleLabel} (${pPos + 1}/${indices.length}) · Đã thu ${allExtracted.length} câu...`
+                  : `Retrying ${singleLabel} individually (${pPos + 1}/${indices.length}) · ${allExtracted.length} questions so far...`
+              );
+              const singleRes = await sendSlice([singlePageIdx], `c${cIdx + 1}p${pPos + 1}`);
+              if (!singleRes.ok) {
+                failedChunkLabels.push(singleLabel);
+                lastChunkError = singleRes.error || result.error || "Unknown error";
               }
-              const scopedGid = q.passageGroupId
-                ? `c${cIdx + 1}-${q.passageGroupId}`
-                : `c${cIdx + 1}-dokkai-${q.id}`;
-              passageTextToGroupId.set(normText, scopedGid);
-              return { ...q, passageGroupId: scopedGid };
             }
-            const scopedGid = q.passageGroupId
-              ? q.passageGroupId === "info-retrieval"
-                ? "info-retrieval-37-38"
-                : `c${cIdx + 1}-${q.passageGroupId}`
-              : `c${cIdx + 1}-dokkai-${q.id}`;
-            return { ...q, passageGroupId: scopedGid };
-          });
-          allExtracted.push(...chunkQuestions);
+          } else {
+            failedChunkLabels.push(label);
+            lastChunkError = result.error || "Unknown error";
+          }
         }
 
         setProgressPercent(Math.round(((cIdx + 1) / chunks.length) * 100));

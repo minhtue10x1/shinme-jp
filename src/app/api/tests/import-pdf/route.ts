@@ -273,72 +273,7 @@ export async function POST(request: Request) {
       },
     };
 
-    let response: Awaited<ReturnType<typeof ai.models.generateContent>> | null = null;
-    const attemptLogs: string[] = [];
-    let usedModel = modelCandidates[0] || "gemini-3.5-flash-lite";
-
-    for (const candidateModel of modelCandidates) {
-      try {
-        response = await ai.models.generateContent({
-          model: candidateModel,
-          contents: [
-            {
-              role: "user",
-              parts: [
-                filePart,
-                {
-                  text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm JLPT có trong các trang PDF đính kèm theo đúng JSON schema.",
-                },
-              ],
-            },
-          ],
-          config: {
-            systemInstruction: systemPrompt,
-            responseMimeType: "application/json",
-            responseSchema: RESPONSE_SCHEMA,
-            temperature: 0.1,
-          },
-        });
-        usedModel = candidateModel;
-        break;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        attemptLogs.push(`${candidateModel}: ${msg.slice(0, 120)}`);
-        console.warn(`[api/tests/import-pdf] ${candidateModel} failed:`, msg.slice(0, 200));
-
-        // Brief pause before trying next discovered model
-        await new Promise((r) => setTimeout(r, 800));
-      }
-    }
-
-    if (!response) {
-      const summary = attemptLogs.join(" | ");
-      const isOverloaded =
-        summary.includes("503") || summary.includes("UNAVAILABLE") || summary.includes("high demand");
-      return NextResponse.json(
-        {
-          error: isOverloaded
-            ? `Toàn bộ các model Gemini đang bận (503). Đã thử: ${modelCandidates.join(", ")}. Vui lòng thử lại sau ít phút.`
-            : `Không thể bóc đề qua Gemini (${modelCandidates.join(", ")}): ${summary}`,
-        },
-        { status: isOverloaded ? 503 : 500 }
-      );
-    }
-
-    console.info(`[api/tests/import-pdf] Parsed ${chunkLabel || "PDF"} with ${usedModel}`);
-
-    const rawText = response.text?.trim();
-    if (!rawText) {
-      return NextResponse.json({
-        suggestedTitle: "",
-        suggestedTitleJa: "",
-        questions: [],
-        count: 0,
-        usedModel,
-      });
-    }
-
-    let parsed: {
+    type RawParsedPayload = {
       detectedLevel?: string;
       suggestedTitle?: string;
       suggestedTitleJa?: string;
@@ -361,14 +296,85 @@ export async function POST(request: Request) {
       }>;
     };
 
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
+    let parsed: RawParsedPayload | null = null;
+    const attemptLogs: string[] = [];
+    let usedModel = modelCandidates[0] || "gemini-3.5-flash-lite";
+
+    for (const candidateModel of modelCandidates) {
+      try {
+        const response = await ai.models.generateContent({
+          model: candidateModel,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                filePart,
+                {
+                  text: "Hãy bóc tách toàn bộ câu hỏi trắc nghiệm JLPT có trong các trang PDF đính kèm theo đúng JSON schema.",
+                },
+              ],
+            },
+          ],
+          config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.1,
+            maxOutputTokens: 65536,
+          },
+        });
+
+        const rawText = response.text?.trim() || "";
+        if (!rawText) {
+          parsed = { questions: [] };
+          usedModel = candidateModel;
+          break;
+        }
+
+        // Strip accidental markdown fences if any model wraps JSON in ```json ... ```
+        const cleanedJson = rawText
+          .replace(/^```(?:json)?\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim();
+
+        try {
+          parsed = JSON.parse(cleanedJson) as RawParsedPayload;
+          usedModel = candidateModel;
+          break;
+        } catch (parseErr) {
+          const finishReason = response.candidates?.[0]?.finishReason || "UNKNOWN";
+          const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+          attemptLogs.push(`${candidateModel}: JSON parse error (${finishReason}) - ${parseMsg.slice(0, 80)}`);
+          console.warn(
+            `[api/tests/import-pdf] ${candidateModel} returned invalid/truncated JSON (finishReason=${finishReason}, len=${rawText.length})`
+          );
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        attemptLogs.push(`${candidateModel}: ${msg.slice(0, 120)}`);
+        console.warn(`[api/tests/import-pdf] ${candidateModel} failed:`, msg.slice(0, 200));
+
+        // Brief pause before trying next discovered model
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    }
+
+    if (!parsed) {
+      const summary = attemptLogs.join(" | ");
+      const isOverloaded =
+        summary.includes("503") || summary.includes("UNAVAILABLE") || summary.includes("high demand");
       return NextResponse.json(
-        { error: "Kết quả AI trả về không đúng định dạng JSON. Vui lòng thử lại." },
-        { status: 502 }
+        {
+          error: isOverloaded
+            ? `Toàn bộ các model Gemini đang bận (503). Đã thử: ${modelCandidates.join(", ")}. Vui lòng thử lại sau ít phút.`
+            : `Không thể bóc đề qua Gemini (${modelCandidates.join(", ")}): ${summary}`,
+        },
+        { status: isOverloaded ? 503 : 502 }
       );
     }
+
+    console.info(`[api/tests/import-pdf] Parsed ${chunkLabel || "PDF"} with ${usedModel}`);
 
     const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
     const batchId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
