@@ -488,13 +488,46 @@ export async function getAssignments(
 }
 
 export async function saveAssignment(assignment: AssignmentDoc): Promise<void> {
+  const hasQuizAnswers = (assignment.questions || []).some(
+    (q) => typeof q.correctIndex === "number" && q.correctIndex >= 0
+  );
+
+  if (hasQuizAnswers && assignment.questions) {
+    const answers: Record<string, { correctIndex: number }> = {};
+    for (const q of assignment.questions) {
+      answers[q.id] = { correctIndex: q.correctIndex };
+    }
+    await setDoc(
+      doc(db, "assignment_answer_keys", assignment.id),
+      {
+        assignmentId: assignment.id,
+        answers,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  }
+
+  const sanitized: AssignmentDoc = assignment.questions
+    ? {
+        ...assignment,
+        questions: assignment.questions.map((q) => ({
+          ...q,
+          correctIndex: -1,
+          explanation: "",
+        })),
+      }
+    : assignment;
+
   const ref = doc(db, "assignments", assignment.id);
-  await setDoc(ref, assignment, { merge: true });
+  await setDoc(ref, sanitized, { merge: true });
 }
 
 export async function deleteAssignment(id: string): Promise<void> {
-  const ref = doc(db, "assignments", id);
-  await deleteDoc(ref);
+  await Promise.all([
+    deleteDoc(doc(db, "assignments", id)),
+    deleteDoc(doc(db, "assignment_answer_keys", id)).catch(() => undefined),
+  ]);
 }
 
 /**

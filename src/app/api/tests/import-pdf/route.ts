@@ -197,6 +197,8 @@ export async function POST(request: Request) {
     // 2. Parse multipart/form-data
     const formData = await request.formData();
     const file = formData.get("file");
+    const importModeType = String(formData.get("mode") || "jlpt").trim(); // "jlpt" | "assignment"
+    const isAssignmentMode = importModeType === "assignment";
     const levelHint = String(formData.get("level") || "").trim();
     const chunkLabel = String(formData.get("chunkLabel") || "").trim();
     const includeChoukai = String(formData.get("includeChoukai") || "false") === "true";
@@ -247,12 +249,16 @@ export async function POST(request: Request) {
       "8. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①'.",
       "9. If a page is ONLY a cover page, instructions page, or answer sheet with NO multiple-choice questions, return an empty `questions: []` array.",
       "10. Do NOT invent answers or explanations.",
-      "11. SCORING ASSIGNMENT RULES (RAW WEIGHT `points` PER QUESTION):",
-      "   - Identify `detectedLevel` (N5–N1 or OTHER), `skill` (vocabulary, grammar, reading, listening), and `mondaiNumber` (1..14) for every question.",
-      "   - Assign `points` strictly using `points_per_question` from the JLPT Barem table below:",
-      baremTableText,
-      "   - If the PDF is a short quiz / mini-test NOT following standard JLPT Mondai structure, assign default raw points: vocabulary/grammar = 1, short reading = 2, medium/long reading = 3, listening = 2.",
-      "   - Do NOT round or rescale individual question points to force section totals to 60 or 120; the backend handles section normalization using (userRawScore / totalRawScore) * max_score.",
+      isAssignmentMode
+        ? "11. ASSIGNMENT MODE: This is a homework practice quiz, NOT a full JLPT exam. Do NOT classify Mondai 1/Mondai 2 labels or skills. Set `mondaiLabel` to empty string '', `grammarPoint` to empty string '', `mondaiNumber` to 0, and `points` to 1 for EVERY question."
+        : [
+            "11. SCORING ASSIGNMENT RULES (RAW WEIGHT `points` PER QUESTION):",
+            "   - Identify `detectedLevel` (N5–N1 or OTHER), `skill` (vocabulary, grammar, reading, listening), and `mondaiNumber` (1..14) for every question.",
+            "   - Assign `points` strictly using `points_per_question` from the JLPT Barem table below:",
+            baremTableText,
+            "   - If the PDF is a short quiz / mini-test NOT following standard JLPT Mondai structure, assign default raw points: vocabulary/grammar = 1, short reading = 2, medium/long reading = 3, listening = 2.",
+            "   - Do NOT round or rescale individual question points to force section totals to 60 or 120; the backend handles section normalization using (userRawScore / totalRawScore) * max_score.",
+          ].join("\n"),
       levelHint ? `12. Exam level hint: JLPT ${levelHint}.` : "",
       chunkLabel ? `13. Current PDF slice: ${chunkLabel}.` : "",
     ]
@@ -386,26 +392,30 @@ export async function POST(request: Request) {
         opts[3] || "",
       ];
 
-      const points = resolveQuestionPoints({
-        level: resolvedLevel,
-        skill: q.skill,
-        mondaiNumber: q.mondaiNumber,
-        qType,
-        passageText: q.passageText,
-        aiPoints: q.points,
-      });
+      const points = isAssignmentMode
+        ? 1
+        : resolveQuestionPoints({
+            level: resolvedLevel,
+            skill: q.skill,
+            mondaiNumber: q.mondaiNumber,
+            qType,
+            passageText: q.passageText,
+            aiPoints: q.points,
+          });
 
       const base: TestQuestion = {
         id: `q-pdf-${batchId}-${idx + 1}`,
         type: qType,
-        mondaiLabel: (q.mondaiLabel || `問題${idx + 1}`).trim(),
+        mondaiLabel: isAssignmentMode ? "" : (q.mondaiLabel || `問題${idx + 1}`).trim(),
         points,
         instruction: (q.instruction || "").trim(),
         prompt: (q.prompt || "").trim(),
         options: fixedOptions,
         correctIndex: -1,
         explanation: "",
-        grammarPoint: (q.grammarPoint || (resolvedLevel ? `JLPT ${resolvedLevel}` : "JLPT")).trim(),
+        grammarPoint: isAssignmentMode
+          ? ""
+          : (q.grammarPoint || (resolvedLevel ? `JLPT ${resolvedLevel}` : "JLPT")).trim(),
       };
 
       if (qType === "star") {

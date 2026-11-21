@@ -28,6 +28,7 @@ interface PdfImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultLevel?: string;
+  modeType?: "jlpt" | "assignment";
   onImported: (result: PdfImportResult) => void;
 }
 
@@ -69,6 +70,7 @@ export function PdfImportDialog({
   open,
   onOpenChange,
   defaultLevel = "N3",
+  modeType = "jlpt",
   onImported,
 }: PdfImportDialogProps) {
   const { firebaseUser } = useRole();
@@ -203,6 +205,7 @@ export function PdfImportDialog({
 
         const formData = new FormData();
         formData.append("file", chunkFile);
+        formData.append("mode", modeType);
         formData.append("level", level);
         formData.append("chunkLabel", label);
         formData.append("includeChoukai", String(includeChoukai));

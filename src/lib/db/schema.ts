@@ -159,6 +159,7 @@ export type AssignmentSubmissionInfo = {
   maxScore?: number;
   feedback?: string;
   studentAnswer?: string;
+  answers?: Record<string, number>;
   studentName?: string;
   studentCode?: string;
   submittedAt?: string;
@@ -179,6 +180,8 @@ export type AssignmentDoc = {
   questionsCount: number;
   maxScore: number;
   description?: string;
+  /** Optional multiple-choice quiz questions (1 pt each, imported from PDF or authored manually) */
+  questions?: TestQuestion[];
   createdBy: string;
   createdAt: string;
   submissions?: Record<string, AssignmentSubmissionInfo>;
