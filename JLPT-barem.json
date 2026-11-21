@@ -1,0 +1,262 @@
+{
+  "scoring_note": "JLPT uses IRT scaled scoring. Use 'points_per_question' as raw weights, then normalize each scoring_section to its 'max_score' using: Math.round((userRawScore / totalRawScore) * max_score).",
+  "levels": {
+    "N5": {
+      "total_max": 180,
+      "pass_mark": 80,
+      "scoring_sections": [
+        {
+          "section_id": "language_knowledge_reading",
+          "name": "Kiến thức ngôn ngữ (Từ vựng, Ngữ pháp) & Đọc hiểu",
+          "max_score": 120,
+          "sectional_pass_mark": 38,
+          "skills": {
+            "vocabulary": [
+              { "mondai": 1, "type": "Cách đọc Kanji", "typical_questions": 12, "points_per_question": 1 },
+              { "mondai": 2, "type": "Cách viết Kanji/Katakana", "typical_questions": 8, "points_per_question": 1 },
+              { "mondai": 3, "type": "Điền từ theo ngữ cảnh", "typical_questions": 10, "points_per_question": 1 },
+              { "mondai": 4, "type": "Từ đồng nghĩa", "typical_questions": 5, "points_per_question": 2 }
+            ],
+            "grammar": [
+              { "mondai": 1, "type": "Chọn dạng ngữ pháp", "typical_questions": 16, "points_per_question": 1 },
+              { "mondai": 2, "type": "Sắp xếp câu (dấu sao)", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 3, "type": "Ngữ pháp theo đoạn văn", "typical_questions": 5, "points_per_question": 3 }
+            ],
+            "reading": [
+              { "mondai": 4, "type": "Đoản văn (Đọc ngắn)", "typical_questions": 3, "points_per_question": 4 },
+              { "mondai": 5, "type": "Trung văn", "typical_questions": 2, "points_per_question": 6 },
+              { "mondai": 6, "type": "Tìm kiếm thông tin", "typical_questions": 1, "points_per_question": 8 }
+            ]
+          }
+        },
+        {
+          "section_id": "listening",
+          "name": "Nghe hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "listening": [
+              { "mondai": 1, "type": "Hiểu chủ đề", "typical_questions": 7, "points_per_question": 3 },
+              { "mondai": 2, "type": "Hiểu điểm chính", "typical_questions": 6, "points_per_question": 3 },
+              { "mondai": 3, "type": "Phát ngôn biểu đạt", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 4, "type": "Phản xạ nhanh", "typical_questions": 6, "points_per_question": 2 }
+            ]
+          }
+        }
+      ]
+    },
+    "N4": {
+      "total_max": 180,
+      "pass_mark": 90,
+      "scoring_sections": [
+        {
+          "section_id": "language_knowledge_reading",
+          "name": "Kiến thức ngôn ngữ (Từ vựng, Ngữ pháp) & Đọc hiểu",
+          "max_score": 120,
+          "sectional_pass_mark": 38,
+          "skills": {
+            "vocabulary": [
+              { "mondai": 1, "type": "Cách đọc Kanji", "typical_questions": 9, "points_per_question": 1 },
+              { "mondai": 2, "type": "Cách viết Kanji", "typical_questions": 6, "points_per_question": 1 },
+              { "mondai": 3, "type": "Điền từ theo ngữ cảnh", "typical_questions": 10, "points_per_question": 1 },
+              { "mondai": 4, "type": "Từ đồng nghĩa", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 5, "type": "Cách dùng từ", "typical_questions": 5, "points_per_question": 2 }
+            ],
+            "grammar": [
+              { "mondai": 1, "type": "Chọn dạng ngữ pháp", "typical_questions": 15, "points_per_question": 1 },
+              { "mondai": 2, "type": "Sắp xếp câu (dấu sao)", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 3, "type": "Ngữ pháp theo đoạn văn", "typical_questions": 5, "points_per_question": 2 }
+            ],
+            "reading": [
+              { "mondai": 4, "type": "Đoản văn (Đọc ngắn)", "typical_questions": 4, "points_per_question": 4 },
+              { "mondai": 5, "type": "Trung văn", "typical_questions": 4, "points_per_question": 4 },
+              { "mondai": 6, "type": "Tìm kiếm thông tin", "typical_questions": 2, "points_per_question": 4 }
+            ]
+          }
+        },
+        {
+          "section_id": "listening",
+          "name": "Nghe hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "listening": [
+              { "mondai": 1, "type": "Hiểu chủ đề", "typical_questions": 8, "points_per_question": 2 },
+              { "mondai": 2, "type": "Hiểu điểm chính", "typical_questions": 7, "points_per_question": 2 },
+              { "mondai": 3, "type": "Phát ngôn biểu đạt", "typical_questions": 5, "points_per_question": 3 },
+              { "mondai": 4, "type": "Phản xạ nhanh", "typical_questions": 8, "points_per_question": 2 }
+            ]
+          }
+        }
+      ]
+    },
+    "N3": {
+      "total_max": 180,
+      "pass_mark": 95,
+      "scoring_sections": [
+        {
+          "section_id": "language_knowledge",
+          "name": "Kiến thức ngôn ngữ (Từ vựng & Ngữ pháp)",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "vocabulary": [
+              { "mondai": 1, "type": "Cách đọc Kanji", "typical_questions": 8, "points_per_question": 1 },
+              { "mondai": 2, "type": "Cách viết Kanji", "typical_questions": 6, "points_per_question": 1 },
+              { "mondai": 3, "type": "Điền từ theo ngữ cảnh", "typical_questions": 11, "points_per_question": 1 },
+              { "mondai": 4, "type": "Từ đồng nghĩa", "typical_questions": 5, "points_per_question": 1 },
+              { "mondai": 5, "type": "Cách dùng từ", "typical_questions": 5, "points_per_question": 1 }
+            ],
+            "grammar": [
+              { "mondai": 1, "type": "Chọn dạng ngữ pháp", "typical_questions": 13, "points_per_question": 1 },
+              { "mondai": 2, "type": "Sắp xếp câu (dấu sao)", "typical_questions": 5, "points_per_question": 1 },
+              { "mondai": 3, "type": "Ngữ pháp theo đoạn văn", "typical_questions": 5, "points_per_question": 1 }
+            ]
+          }
+        },
+        {
+          "section_id": "reading",
+          "name": "Đọc hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "reading": [
+              { "mondai": 4, "type": "Đoản văn (Đọc ngắn)", "typical_questions": 4, "points_per_question": 3 },
+              { "mondai": 5, "type": "Trung văn", "typical_questions": 6, "points_per_question": 4 },
+              { "mondai": 6, "type": "Trường văn (Đọc dài)", "typical_questions": 4, "points_per_question": 4 },
+              { "mondai": 7, "type": "Tìm kiếm thông tin", "typical_questions": 2, "points_per_question": 4 }
+            ]
+          }
+        },
+        {
+          "section_id": "listening",
+          "name": "Nghe hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "listening": [
+              { "mondai": 1, "type": "Hiểu chủ đề", "typical_questions": 6, "points_per_question": 3 },
+              { "mondai": 2, "type": "Hiểu điểm chính", "typical_questions": 6, "points_per_question": 2 },
+              { "mondai": 3, "type": "Hiểu khái quát", "typical_questions": 3, "points_per_question": 4 },
+              { "mondai": 4, "type": "Phát ngôn biểu đạt", "typical_questions": 4, "points_per_question": 2 },
+              { "mondai": 5, "type": "Phản xạ nhanh", "typical_questions": 9, "points_per_question": 1 }
+            ]
+          }
+        }
+      ]
+    },
+    "N2": {
+      "total_max": 180,
+      "pass_mark": 90,
+      "scoring_sections": [
+        {
+          "section_id": "language_knowledge",
+          "name": "Kiến thức ngôn ngữ (Từ vựng & Ngữ pháp)",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "vocabulary": [
+              { "mondai": 1, "type": "Cách đọc Kanji", "typical_questions": 5, "points_per_question": 1 },
+              { "mondai": 2, "type": "Cách viết Kanji", "typical_questions": 5, "points_per_question": 1 },
+              { "mondai": 3, "type": "Cấu tạo từ", "typical_questions": 3, "points_per_question": 1 },
+              { "mondai": 4, "type": "Điền từ theo ngữ cảnh", "typical_questions": 7, "points_per_question": 1 },
+              { "mondai": 5, "type": "Từ đồng nghĩa", "typical_questions": 4, "points_per_question": 1 },
+              { "mondai": 6, "type": "Cách dùng từ", "typical_questions": 5, "points_per_question": 2 }
+            ],
+            "grammar": [
+              { "mondai": 7, "type": "Chọn dạng ngữ pháp", "typical_questions": 12, "points_per_question": 1 },
+              { "mondai": 8, "type": "Sắp xếp câu (dấu sao)", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 9, "type": "Ngữ pháp theo đoạn văn", "typical_questions": 4, "points_per_question": 1 }
+            ]
+          }
+        },
+        {
+          "section_id": "reading",
+          "name": "Đọc hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "reading": [
+              { "mondai": 10, "type": "Đoản văn (Đọc ngắn)", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 11, "type": "Trung văn", "typical_questions": 9, "points_per_question": 3 },
+              { "mondai": 12, "type": "Đọc hiểu tổng hợp (so sánh 2 bài)", "typical_questions": 2, "points_per_question": 3 },
+              { "mondai": 13, "type": "Trường văn (Đọc dài)", "typical_questions": 3, "points_per_question": 4 },
+              { "mondai": 14, "type": "Tìm kiếm thông tin", "typical_questions": 2, "points_per_question": 3 }
+            ]
+          }
+        },
+        {
+          "section_id": "listening",
+          "name": "Nghe hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "listening": [
+              { "mondai": 1, "type": "Hiểu chủ đề", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 2, "type": "Hiểu điểm chính", "typical_questions": 6, "points_per_question": 2 },
+              { "mondai": 3, "type": "Hiểu khái quát", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 4, "type": "Phản xạ nhanh", "typical_questions": 12, "points_per_question": 1 },
+              { "mondai": 5, "type": "Hiểu tổng hợp", "typical_questions": 4, "points_per_question": 3 }
+            ]
+          }
+        }
+      ]
+    },
+    "N1": {
+      "total_max": 180,
+      "pass_mark": 100,
+      "scoring_sections": [
+        {
+          "section_id": "language_knowledge",
+          "name": "Kiến thức ngôn ngữ (Từ vựng & Ngữ pháp)",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "vocabulary": [
+              { "mondai": 1, "type": "Cách đọc Kanji", "typical_questions": 6, "points_per_question": 1 },
+              { "mondai": 2, "type": "Điền từ theo ngữ cảnh", "typical_questions": 7, "points_per_question": 1 },
+              { "mondai": 3, "type": "Từ đồng nghĩa", "typical_questions": 6, "points_per_question": 1 },
+              { "mondai": 4, "type": "Cách dùng từ", "typical_questions": 6, "points_per_question": 2 }
+            ],
+            "grammar": [
+              { "mondai": 5, "type": "Chọn dạng ngữ pháp", "typical_questions": 10, "points_per_question": 1 },
+              { "mondai": 6, "type": "Sắp xếp câu (dấu sao)", "typical_questions": 5, "points_per_question": 2 },
+              { "mondai": 7, "type": "Ngữ pháp theo đoạn văn", "typical_questions": 5, "points_per_question": 2 }
+            ]
+          }
+        },
+        {
+          "section_id": "reading",
+          "name": "Đọc hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "reading": [
+              { "mondai": 8, "type": "Đoản văn (Đọc ngắn)", "typical_questions": 4, "points_per_question": 2 },
+              { "mondai": 9, "type": "Trung văn", "typical_questions": 9, "points_per_question": 3 },
+              { "mondai": 10, "type": "Trường văn (Đọc dài)", "typical_questions": 4, "points_per_question": 3 },
+              { "mondai": 11, "type": "Đọc hiểu tổng hợp (so sánh 2 bài)", "typical_questions": 2, "points_per_question": 3 },
+              { "mondai": 12, "type": "Trường văn (luận điểm)", "typical_questions": 4, "points_per_question": 4 },
+              { "mondai": 13, "type": "Tìm kiếm thông tin", "typical_questions": 2, "points_per_question": 3 }
+            ]
+          }
+        },
+        {
+          "section_id": "listening",
+          "name": "Nghe hiểu",
+          "max_score": 60,
+          "sectional_pass_mark": 19,
+          "skills": {
+            "listening": [
+              { "mondai": 1, "type": "Hiểu chủ đề", "typical_questions": 6, "points_per_question": 2 },
+              { "mondai": 2, "type": "Hiểu điểm chính", "typical_questions": 7, "points_per_question": 2 },
+              { "mondai": 3, "type": "Hiểu khái quát", "typical_questions": 6, "points_per_question": 2 },
+              { "mondai": 4, "type": "Phản xạ nhanh", "typical_questions": 14, "points_per_question": 1 },
+              { "mondai": 5, "type": "Hiểu tổng hợp", "typical_questions": 4, "points_per_question": 3 }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

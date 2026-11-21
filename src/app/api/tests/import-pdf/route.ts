@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase-admin";
+import { formatBaremForPrompt, resolveQuestionPoints } from "@/lib/jlpt-barem";
 import type { MondaiType, TestQuestion } from "@/lib/test-center-store";
 
 export const runtime = "nodejs";
@@ -86,6 +87,11 @@ async function resolveActiveModels(ai: GoogleGenAI): Promise<string[]> {
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
+    detectedLevel: {
+      type: Type.STRING,
+      enum: ["N5", "N4", "N3", "N2", "N1", "OTHER"],
+      description: "Detected JLPT level from the PDF exam (N5, N4, N3, N2, N1, or OTHER for mini-tests)",
+    },
     suggestedTitle: {
       type: Type.STRING,
       description: "Concise Vietnamese exam title inferred from the PDF header",
@@ -102,6 +108,19 @@ const RESPONSE_SCHEMA = {
           type: {
             type: Type.STRING,
             enum: ["standard", "star", "dokkai", "choukai"],
+          },
+          skill: {
+            type: Type.STRING,
+            enum: ["vocabulary", "grammar", "reading", "listening"],
+            description: "JLPT skill category of this question",
+          },
+          mondaiNumber: {
+            type: Type.INTEGER,
+            description: "Numeric Mondai number from the PDF (e.g. 1 for 問題1, 4 for 問題4; 0 if non-standard mini-test)",
+          },
+          points: {
+            type: Type.INTEGER,
+            description: "Raw weight points per question assigned strictly from the JLPT Barem table or mini-test fallback rules",
           },
           mondaiLabel: { type: Type.STRING },
           instruction: { type: Type.STRING },
@@ -123,7 +142,7 @@ const RESPONSE_SCHEMA = {
           passageTitle: { type: Type.STRING },
           passageText: { type: Type.STRING },
         },
-        required: ["type", "mondaiLabel", "prompt", "options", "grammarPoint"],
+        required: ["type", "skill", "mondaiNumber", "points", "mondaiLabel", "prompt", "options", "grammarPoint"],
       },
     },
   },
@@ -201,6 +220,8 @@ export async function POST(request: Request) {
     const ai = new GoogleGenAI({ apiKey });
     const modelCandidates = await resolveActiveModels(ai);
 
+    const baremTableText = formatBaremForPrompt(levelHint);
+
     const systemPrompt = [
       "You are an expert Japanese JLPT exam digitizer for a Japanese language center (Shinme).",
       "Extract ALL multiple-choice exam questions accurately from the attached JLPT PDF pages (may be scanned paper, 2-column layout, or digital print).",
@@ -226,8 +247,14 @@ export async function POST(request: Request) {
       "8. Every question MUST have exactly 4 choices in `options`. Strip leading choice numbers like '1 ', '1.', 'A.', '①'.",
       "9. If a page is ONLY a cover page, instructions page, or answer sheet with NO multiple-choice questions, return an empty `questions: []` array.",
       "10. Do NOT invent answers or explanations.",
-      levelHint ? `11. Exam level hint: JLPT ${levelHint}.` : "",
-      chunkLabel ? `12. Current PDF slice: ${chunkLabel}.` : "",
+      "11. SCORING ASSIGNMENT RULES (RAW WEIGHT `points` PER QUESTION):",
+      "   - Identify `detectedLevel` (N5–N1 or OTHER), `skill` (vocabulary, grammar, reading, listening), and `mondaiNumber` (1..14) for every question.",
+      "   - Assign `points` strictly using `points_per_question` from the JLPT Barem table below:",
+      baremTableText,
+      "   - If the PDF is a short quiz / mini-test NOT following standard JLPT Mondai structure, assign default raw points: vocabulary/grammar = 1, short reading = 2, medium/long reading = 3, listening = 2.",
+      "   - Do NOT round or rescale individual question points to force section totals to 60 or 120; the backend handles section normalization using (userRawScore / totalRawScore) * max_score.",
+      levelHint ? `12. Exam level hint: JLPT ${levelHint}.` : "",
+      chunkLabel ? `13. Current PDF slice: ${chunkLabel}.` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -305,10 +332,14 @@ export async function POST(request: Request) {
     }
 
     let parsed: {
+      detectedLevel?: string;
       suggestedTitle?: string;
       suggestedTitleJa?: string;
       questions?: Array<{
         type?: string;
+        skill?: string;
+        mondaiNumber?: number;
+        points?: number;
         mondaiLabel?: string;
         instruction?: string;
         prompt?: string;
@@ -336,6 +367,11 @@ export async function POST(request: Request) {
     const batchId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
     const validTypes: MondaiType[] = ["standard", "star", "dokkai", "choukai"];
 
+    const resolvedLevel =
+      parsed.detectedLevel && parsed.detectedLevel !== "OTHER"
+        ? parsed.detectedLevel
+        : levelHint;
+
     const normalizedQuestions: TestQuestion[] = rawQuestions.map((q, idx) => {
       const qType: MondaiType = validTypes.includes(q.type as MondaiType)
         ? (q.type as MondaiType)
@@ -350,17 +386,26 @@ export async function POST(request: Request) {
         opts[3] || "",
       ];
 
+      const points = resolveQuestionPoints({
+        level: resolvedLevel,
+        skill: q.skill,
+        mondaiNumber: q.mondaiNumber,
+        qType,
+        passageText: q.passageText,
+        aiPoints: q.points,
+      });
+
       const base: TestQuestion = {
         id: `q-pdf-${batchId}-${idx + 1}`,
         type: qType,
         mondaiLabel: (q.mondaiLabel || `問題${idx + 1}`).trim(),
-        points: 5,
+        points,
         instruction: (q.instruction || "").trim(),
         prompt: (q.prompt || "").trim(),
         options: fixedOptions,
         correctIndex: -1,
         explanation: "",
-        grammarPoint: (q.grammarPoint || (levelHint ? `JLPT ${levelHint}` : "JLPT")).trim(),
+        grammarPoint: (q.grammarPoint || (resolvedLevel ? `JLPT ${resolvedLevel}` : "JLPT")).trim(),
       };
 
       if (qType === "star") {
