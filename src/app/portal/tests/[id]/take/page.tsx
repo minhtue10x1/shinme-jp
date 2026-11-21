@@ -3,10 +3,15 @@ import { TestTakeClient } from "@/components/portal/test-take-client";
 
 export default async function StudentExamTakePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { id } = await params;
+  const { mode } = await searchParams;
+  const initialMode =
+    mode === "review" || mode === "live" ? mode : "take";
 
   return (
     <Suspense
@@ -16,8 +21,7 @@ export default async function StudentExamTakePage({
         </div>
       }
     >
-      <TestTakeClient testId={id} />
+      <TestTakeClient testId={id} initialMode={initialMode} />
     </Suspense>
   );
 }
-

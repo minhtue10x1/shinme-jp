@@ -393,14 +393,23 @@ export default function TestsHubPage() {
                           <Badge tone="warn">{lang === "vi" ? "Chưa làm bài" : "Not submitted"}</Badge>
                         )}
 
-                        <Button asChild size="md">
-                          <Link href={`/portal/tests/${test.id}/take`}>
-                            {bestAttempt
-                              ? (lang === "vi" ? "Làm lại đề thi" : "Retake Exam")
-                              : (lang === "vi" ? "Vào phòng thi ngay" : "Enter Exam Room")}
-                            <ArrowRight />
-                          </Link>
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {bestAttempt && (
+                            <Button asChild variant="outline" size="md">
+                              <Link href={`/portal/tests/${test.id}/take?mode=review`}>
+                                {lang === "vi" ? "Xem lại bài làm" : lang === "ja" ? "解答を確認" : "Review Attempt"}
+                              </Link>
+                            </Button>
+                          )}
+                          <Button asChild size="md">
+                            <Link href={`/portal/tests/${test.id}/take`}>
+                              {bestAttempt
+                                ? (lang === "vi" ? "Làm lại đề thi" : "Retake Exam")
+                                : (lang === "vi" ? "Vào phòng thi ngay" : "Enter Exam Room")}
+                              <ArrowRight />
+                            </Link>
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -411,9 +420,16 @@ export default function TestsHubPage() {
                           </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
                           <Button asChild variant="outline" size="sm">
-                            <Link href={`/portal/tests/${test.id}/take`}>{lang === "vi" ? "Thi thử (Preview)" : "Preview"}</Link>
+                            <Link href={`/portal/tests/${test.id}/take?mode=live`}>
+                              {lang === "vi" ? "Xem đề (Chữa bài)" : lang === "ja" ? "問題表示（解説用）" : "Live View"}
+                            </Link>
+                          </Button>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/portal/tests/create?editId=${test.id}`}>
+                              {lang === "vi" ? "Sửa đề" : lang === "ja" ? "編集" : "Edit"}
+                            </Link>
                           </Button>
                           <Button asChild size="sm">
                             <Link href={`/portal/gradebook?testId=${test.id}`}>

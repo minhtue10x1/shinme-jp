@@ -530,6 +530,19 @@ export async function deleteAssignment(id: string): Promise<void> {
   ]);
 }
 
+export async function getAssignmentAnswerKey(
+  assignmentId: string
+): Promise<Record<string, number>> {
+  const snap = await getDoc(doc(db, "assignment_answer_keys", assignmentId));
+  if (!snap.exists()) return {};
+  const data = snap.data() as { answers?: Record<string, { correctIndex: number }> };
+  const result: Record<string, number> = {};
+  for (const [qId, entry] of Object.entries(data.answers || {})) {
+    result[qId] = entry.correctIndex;
+  }
+  return result;
+}
+
 /**
  * Writes student assignment submission to scalable subcollection
  * `assignments/{assignmentId}/submissions/{studentId}` (avoids 1MB doc limit).

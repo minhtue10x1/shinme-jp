@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Plus,
@@ -29,7 +29,13 @@ import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { PdfImportDialog } from "@/components/portal/pdf-import-dialog";
 import { useTranslation } from "@/lib/i18n/context";
-import { getClasses, saveTestDoc, uploadExamPosterImage } from "@/lib/db/services";
+import {
+  getClasses,
+  getTestById,
+  getTestAnswerKey,
+  saveTestDoc,
+  uploadExamPosterImage,
+} from "@/lib/db/services";
 import { compressPosterImage } from "@/lib/image-utils";
 import type { ClassDoc } from "@/lib/db/schema";
 import {
@@ -180,19 +186,23 @@ function createTemplateQuestion(
   };
 }
 
-export default function SenseiTestCreatePage() {
+function SenseiTestCreateContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("editId");
+  const isEditing = Boolean(editId);
   const { lang, t } = useTranslation();
   const [classes, setClasses] = useState<ClassDoc[]>([]);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(Boolean(editId));
 
   useEffect(() => {
     getClasses().then((res) => {
       if (res && res.length > 0) {
         setClasses(res);
-        setClassId(res[0].id);
+        if (!editId) setClassId(res[0].id);
       }
     }).catch(console.error);
-  }, []);
+  }, [editId]);
 
   // Test Metadata State
   const [title, setTitle] = useState(
@@ -222,9 +232,68 @@ export default function SenseiTestCreatePage() {
   const [isSaving, setIsSaving] = useState(false);
   // Idempotency key + synchronous lock: guarantees rapid multi-clicks NEVER create duplicate tests
   const draftTestIdRef = useRef<string>(
-    `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+    editId || `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
   );
   const isSavingRef = useRef(false);
+
+  // Hydrate existing exam + answer keys when opened in Edit Mode (`?editId=...`)
+  useEffect(() => {
+    if (!editId) return;
+    draftTestIdRef.current = editId;
+    let cancelled = false;
+
+    async function loadExistingExam() {
+      try {
+        setIsLoadingEdit(true);
+        const [existingTest, existingKey] = await Promise.all([
+          getTestById(editId!),
+          getTestAnswerKey(editId!),
+        ]);
+        if (cancelled) return;
+        if (!existingTest) {
+          toast.error(lang === "vi" ? "Không tìm thấy đề thi để chỉnh sửa." : "Exam not found for editing.");
+          return;
+        }
+
+        setTitle(existingTest.title || "");
+        setTitleJa(existingTest.titleJa || "");
+        setCode(existingTest.code || "");
+        if (existingTest.classId) setClassId(existingTest.classId);
+        setDurationMinutes(existingTest.durationMinutes || 25);
+        setDeadline(existingTest.deadline || "2026-11-22T23:59");
+        setMaxAttempts(existingTest.maxAttempts ?? 0);
+        setPassScore(existingTest.passScore ?? 60);
+        setShuffleQuestions(Boolean(existingTest.shuffleQuestions));
+
+        const keyMap = existingKey?.answers || {};
+        const hydratedQuestions: TestQuestion[] = (existingTest.questions || []).map((q) => {
+          const entry = keyMap[q.id];
+          if (!entry) return q;
+          return {
+            ...q,
+            correctIndex: entry.correctIndex,
+            explanation: entry.explanation || q.explanation || "",
+            ...(entry.starCorrectOrder ? { starCorrectOrder: entry.starCorrectOrder } : {}),
+            ...(entry.audioScript ? { audioScript: entry.audioScript } : {}),
+          };
+        });
+
+        if (hydratedQuestions.length > 0) {
+          setQuestions(hydratedQuestions);
+        }
+      } catch (err) {
+        console.error("Failed to load exam for editing:", err);
+        toast.error(lang === "vi" ? "Lỗi khi tải đề thi để chỉnh sửa." : "Error loading exam for editing.");
+      } finally {
+        if (!cancelled) setIsLoadingEdit(false);
+      }
+    }
+
+    loadExistingExam();
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, lang]);
 
   const handleUploadPoster = async (questionId: string, groupId: string | undefined, file: File) => {
     try {
@@ -424,6 +493,12 @@ export default function SenseiTestCreatePage() {
 
   return (
     <div className="space-y-6 pb-16">
+      {isLoadingEdit && (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-[#135E36]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {lang === "vi" ? "Đang tải nội dung & đáp án đề thi để chỉnh sửa..." : "Loading exam & answer keys for editing..."}
+        </div>
+      )}
       {/* Top Bar */}
       <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
         <div className="space-y-1.5">
@@ -1434,5 +1509,19 @@ export default function SenseiTestCreatePage() {
         onImported={handlePdfImported}
       />
     </div>
+  );
+}
+
+export default function SenseiTestCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm font-semibold text-slate-600">
+          Đang tải trình soạn đề thi JLPT...
+        </div>
+      }
+    >
+      <SenseiTestCreateContent />
+    </Suspense>
   );
 }

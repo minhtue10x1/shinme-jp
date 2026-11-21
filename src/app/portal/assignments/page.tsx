@@ -8,6 +8,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Eye,
   FileUp,
   Filter,
   GraduationCap,
@@ -39,6 +40,7 @@ import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import {
   getAssignments,
+  getAssignmentAnswerKey,
   saveAssignment,
   deleteAssignment,
   submitAssignmentAnswer,
@@ -86,12 +88,14 @@ export default function AssignmentsPage() {
 
   // Dialogs
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [viewingItem, setViewingItem] = useState<AssignmentDoc | null>(null);
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
   const isCreatingRef = useRef(false);
   const draftAsgIdRef = useRef<string>(`asg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`);
 
-  // Student submission modal (supports both text and multiple-choice quiz)
+  // Student submission / read-only review modal
   const [submittingItem, setSubmittingItem] = useState<AssignmentDoc | null>(null);
   const [studentAnswerInput, setStudentAnswerInput] = useState("");
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
@@ -100,6 +104,7 @@ export default function AssignmentsPage() {
     maxScore: number;
     answerKey: Record<string, number>;
   } | null>(null);
+  const [isLoadingQuizReview, setIsLoadingQuizReview] = useState(false);
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
   const isSubmittingQuizRef = useRef(false);
 
@@ -223,14 +228,86 @@ export default function AssignmentsPage() {
     });
   }, [assignments, filterType, filterClass, search, role, user.classId]);
 
-  // Handle student answer submission
-  const handleOpenStudentSubmission = (item: AssignmentDoc) => {
+  // Open Create dialog cleanly for a brand-new assignment
+  const handleOpenCreateNew = () => {
+    setEditingAssignmentId(null);
+    draftAsgIdRef.current = `asg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    setFormCode("");
+    setFormTitle("");
+    setFormTitleJa("");
+    setFormDescription("");
+    setFormQuestions([]);
+    setFormQuestionsCount(5);
+    setFormMaxScore(10);
+    setIsCreateOpen(true);
+  };
+
+  // Open Edit dialog for an existing assignment (hydrates content + answer keys for Sensei)
+  const handleOpenEditAssignment = async (item: AssignmentDoc) => {
+    setEditingAssignmentId(item.id);
+    draftAsgIdRef.current = item.id;
+    setFormCode(item.code || "");
+    setFormTitle(item.title || "");
+    setFormTitleJa(item.titleJa || "");
+    setFormClassId(item.classId || "ALL");
+    setFormLevel(item.level || "N3");
+    setFormType(item.type || "Ngữ pháp");
+    setFormDueDate(item.dueDate || "2026-11-30");
+    setFormQuestionsCount(item.questionsCount || 5);
+    setFormMaxScore(item.maxScore || 10);
+    setFormDescription(item.description || "");
+
+    if (item.questions && item.questions.length > 0) {
+      try {
+        const keyMap = await getAssignmentAnswerKey(item.id);
+        const hydrated = item.questions.map((q) => ({
+          ...q,
+          correctIndex: typeof keyMap[q.id] === "number" ? keyMap[q.id] : q.correctIndex,
+        }));
+        setFormQuestions(hydrated);
+      } catch {
+        setFormQuestions(item.questions);
+      }
+    } else {
+      setFormQuestions([]);
+    }
+    setIsCreateOpen(true);
+  };
+
+  // Handle student answer submission OR read-only review after submission
+  const handleOpenStudentSubmission = async (item: AssignmentDoc, reviewOnly = false) => {
     setSubmittingItem(item);
     const existing = getStudentSubmission(item);
     setStudentAnswerInput(existing?.studentAnswer || "");
     setQuizAnswers(existing?.answers || {});
     setQuizResult(null);
     isSubmittingQuizRef.current = false;
+
+    if (reviewOnly && item.questions && item.questions.length > 0 && firebaseUser) {
+      try {
+        setIsLoadingQuizReview(true);
+        const idToken = await firebaseUser.getIdToken();
+        const res = await fetch(`/api/assignments/${encodeURIComponent(item.id)}/review`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.submission) {
+          const sub = data.submission as AssignmentSubmissionInfo;
+          setQuizAnswers(sub.answers || {});
+          setQuizResult({
+            score: sub.score ?? 0,
+            maxScore: sub.maxScore ?? item.questions.length,
+            answerKey: (data.answerKey || {}) as Record<string, number>,
+          });
+        } else {
+          toast.error(data?.error || (lang === "vi" ? "Không thể tải lại đáp án bài làm." : "Could not load quiz review."));
+        }
+      } catch {
+        toast.error(lang === "vi" ? "Lỗi kết nối khi tải bài làm." : "Network error loading review.");
+      } finally {
+        setIsLoadingQuizReview(false);
+      }
+    }
   };
 
   const handleSubmitQuizAssignment = async () => {
@@ -540,9 +617,21 @@ export default function AssignmentsPage() {
     setIsSubmittingNew(true);
     try {
       await saveAssignment(newDoc);
-      setAssignments((prev) => [newDoc, ...prev]);
-      toast.success(lang === "vi" ? `Đã tạo bài tập [${code}] thành công!` : `Created assignment [${code}] successfully!`);
+      if (editingAssignmentId) {
+        setAssignments((prev) =>
+          prev.map((a) =>
+            a.id === editingAssignmentId
+              ? { ...newDoc, submissions: a.submissions || {} }
+              : a
+          )
+        );
+        toast.success(lang === "vi" ? `Đã cập nhật bài tập [${code}] thành công!` : `Updated assignment [${code}] successfully!`);
+      } else {
+        setAssignments((prev) => [newDoc, ...prev]);
+        toast.success(lang === "vi" ? `Đã tạo bài tập [${code}] thành công!` : `Created assignment [${code}] successfully!`);
+      }
       // Reset form & rotate draft ID for next assignment
+      setEditingAssignmentId(null);
       draftAsgIdRef.current = `asg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       setFormQuestions([]);
       setFormTitle("");
@@ -592,7 +681,7 @@ export default function AssignmentsPage() {
           </p>
         </div>
         {role !== "student" && (
-          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+          <Button size="sm" onClick={handleOpenCreateNew}>
             <Plus className="size-4" /> {lang === "vi" ? "Tạo đề bài mới" : "New Assignment"}
           </Button>
         )}
@@ -749,13 +838,25 @@ export default function AssignmentsPage() {
                   <div className="flex flex-col items-end gap-2 self-center sm:self-start">
                     {role === "student" ? (
                       isGraded ? (
-                        <div className="text-right">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf px-3 py-1 text-xs font-black text-shinme-primary">
-                            <CheckCircle2 className="size-3.5" /> {lang === "vi" ? "Đã chấm điểm" : "Graded"}
-                          </span>
-                          <p className="mt-1 text-lg font-black text-shinme-ink">
-                            {studentSub?.score} / {item.maxScore} {lang === "vi" ? "điểm" : "pts"}
-                          </p>
+                        <div className="text-right space-y-2">
+                          <div>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf px-3 py-1 text-xs font-black text-shinme-primary">
+                              <CheckCircle2 className="size-3.5" /> {lang === "vi" ? "Đã chấm điểm" : "Graded"}
+                            </span>
+                            <p className="mt-1 text-lg font-black text-shinme-ink">
+                              {studentSub?.score} / {item.maxScore} {lang === "vi" ? "điểm" : "pts"}
+                            </p>
+                          </div>
+                          {item.questions && item.questions.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenStudentSubmission(item, true)}
+                              className="text-xs"
+                            >
+                              <Eye className="size-3.5" /> {lang === "vi" ? "Xem lại bài làm" : "Review Answers"}
+                            </Button>
+                          )}
                         </div>
                       ) : isSubmitted ? (
                         <div className="text-right">
@@ -766,18 +867,26 @@ export default function AssignmentsPage() {
                             variant="outline"
                             size="sm"
                             className="mt-2 text-xs"
-                            onClick={() => handleOpenStudentSubmission(item)}
+                            onClick={() =>
+                              handleOpenStudentSubmission(
+                                item,
+                                Boolean(item.questions && item.questions.length > 0)
+                              )
+                            }
                           >
-                            <Pencil className="size-3.5" /> {lang === "vi" ? "Xem / Sửa bài đã nộp" : "View / Edit Submission"}
+                            <Pencil className="size-3.5" />{" "}
+                            {item.questions && item.questions.length > 0
+                              ? (lang === "vi" ? "Xem lại bài làm" : "Review Answers")
+                              : (lang === "vi" ? "Xem / Sửa bài đã nộp" : "View / Edit Submission")}
                           </Button>
                         </div>
                       ) : (
                         <Button
                           size="sm"
-                          onClick={() => handleOpenStudentSubmission(item)}
+                          onClick={() => handleOpenStudentSubmission(item, false)}
                           className="font-bold"
                         >
-                          <Send className="size-3.5" /> {lang === "vi" ? "Nộp bài làm" : "Submit Answer"}
+                          <Send className="size-3.5" /> {lang === "vi" ? "Làm & Nộp bài" : "Start & Submit"}
                         </Button>
                       )
                     ) : (
@@ -788,13 +897,27 @@ export default function AssignmentsPage() {
                         <p className="text-base font-black text-shinme-primary">
                           {submissionsCount} / {totalStudentsCount} {lang === "vi" ? "học viên" : "students"}
                         </p>
-                        <div className="flex items-center gap-2 pt-1">
+                        <div className="flex flex-wrap justify-end items-center gap-2 pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingItem(item)}
+                          >
+                            <Eye className="size-3.5" /> {lang === "vi" ? "Xem đề (Chữa bài)" : "Live View"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenEditAssignment(item)}
+                          >
+                            <Pencil className="size-3.5" /> {lang === "vi" ? "Sửa đề" : "Edit"}
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => openGradingModal(item)}
                           >
-                            <UserCheck className="size-3.5" /> {lang === "vi" ? "Chấm bài & Nhận xét" : "Grade & Feedback"}
+                            <UserCheck className="size-3.5" /> {lang === "vi" ? "Chấm bài" : "Grade"}
                           </Button>
                           <Button
                             variant="ghost"
@@ -871,6 +994,12 @@ export default function AssignmentsPage() {
 
               {submittingItem.questions && submittingItem.questions.length > 0 ? (
                 <div className="space-y-4">
+                  {isLoadingQuizReview && (
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-bold text-shinme-primary">
+                      <Loader2 className="size-4 animate-spin" />
+                      {lang === "vi" ? "Đang tải lại bài làm và đáp án của bạn..." : "Loading your graded answers..."}
+                    </div>
+                  )}
                   {quizResult && (
                     <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                       <div className="flex items-center gap-3">
@@ -1184,14 +1313,109 @@ export default function AssignmentsPage() {
         </Dialog>
       )}
 
-      {/* Create Assignment Dialog */}
+      {/* Sensei Live View Dialog (Answers Hidden for Live Class Correction) */}
+      {viewingItem && (
+        <Dialog open={true} onOpenChange={(open) => !open && setViewingItem(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 sm:p-8 space-y-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-0.5 text-xs font-extrabold text-shinme-primary">
+                    <Eye className="size-3.5" />
+                    {lang === "vi" ? "Chế độ Xem đề & Chữa bài Live (Đã ẩn đáp án)" : "Live Teaching View (Answers Hidden)"}
+                  </span>
+                  <DialogTitle className="mt-2 text-xl font-black text-shinme-ink">
+                    {viewingItem.code} — {viewingItem.title}
+                  </DialogTitle>
+                  {viewingItem.titleJa && (
+                    <FuriganaText text={viewingItem.titleJa} className="mt-1 block text-sm font-bold text-shinme-primary" />
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const target = viewingItem;
+                    setViewingItem(null);
+                    handleOpenEditAssignment(target);
+                  }}
+                >
+                  <Pencil className="size-3.5" /> {lang === "vi" ? "Chuyển sang Sửa đề" : "Edit Assignment"}
+                </Button>
+              </div>
+
+              {viewingItem.description && (
+                <div className="rounded-xl border border-shinme-line bg-shinme-bg p-4 text-xs leading-relaxed text-shinme-ink-soft whitespace-pre-wrap">
+                  {viewingItem.description}
+                </div>
+              )}
+
+              {viewingItem.questions && viewingItem.questions.length > 0 ? (
+                <div className="space-y-4">
+                  {viewingItem.questions.map((q, qIdx) => {
+                    const letters = ["A", "B", "C", "D"];
+                    return (
+                      <div key={q.id} className="rounded-2xl border border-shinme-border bg-white p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-lg bg-shinme-primary px-2.5 py-0.5 font-mono text-xs font-bold text-white">
+                            {lang === "vi" ? `Câu ${qIdx + 1}` : `Q${qIdx + 1}`}
+                          </span>
+                          <span className="text-xs font-bold text-shinme-muted">1đ</span>
+                        </div>
+                        {q.passageText && (
+                          <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-3 font-jp text-xs leading-relaxed text-slate-800 whitespace-pre-line">
+                            <FuriganaText text={q.passageText} />
+                          </div>
+                        )}
+                        <div className="font-jp text-base font-bold leading-relaxed text-shinme-ink">
+                          <FuriganaText text={q.prompt} />
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {q.options.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className="flex items-center gap-2 rounded-xl border border-shinme-border bg-shinme-surface px-3 py-2.5 font-jp text-sm text-shinme-ink"
+                            >
+                              <span className="grid size-6 shrink-0 place-items-center rounded-md bg-shinme-bg font-mono text-xs font-black text-shinme-primary">
+                                {letters[optIdx]}
+                              </span>
+                              <FuriganaText text={opt} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-shinme-border p-6 text-center text-xs font-semibold text-shinme-muted">
+                  {lang === "vi"
+                    ? "Bài tập này là dạng tự luận (không có câu hỏi trắc nghiệm)."
+                    : "This is a freeform written assignment (no multiple-choice questions)."}
+                </p>
+              )}
+
+              <div className="flex justify-end border-t border-shinme-line pt-3">
+                <Button size="sm" variant="outline" onClick={() => setViewingItem(null)}>
+                  {lang === "vi" ? "Đóng cửa sổ" : "Close"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Create / Edit Assignment Dialog */}
       {isCreateOpen && (
         <Dialog open={true} onOpenChange={(open) => !open && setIsCreateOpen(false)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 sm:p-8 space-y-4">
               <div>
                 <DialogTitle className="text-xl font-black text-shinme-ink flex items-center gap-2">
-                  <Plus className="size-5 text-shinme-primary" /> {lang === "vi" ? "Tạo đề bài tập mới" : "Create New Assignment"}
+                  {editingAssignmentId ? <Pencil className="size-5 text-shinme-primary" /> : <Plus className="size-5 text-shinme-primary" />}{" "}
+                  {editingAssignmentId
+                    ? (lang === "vi" ? "Chỉnh sửa đề bài tập & đáp án" : "Edit Assignment & Answer Keys")
+                    : (lang === "vi" ? "Tạo đề bài tập mới" : "Create New Assignment")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
                   {lang === "vi"

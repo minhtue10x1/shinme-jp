@@ -67,9 +67,19 @@ function formatMMSS(totalSeconds: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-export function TestTakeClient({ testId }: { testId: string }) {
-  const { user: currentUser, firebaseUser } = useRole();
+export function TestTakeClient({
+  testId,
+  initialMode = "take",
+}: {
+  testId: string;
+  initialMode?: "take" | "review" | "live";
+}) {
+  const { user: currentUser, firebaseUser, role } = useRole();
   const { lang, t } = useTranslation();
+  const isLiveTeachingMode = initialMode === "live" && (role === "sensei" || role === "admin");
+  const isReviewMode = initialMode === "review";
+  const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const tests = useSyncExternalStore(
     subscribeTests,
     readTests,
@@ -89,6 +99,76 @@ export function TestTakeClient({ testId }: { testId: string }) {
       })
       .catch(console.error);
   }, [testId]);
+
+  // If opened in Student Review mode (`?mode=review`), fetch graded submission + answer key from server
+  useEffect(() => {
+    if (!isReviewMode || !firebaseUser || !firestoreTest) return;
+    let cancelled = false;
+
+    async function loadReview() {
+      try {
+        setIsLoadingReview(true);
+        setReviewError(null);
+        const idToken = await firebaseUser!.getIdToken();
+        const res = await fetch(`/api/tests/${encodeURIComponent(testId)}/review`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setReviewError(data?.error || (lang === "vi" ? "Không thể tải bài làm để xem lại." : "Could not load exam review."));
+          return;
+        }
+
+        const sub = data.submission as TestSubmissionDoc | null;
+        const keyMap = (data.answerKey || {}) as Record<
+          string,
+          {
+            correctIndex: number;
+            explanation: string;
+            starCorrectOrder?: [number, number, number, number];
+            audioScript?: { speaker: string; textJa: string; textVi: string }[];
+          }
+        >;
+
+        setOrderedQuestions((prev) =>
+          prev.map((q) => {
+            const key = keyMap[q.id];
+            if (!key) return q;
+            return {
+              ...q,
+              correctIndex: key.correctIndex,
+              explanation: key.explanation || q.explanation,
+              ...(key.starCorrectOrder ? { starCorrectOrder: key.starCorrectOrder } : {}),
+              ...(key.audioScript ? { audioScript: key.audioScript } : {}),
+            };
+          })
+        );
+
+        if (sub) {
+          setAnswers(sub.answers || {});
+          setSubmittedResult({
+            score: sub.score,
+            totalPoints: sub.totalPoints,
+            passed: sub.passed,
+            durationSeconds: sub.durationSeconds,
+            correctCount: Number(data.correctCount) || 0,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setReviewError(err instanceof Error ? err.message : "Network error");
+        }
+      } finally {
+        if (!cancelled) setIsLoadingReview(false);
+      }
+    }
+
+    loadReview();
+    return () => {
+      cancelled = true;
+    };
+  }, [isReviewMode, firebaseUser, firestoreTest, testId, lang]);
 
   const test: JLPTTest =
     (firestoreTest as any) ?? tests.find((t) => t.id === testId) ?? tests[0];
@@ -379,9 +459,9 @@ export function TestTakeClient({ testId }: { testId: string }) {
     ]
   );
 
-  // Countdown timer effect
+  // Countdown timer effect (paused during Sensei Live Teaching View or Student Review Mode)
   useEffect(() => {
-    if (submittedResult) return;
+    if (submittedResult || isLiveTeachingMode || isReviewMode) return;
     if (remainingSeconds <= 0) {
       handleSubmitExam(true);
       return;
@@ -509,6 +589,32 @@ export function TestTakeClient({ testId }: { testId: string }) {
           (q) => q.passageGroupId === activeQuestion.passageGroupId
         )
       : [activeQuestion];
+
+  /* ==================================================================
+   * LOADING / ERROR STATE FOR STUDENT REVIEW MODE
+   * ================================================================== */
+  if (isReviewMode && isLoadingReview && !submittedResult) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-semibold text-slate-600">
+        {lang === "vi" ? "Đang tải lại bài làm và đáp án của bạn..." : "Loading your graded exam review..."}
+      </div>
+    );
+  }
+
+  if (isReviewMode && reviewError && !submittedResult) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center space-y-3">
+        <p className="text-sm font-bold text-rose-800">{reviewError}</p>
+        <Link
+          href="/portal/tests"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2 text-xs font-bold text-white"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {lang === "vi" ? "Quay lại danh sách đề thi" : "Back to Tests"}
+        </Link>
+      </div>
+    );
+  }
 
   /* ==================================================================
    * VIEW 1: POST-SUBMISSION RESULT & DETAILED REVIEW SCREEN
@@ -952,29 +1058,57 @@ export function TestTakeClient({ testId }: { testId: string }) {
             )}
           </div>
 
-          {/* Countdown Timer & Submit CTA */}
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 font-mono text-base font-extrabold ${
-                isLowTime
-                  ? "animate-pulse border-rose-300 bg-rose-50 text-rose-700"
-                  : "border-[#135E36]/20 bg-[#FAF8F2] text-[#135E36]"
-              }`}
-            >
-              <Clock className="h-4 w-4" />
-              <span>{formatMMSS(remainingSeconds)}</span>
-            </div>
+          {/* Countdown Timer & Submit CTA (or Sensei Live Teaching Mode controls) */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {isLiveTeachingMode ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-extrabold text-[#135E36]">
+                  <ShieldCheck className="h-4 w-4" />
+                  {lang === "vi"
+                    ? "Chế độ Chữa bài Live (Đã ẩn đáp án)"
+                    : lang === "ja"
+                      ? "解説ライブ表示（正解非表示）"
+                      : "Live Teaching View (Answers Hidden)"}
+                </span>
+                <Link
+                  href={`/portal/tests/create?editId=${test.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                >
+                  {lang === "vi" ? "Sửa đề thi" : lang === "ja" ? "テスト編集" : "Edit Exam"}
+                </Link>
+                <Link
+                  href="/portal/tests"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {lang === "vi" ? "Thoát" : "Exit"}
+                </Link>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 font-mono text-base font-extrabold ${
+                    isLowTime
+                      ? "animate-pulse border-rose-300 bg-rose-50 text-rose-700"
+                      : "border-[#135E36]/20 bg-[#FAF8F2] text-[#135E36]"
+                  }`}
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>{formatMMSS(remainingSeconds)}</span>
+                </div>
 
-            <button
-              type="button"
-              onClick={() => handleSubmitExam(false)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#0f4a2a]"
-            >
-              <Send className="h-3.5 w-3.5 text-[#6CC24A]" />
-              {lang === "vi"
-                ? `Nộp bài (${answeredCount}/${orderedQuestions.length})`
-                : `Submit (${answeredCount}/${orderedQuestions.length})`}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitExam(false)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#0f4a2a]"
+                >
+                  <Send className="h-3.5 w-3.5 text-[#6CC24A]" />
+                  {lang === "vi"
+                    ? `Nộp bài (${answeredCount}/${orderedQuestions.length})`
+                    : `Submit (${answeredCount}/${orderedQuestions.length})`}
+                </button>
+              </>
+            )}
           </div>
         </div>
 

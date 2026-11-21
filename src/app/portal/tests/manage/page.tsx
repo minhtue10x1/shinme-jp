@@ -264,14 +264,23 @@ export default function SenseiTestManagePage() {
                       <Copy className="h-4 w-4" />
                     </button>
 
-                    {/* Test Take preview */}
+                    {/* Live Teaching View (no answers) */}
                     <Link
-                      href={`/portal/tests/${test.id}/take`}
-                      title={lang === "vi" ? "Thi thử với tư cách học viên" : "Preview exam as student"}
+                      href={`/portal/tests/${test.id}/take?mode=live`}
+                      title={lang === "vi" ? "Xem đề không hiện đáp án để chữa bài trực tiếp" : "Live teaching view (answers hidden)"}
                       className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200"
                     >
                       <Play className="h-3.5 w-3.5 text-[#135E36]" />
-                      {lang === "vi" ? "Thi thử" : "Preview"}
+                      {lang === "vi" ? "Xem đề" : "Live View"}
+                    </Link>
+
+                    {/* Edit Exam */}
+                    <Link
+                      href={`/portal/tests/create?editId=${test.id}`}
+                      title={lang === "vi" ? "Chỉnh sửa nội dung & đáp án đề thi" : "Edit exam content & answer keys"}
+                      className="inline-flex items-center gap-1 rounded-xl border border-[#135E36]/30 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#135E36] hover:bg-emerald-100"
+                    >
+                      {lang === "vi" ? "Sửa đề" : "Edit"}
                     </Link>
 
                     {/* Delete */}
