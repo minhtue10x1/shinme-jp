@@ -161,6 +161,21 @@ export async function uploadUserAvatarToStorage(uid: string, blob: Blob): Promis
   return getDownloadURL(avatarStorageRef);
 }
 
+/**
+ * Upload compressed exam poster/flyer image (情報検索) to Firebase Storage (`exam-assets/posters/...`).
+ */
+export async function uploadExamPosterImage(blob: Blob, fileName = "poster"): Promise<string> {
+  const ext = blob.type === "image/webp" ? "webp" : "jpg";
+  const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 40);
+  const path = `exam-assets/posters/${Date.now()}_${cleanName}.${ext}`;
+  const posterRef = storageRef(storage, path);
+  await uploadBytes(posterRef, blob, {
+    contentType: blob.type || "image/webp",
+    cacheControl: "public, max-age=2592000",
+  });
+  return getDownloadURL(posterRef);
+}
+
 /* =====================================================================
  * CLASSES SERVICE
  * ===================================================================== */

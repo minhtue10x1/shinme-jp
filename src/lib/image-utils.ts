@@ -87,3 +87,68 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
+/**
+ * Compresses a JLPT poster/flyer image (情報検索) while preserving its full aspect ratio
+ * and keeping high resolution (up to 1400px wide) so small Kanji & tables stay crisp.
+ */
+export async function compressPosterImage(
+  file: File,
+  maxWidth = 1400,
+  quality = 0.86
+): Promise<{ blob: Blob; dataUrl: string }> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG, WebP).");
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("Ảnh áp phích quá lớn (vượt quá 15MB). Vui lòng chọn ảnh nhỏ hơn.");
+  }
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(objectUrl);
+
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const targetW = Math.round(img.width * scale);
+        const targetH = Math.round(img.height * scale);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Trình duyệt không hỗ trợ xử lý ảnh Canvas."));
+          return;
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+        let dataUrl = canvas.toDataURL("image/webp", quality);
+        if (!dataUrl.startsWith("data:image/webp")) {
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+
+        const blob = dataUrlToBlob(dataUrl);
+        resolve({ blob, dataUrl });
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Không thể đọc tệp ảnh này. Vui lòng thử ảnh khác."));
+    };
+
+    img.src = objectUrl;
+  });
+}
+

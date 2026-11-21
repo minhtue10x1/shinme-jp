@@ -37,6 +37,8 @@ export type TestQuestion = {
   passageGroupId?: string;
   passageTitle?: string;
   passageText?: string;
+  /** Optional poster/flyer image URL for JLPT Information Retrieval (情報検索) questions */
+  passageImageUrl?: string;
 
   /* --- Fields for `choukai` (Nghe hiểu Audio Question) --- */
   audioTitle?: string;

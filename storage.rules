@@ -56,6 +56,21 @@ service firebase.storage {
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // ===============================================================
+    // 3. EXAM POSTER / INFO-RETRIEVAL IMAGES (`exam-assets/{fileName}`)
+    // ===============================================================
+    match /exam-assets/{allPaths=**} {
+      // Học viên chính thức, Sensei và Admin được xem ảnh áp phích đề thi (情報検索)
+      allow read: if isStudentOrAbove();
+
+      // Chỉ Sensei/Admin được tải ảnh đề thi lên, tối đa 5MB, chỉ định dạng ảnh
+      allow write: if isTeacherOrAdmin()
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      allow delete: if isTeacherOrAdmin();
+    }
+
     // Mặc định chặn toàn bộ đường dẫn khác
     match /{allPaths=**} {
       allow read, write: if false;

@@ -31,9 +31,12 @@ import {
   ShieldCheck,
   Award,
   BarChart3,
+  ZoomIn,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import { getTestById, saveTestSubmission } from "@/lib/db/services";
@@ -119,6 +122,8 @@ export function TestTakeClient({ testId }: { testId: string }) {
   const [playingQuestionId, setPlayingQuestionId] = useState<string | null>(
     null
   );
+  // Poster image lightbox state for 情報検索 Dokkai questions
+  const [zoomedPosterUrl, setZoomedPosterUrl] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<number>(0);
   const audioTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -726,16 +731,38 @@ export function TestTakeClient({ testId }: { testId: string }) {
                 </div>
 
                 {/* Dokkai Passage snippet if applicable */}
-                {q.type === "dokkai" && q.passageText && (
+                {q.type === "dokkai" && (q.passageImageUrl || q.passageText) && (
                   <div className="mb-4 rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
                     {q.passageTitle && (
                       <p className="mb-1.5 font-jp text-xs font-bold text-[#135E36]">
                         <FuriganaText text={q.passageTitle} />
                       </p>
                     )}
-                    <div className="whitespace-pre-line font-jp text-xs leading-relaxed text-slate-700">
-                      <FuriganaText text={q.passageText} />
-                    </div>
+                    {q.passageImageUrl && (
+                      <div className="mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setZoomedPosterUrl(q.passageImageUrl || null)}
+                          className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-left"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={q.passageImageUrl}
+                            alt={q.passageTitle || "JLPT Information Retrieval Poster"}
+                            className="max-h-96 w-full rounded-lg object-contain"
+                          />
+                          <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                            <ZoomIn className="h-3.5 w-3.5" />
+                            {lang === "vi" ? "Phóng to ảnh" : lang === "ja" ? "画像を拡大" : "Zoom Image"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                    {q.passageText && (
+                      <div className="whitespace-pre-line font-jp text-xs leading-relaxed text-slate-700">
+                        <FuriganaText text={q.passageText} />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -857,6 +884,34 @@ export function TestTakeClient({ testId }: { testId: string }) {
             );
           })}
         </div>
+
+        {zoomedPosterUrl && (
+          <Dialog open={true} onOpenChange={(open) => !open && setZoomedPosterUrl(null)}>
+            <DialogContent className="max-w-5xl p-3 sm:p-5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <DialogTitle className="text-sm font-extrabold text-shinme-ink">
+                  {lang === "vi" ? "Xem phóng to áp phích (情報検索)" : lang === "ja" ? "ポスター拡大表示（情報検索）" : "Poster Zoom View (Information Retrieval)"}
+                </DialogTitle>
+                <button
+                  type="button"
+                  onClick={() => setZoomedPosterUrl(null)}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="max-h-[82vh] overflow-auto rounded-xl border border-slate-200 bg-white p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={zoomedPosterUrl}
+                  alt="JLPT Information Retrieval Poster Zoomed"
+                  className="mx-auto w-full rounded-lg object-contain"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     );
   }
@@ -1065,9 +1120,32 @@ export function TestTakeClient({ testId }: { testId: string }) {
                   </h2>
                 )}
 
-                <div className="whitespace-pre-line font-jp text-base leading-loose text-slate-800">
-                  <FuriganaText text={activeQuestion.passageText || ""} />
-                </div>
+                {activeQuestion.passageImageUrl && (
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setZoomedPosterUrl(activeQuestion.passageImageUrl || null)}
+                      className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-2xs transition hover:border-[#135E36]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={activeQuestion.passageImageUrl}
+                        alt={activeQuestion.passageTitle || "JLPT Information Retrieval Poster"}
+                        className="w-full rounded-lg object-contain"
+                      />
+                      <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-[#135E36]/90 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition group-hover:bg-[#135E36]">
+                        <ZoomIn className="h-3.5 w-3.5" />
+                        {lang === "vi" ? "Bấm để phóng to" : lang === "ja" ? "クリックして拡大" : "Click to Zoom"}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {activeQuestion.passageText && (
+                  <div className="whitespace-pre-line font-jp text-base leading-loose text-slate-800">
+                    <FuriganaText text={activeQuestion.passageText} />
+                  </div>
+                )}
               </div>
 
               {/* Right Pane: Paired Child Sub-Questions */}
@@ -1427,6 +1505,34 @@ export function TestTakeClient({ testId }: { testId: string }) {
             )}
           </div>
         </div>
+      )}
+
+      {zoomedPosterUrl && (
+        <Dialog open={true} onOpenChange={(open) => !open && setZoomedPosterUrl(null)}>
+          <DialogContent className="max-w-5xl p-3 sm:p-5">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <DialogTitle className="text-sm font-extrabold text-shinme-ink">
+                {lang === "vi" ? "Xem phóng to áp phích (情報検索)" : lang === "ja" ? "ポスター拡大表示（情報検索）" : "Poster Zoom View (Information Retrieval)"}
+              </DialogTitle>
+              <button
+                type="button"
+                onClick={() => setZoomedPosterUrl(null)}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="max-h-[82vh] overflow-auto rounded-xl border border-slate-200 bg-white p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={zoomedPosterUrl}
+                alt="JLPT Information Retrieval Poster Zoomed"
+                className="mx-auto w-full rounded-lg object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

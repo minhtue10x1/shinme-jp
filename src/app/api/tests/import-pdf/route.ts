@@ -240,7 +240,7 @@ export async function POST(request: Request) {
       "   - NEVER invent furigana that is NOT printed on the PDF (especially NEVER add furigana to Kanji being tested for reading in 問題1!).",
       "4. For fill-in-the-blank questions, use '＿＿＿' for the blank.",
       "5. For ★ star-ordering questions (文の組み立て / ___ ___ ★ ___): set type='star', put text before the 4 slots in starPrefix, text after the 4 slots in starSuffix, set starSlotIndex (0..3, usually 2), and put the 4 fragments in options.",
-      "6. For Reading Comprehension (読解 / Dokkai): set type='dokkai'. If multiple questions share the same passage, give them the exact same passageGroupId (e.g. 'dokkai-1') and include the full passageText (preserving any printed furigana as 漢字[かんじ]) and passageTitle.",
+      "6. For Reading Comprehension (読解 / Dokkai): set type='dokkai'. If multiple questions share the same passage, give them the exact same passageGroupId (e.g. 'dokkai-1') and include the full passageText (preserving any printed furigana as 漢字[かんじ]) and passageTitle. For Information Retrieval (情報検索 — poster/flyer/schedule table at the end of Reading), still extract the questions & 4 options accurately, and if the poster relies heavily on visual tables/schedules, prefix passageText with '[情報検索 Poster — Sensei có thể dán ảnh áp phích vào khung Ảnh áp phích]' followed by key summary text.",
       includeChoukai
         ? "7. Include Listening (聴解 / Choukai) questions with type='choukai' if present."
         : "7. SKIP Listening (聴解 / Choukai) sections if present.",

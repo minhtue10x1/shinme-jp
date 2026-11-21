@@ -21,12 +21,16 @@ import {
   FileUp,
   AlertTriangle,
   Filter,
+  Image as ImageIcon,
+  Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { PdfImportDialog } from "@/components/portal/pdf-import-dialog";
 import { useTranslation } from "@/lib/i18n/context";
-import { getClasses, saveTestDoc } from "@/lib/db/services";
+import { getClasses, saveTestDoc, uploadExamPosterImage } from "@/lib/db/services";
+import { compressPosterImage } from "@/lib/image-utils";
 import type { ClassDoc } from "@/lib/db/schema";
 import {
   saveTest,
@@ -79,7 +83,7 @@ const MONDAI_META: Record<
 function createTemplateQuestion(
   type: MondaiType,
   index: number,
-  sharedPassage?: { groupId: string; title: string; text: string },
+  sharedPassage?: { groupId: string; title: string; text: string; imageUrl?: string },
   uniqueSuffix?: string
 ): TestQuestion {
   const id = `q-custom-${type}-${index}${uniqueSuffix ? `-${uniqueSuffix}` : ""}`;
@@ -116,6 +120,7 @@ function createTemplateQuestion(
       passageText:
         sharedPassage?.text ??
         "社員[しゃいん]の 皆[みな]さんへ\n\n来月[らいげつ]から、週[しゅう]に 2日[ふつか]まで リモートワーク（在宅勤務[ざいたくきんむ]）が できるように なります。希望[きぼう]する 人[ひと]は、前週[ぜんしゅう]の 金曜日[きんようび] 17時[じ]までに 課長[かちょう]に メールで 申請[しんせい]して ください。",
+      ...(sharedPassage?.imageUrl ? { passageImageUrl: sharedPassage.imageUrl } : {}),
       instruction: "Đọc đoạn văn bên trái và chọn đáp án đúng nhất:",
       prompt: "リモートワークを したい 人[ひと]は、いつまでに 何[なに]を しなければ なりませんか。",
       options: [
@@ -213,6 +218,60 @@ export default function SenseiTestCreatePage() {
   ]);
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
+  const [uploadingPosterQid, setUploadingPosterQid] = useState<string | null>(null);
+
+  const handleUploadPoster = async (questionId: string, groupId: string | undefined, file: File) => {
+    try {
+      setUploadingPosterQid(questionId);
+      const { blob, dataUrl } = await compressPosterImage(file, 1400, 0.86);
+
+      let finalUrl = dataUrl;
+      try {
+        finalUrl = await uploadExamPosterImage(blob, file.name || "poster");
+      } catch (storageErr) {
+        console.warn("Firebase Storage poster upload unavailable, using compressed DataURL:", storageErr);
+      }
+
+      // Sync poster image across all Dokkai questions sharing the same passageGroupId
+      setQuestions((prev) =>
+        prev.map((item) => {
+          if (item.id === questionId || (groupId && item.type === "dokkai" && item.passageGroupId === groupId)) {
+            return { ...item, passageImageUrl: finalUrl };
+          }
+          return item;
+        })
+      );
+
+      toast.success(
+        lang === "vi"
+          ? "Đã đính kèm ảnh áp phích cho bài Tìm kiếm thông tin!"
+          : lang === "ja"
+            ? "情報検索ポスター画像を添付しました！"
+            : "Poster image attached!"
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : lang === "vi"
+            ? "Không thể tải ảnh áp phích lên."
+            : "Failed to upload poster image."
+      );
+    } finally {
+      setUploadingPosterQid(null);
+    }
+  };
+
+  const handleRemovePoster = (questionId: string, groupId: string | undefined) => {
+    setQuestions((prev) =>
+      prev.map((item) => {
+        if (item.id === questionId || (groupId && item.type === "dokkai" && item.passageGroupId === groupId)) {
+          return { ...item, passageImageUrl: undefined };
+        }
+        return item;
+      })
+    );
+  };
 
   const totalPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
   const unansweredCount = questions.filter((q) => q.correctIndex < 0 || q.correctIndex > 3).length;
@@ -234,7 +293,10 @@ export default function SenseiTestCreatePage() {
     setShowUnansweredOnly(false);
   };
 
-  const handleAddQuestion = (type: MondaiType, sharedPassage?: { groupId: string; title: string; text: string }) => {
+  const handleAddQuestion = (
+    type: MondaiType,
+    sharedPassage?: { groupId: string; title: string; text: string; imageUrl?: string }
+  ) => {
     const newQ = createTemplateQuestion(
       type,
       questions.length + 1,
@@ -833,7 +895,7 @@ export default function SenseiTestCreatePage() {
                       <label className="text-xs font-bold text-slate-500">{lang === "vi" ? "Điểm:" : "Points:"}</label>
                       <input
                         type="number"
-                        min={5}
+                        min={1}
                         max={50}
                         value={q.points}
                         onChange={(e) =>
@@ -851,6 +913,7 @@ export default function SenseiTestCreatePage() {
                             groupId: q.passageGroupId || `passage-${idx}`,
                             title: q.passageTitle || "",
                             text: q.passageText || "",
+                            imageUrl: q.passageImageUrl,
                           })
                         }
                         className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 hover:bg-sky-100"
@@ -929,9 +992,88 @@ export default function SenseiTestCreatePage() {
                             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-jp text-xs text-slate-900"
                           />
                         </div>
+                        {/* Poster / Flyer Image Uploader for 情報検索 */}
+                        <div
+                          tabIndex={0}
+                          onPaste={(e) => {
+                            const items = e.clipboardData?.items;
+                            if (!items) return;
+                            for (const item of Array.from(items)) {
+                              if (item.type.startsWith("image/")) {
+                                const pastedFile = item.getAsFile();
+                                if (pastedFile) {
+                                  e.preventDefault();
+                                  handleUploadPoster(q.id, q.passageGroupId, pastedFile);
+                                  break;
+                                }
+                              }
+                            }
+                          }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const dropped = e.dataTransfer.files?.[0];
+                            if (dropped && dropped.type.startsWith("image/")) {
+                              handleUploadPoster(q.id, q.passageGroupId, dropped);
+                            }
+                          }}
+                          className="rounded-xl border border-dashed border-sky-300 bg-white p-3 transition focus:border-[#135E36] focus:outline-none"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-900">
+                              <ImageIcon className="h-3.5 w-3.5 text-sky-700" />
+                              {lang === "vi"
+                                ? "Ảnh áp phích / Bảng biểu (情報検索 — chọn file, kéo thả hoặc bấm vào đây rồi Ctrl+V)"
+                                : lang === "ja"
+                                  ? "情報検索ポスター画像（ファイル選択・ドロップ・Ctrl+V対応）"
+                                  : "Poster / Schedule Image (click, drop, or focus & Ctrl+V)"}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 hover:bg-sky-100">
+                                {uploadingPosterQid === q.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <ImageIcon className="h-3.5 w-3.5" />
+                                )}
+                                {uploadingPosterQid === q.id
+                                  ? (lang === "vi" ? "Đang tải..." : "Uploading...")
+                                  : q.passageImageUrl
+                                    ? (lang === "vi" ? "Đổi ảnh" : "Replace")
+                                    : (lang === "vi" ? "Chọn ảnh" : "Upload Image")}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={uploadingPosterQid === q.id}
+                                  onChange={(e) => {
+                                    const picked = e.target.files?.[0];
+                                    e.target.value = "";
+                                    if (picked) handleUploadPoster(q.id, q.passageGroupId, picked);
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                              {q.passageImageUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePoster(q.id, q.passageGroupId)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                  {lang === "vi" ? "Gỡ ảnh" : "Remove"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {lang === "vi"
+                              ? "Ảnh sẽ tự động đồng bộ cho mọi câu hỏi con dùng chung Mã nhóm bài đọc này."
+                              : "Automatically synced across all sub-questions sharing this Passage Group ID."}
+                          </p>
+                        </div>
+
                         <div>
                           <label className="mb-1 block text-xs font-bold text-slate-700">
-                            {lang === "vi" ? "Nội dung đoạn văn tiếng Nhật (Hỗ trợ 漢字[かんじ])" : "Japanese Passage Text (Kanji[reading] supported)"}
+                            {lang === "vi" ? "Nội dung đoạn văn tiếng Nhật (Hỗ trợ 漢字[かんじ] — có thể để trống nếu chỉ dùng ảnh áp phích)" : "Japanese Passage Text (optional if poster image is attached)"}
                           </label>
                           <textarea
                             rows={5}
@@ -944,7 +1086,7 @@ export default function SenseiTestCreatePage() {
                         </div>
                       </div>
 
-                      {/* Live Furigana Passage Preview */}
+                      {/* Live Furigana & Poster Passage Preview */}
                       <div className="rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
                         <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#135E36]">
                           <Eye className="h-3.5 w-3.5" />
@@ -955,9 +1097,21 @@ export default function SenseiTestCreatePage() {
                             <FuriganaText text={q.passageTitle} />
                           </p>
                         )}
-                        <div className=" whitespace-pre-line font-jp text-sm leading-loose text-slate-800">
-                          <FuriganaText text={q.passageText || ""} />
-                        </div>
+                        {q.passageImageUrl && (
+                          <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={q.passageImageUrl}
+                              alt={q.passageTitle || "JLPT Information Retrieval Poster"}
+                              className="max-h-72 w-full rounded-lg object-contain"
+                            />
+                          </div>
+                        )}
+                        {q.passageText && (
+                          <div className="whitespace-pre-line font-jp text-sm leading-loose text-slate-800">
+                            <FuriganaText text={q.passageText} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
