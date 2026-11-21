@@ -171,7 +171,7 @@ export default function MaterialsPage() {
       setUploadPercent(10);
 
       let fileUrl = formData.externalUrl.trim();
-      let fileName = selectedFile ? selectedFile.name : (lang === "vi" ? "Tài liệu trực tuyến" : "Online Resource");
+      const fileName = selectedFile ? selectedFile.name : (lang === "vi" ? "Tài liệu trực tuyến" : "Online Resource");
       let sizeFormatted = "Google Drive / Link";
 
       // Upload file to Firebase Storage if file was provided
