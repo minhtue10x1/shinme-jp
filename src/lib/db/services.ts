@@ -372,6 +372,10 @@ export async function getLeads(): Promise<LeadDoc[]> {
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
+export async function deleteLeadDoc(leadId: string): Promise<void> {
+  await deleteDoc(doc(db, "leads", leadId));
+}
+
 /* =====================================================================
  * MATERIALS SERVICE
  * ===================================================================== */
