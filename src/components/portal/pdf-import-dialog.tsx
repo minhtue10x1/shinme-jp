@@ -15,7 +15,9 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
-import type { TestQuestion } from "@/lib/test-center-store";
+import { uploadExamPosterImage } from "@/lib/db/services";
+import { renderPdfPageToImageFile } from "@/lib/pdf-poster-capture";
+import { buildQuestionNumberMap, type TestQuestion } from "@/lib/test-center-store";
 
 type PdfImportResult = {
   questions: TestQuestion[];
@@ -170,8 +172,10 @@ export function PdfImportDialog({
       const allExtracted: TestQuestion[] = [];
       let suggestedTitle = "";
       let suggestedTitleJa = "";
+      let detectedPosterPageIndex: number | null = null;
       const failedChunkLabels: string[] = [];
       let lastChunkError = "";
+      const passageTextToGroupId = new Map<string, string>();
 
       for (let cIdx = 0; cIdx < chunks.length; cIdx++) {
         const indices = chunks[cIdx];
@@ -226,8 +230,37 @@ export function PdfImportDialog({
         if (!suggestedTitle && data.suggestedTitle) suggestedTitle = data.suggestedTitle;
         if (!suggestedTitleJa && data.suggestedTitleJa) suggestedTitleJa = data.suggestedTitleJa;
 
+        if (
+          typeof data.posterPageInChunk === "number" &&
+          data.posterPageInChunk >= 1 &&
+          data.posterPageInChunk <= indices.length
+        ) {
+          detectedPosterPageIndex = indices[data.posterPageInChunk - 1];
+        }
+
         if (Array.isArray(data.questions) && data.questions.length > 0) {
-          allExtracted.push(...(data.questions as TestQuestion[]));
+          const chunkQuestions = (data.questions as TestQuestion[]).map((q) => {
+            if (q.type !== "dokkai") return q;
+            const normText = (q.passageText || "").replace(/\s+/g, "").slice(0, 120);
+            if (normText.length >= 24) {
+              const existingGid = passageTextToGroupId.get(normText);
+              if (existingGid) {
+                return { ...q, passageGroupId: existingGid };
+              }
+              const scopedGid = q.passageGroupId
+                ? `c${cIdx + 1}-${q.passageGroupId}`
+                : `c${cIdx + 1}-dokkai-${q.id}`;
+              passageTextToGroupId.set(normText, scopedGid);
+              return { ...q, passageGroupId: scopedGid };
+            }
+            const scopedGid = q.passageGroupId
+              ? q.passageGroupId === "info-retrieval"
+                ? "info-retrieval-37-38"
+                : `c${cIdx + 1}-${q.passageGroupId}`
+              : `c${cIdx + 1}-dokkai-${q.id}`;
+            return { ...q, passageGroupId: scopedGid };
+          });
+          allExtracted.push(...chunkQuestions);
         }
 
         setProgressPercent(Math.round(((cIdx + 1) / chunks.length) * 100));
@@ -241,6 +274,62 @@ export function PdfImportDialog({
               : "No multiple-choice questions could be extracted from the selected pages.")
         );
         return;
+      }
+
+      // Auto-capture Information Retrieval (情報検索) poster page from PDF and attach to Q37-38 (default)
+      if (modeType === "jlpt") {
+        const numMap = buildQuestionNumberMap(allExtracted);
+        const posterTargets = allExtracted.filter((q) => {
+          const meta = numMap[q.id];
+          const isDefault3738 =
+            meta?.section === "bunpou_dokkai" &&
+            (meta.localNumber === 37 || meta.localNumber === 38);
+          const isInfoRetrieval =
+            q.passageGroupId === "info-retrieval-37-38" ||
+            /情報検索/.test(q.mondaiLabel || "") ||
+            /情報検索/.test(q.passageTitle || "") ||
+            /情報検索/.test(q.passageText || "");
+          return isDefault3738 || isInfoRetrieval;
+        });
+
+        if (posterTargets.length > 0) {
+          const targetPosterPageIndex =
+            detectedPosterPageIndex !== null
+              ? detectedPosterPageIndex
+              : targetIndices[targetIndices.length - 1];
+          try {
+            setProgressText(
+              lang === "vi"
+                ? `Đang tự động chụp ảnh poster Tìm kiếm thông tin (Trang ${targetPosterPageIndex + 1})...`
+                : `Auto-capturing Information Retrieval poster (Page ${targetPosterPageIndex + 1})...`
+            );
+            const posterFile = await renderPdfPageToImageFile(rawBuffer, targetPosterPageIndex, {
+              scale: 2.0,
+              fileName: `jlpt-info-retrieval-p${targetPosterPageIndex + 1}.webp`,
+            });
+            const posterUrl = await uploadExamPosterImage(posterFile);
+            const targetIds = new Set(posterTargets.map((t) => t.id));
+            for (let i = 0; i < allExtracted.length; i++) {
+              if (targetIds.has(allExtracted[i].id)) {
+                allExtracted[i] = {
+                  ...allExtracted[i],
+                  type: "dokkai",
+                  passageGroupId: "info-retrieval-37-38",
+                  passageTitle:
+                    allExtracted[i].passageTitle || "情報検索 (Tìm kiếm thông tin — Câu 37–38)",
+                  passageImageUrl: posterUrl,
+                };
+              }
+            }
+          } catch (posterErr) {
+            console.warn("Auto poster capture skipped:", posterErr);
+            toast.info(
+              lang === "vi"
+                ? "Không thể tự động tải ảnh poster lên Storage (Sensei có thể dán ảnh thủ công vào câu 37–38)."
+                : "Could not auto-upload poster image (you can paste it manually on Q37–38)."
+            );
+          }
+        }
       }
 
       onImported({

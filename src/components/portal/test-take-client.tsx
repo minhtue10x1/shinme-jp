@@ -599,13 +599,34 @@ export function TestTakeClient({
     (answeredCount / Math.max(1, orderedQuestions.length)) * 100
   );
 
+  // Helper to determine a unified Dokkai passage key so all questions sharing the same passage
+  // (by passageGroupId, shared poster image URL, or identical passage text) render in one box.
+  const getDokkaiPassageKey = (q: TestQuestion | undefined): string | null => {
+    if (!q || q.type !== "dokkai") return null;
+    if (q.passageImageUrl?.trim()) return `img:${q.passageImageUrl.trim()}`;
+    const normText = (q.passageText || "").replace(/\s+/g, "").slice(0, 120);
+    if (normText.length >= 24) return `txt:${normText}`;
+    if (q.passageGroupId?.trim()) return `gid:${q.passageGroupId.trim()}`;
+    return `solo:${q.id}`;
+  };
+
   // Group child questions if active question is Dokkai
+  const activeDokkaiKey = getDokkaiPassageKey(activeQuestion);
   const dokkaiGroupQuestions =
-    activeQuestion?.type === "dokkai" && activeQuestion.passageGroupId
-      ? orderedQuestions.filter(
-          (q) => q.passageGroupId === activeQuestion.passageGroupId
-        )
+    activeQuestion?.type === "dokkai" && activeDokkaiKey
+      ? orderedQuestions.filter((q) => getDokkaiPassageKey(q) === activeDokkaiKey)
       : [activeQuestion];
+  const dokkaiGroupIndices = dokkaiGroupQuestions
+    .map((dq) => orderedQuestions.findIndex((item) => item.id === dq.id))
+    .filter((i) => i >= 0);
+  const groupFirstIndex =
+    activeQuestion?.type === "dokkai" && dokkaiGroupIndices.length > 0
+      ? Math.min(...dokkaiGroupIndices)
+      : activeIndex;
+  const groupLastIndex =
+    activeQuestion?.type === "dokkai" && dokkaiGroupIndices.length > 0
+      ? Math.max(...dokkaiGroupIndices)
+      : activeIndex;
 
   /* ==================================================================
    * LOADING / ERROR STATE FOR STUDENT REVIEW MODE
@@ -809,10 +830,15 @@ export function TestTakeClient({
           {orderedQuestions.map((q, idx) => {
             const studentChoice = answers[q.id];
             const isCorrect = studentChoice === q.correctIndex;
-            const optionLetters = ["A", "B", "C", "D"];
+            const optionLetters = ["1", "2", "3", "4"];
             const qMeta = questionNumberMap[q.id];
             const displayNum = qMeta?.localNumber ?? idx + 1;
             const secMeta = qMeta ? EXAM_SECTION_META[qMeta.section] : null;
+            const prevQ = idx > 0 ? orderedQuestions[idx - 1] : undefined;
+            const sameDokkaiAsPrev =
+              q.type === "dokkai" &&
+              prevQ?.type === "dokkai" &&
+              getDokkaiPassageKey(q) === getDokkaiPassageKey(prevQ);
 
             return (
               <div
@@ -864,40 +890,49 @@ export function TestTakeClient({
                   </span>
                 </div>
 
-                {/* Dokkai Passage snippet if applicable */}
+                {/* Dokkai Passage snippet if applicable (deduplicated when consecutive questions share the same passage) */}
                 {q.type === "dokkai" && (q.passageImageUrl || q.passageText) && (
-                  <div className="mb-4 rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
-                    {q.passageTitle && (
-                      <p className="mb-1.5 font-jp text-xs font-bold text-[#135E36]">
-                        <FuriganaText text={q.passageTitle} />
-                      </p>
-                    )}
-                    {q.passageImageUrl && (
-                      <div className="mb-3">
-                        <button
-                          type="button"
-                          onClick={() => setZoomedPosterUrl(q.passageImageUrl || null)}
-                          className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-left"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={q.passageImageUrl}
-                            alt={q.passageTitle || "JLPT Information Retrieval Poster"}
-                            className="max-h-96 w-full rounded-lg object-contain"
-                          />
-                          <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                            <ZoomIn className="h-3.5 w-3.5" />
-                            {lang === "vi" ? "Phóng to ảnh" : lang === "ja" ? "画像を拡大" : "Zoom Image"}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                    {q.passageText && (
-                      <div className="whitespace-pre-line font-jp text-xs leading-relaxed text-slate-700">
-                        <FuriganaText text={q.passageText} />
-                      </div>
-                    )}
-                  </div>
+                  sameDokkaiAsPrev ? (
+                    <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50/70 px-3 py-1 text-xs font-bold text-sky-900">
+                      <FileText className="h-3.5 w-3.5 text-sky-700" />
+                      {lang === "vi"
+                        ? "Chung bài đọc hiểu / áp phích phía trên"
+                        : "Same reading passage / poster as above"}
+                    </div>
+                  ) : (
+                    <div className="mb-4 rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
+                      {q.passageTitle && (
+                        <p className="mb-1.5 font-jp text-xs font-bold text-[#135E36]">
+                          <FuriganaText text={q.passageTitle} />
+                        </p>
+                      )}
+                      {q.passageImageUrl && (
+                        <div className="mb-3">
+                          <button
+                            type="button"
+                            onClick={() => setZoomedPosterUrl(q.passageImageUrl || null)}
+                            className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-left"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={q.passageImageUrl}
+                              alt={q.passageTitle || "JLPT Information Retrieval Poster"}
+                              className="max-h-96 w-full rounded-lg object-contain"
+                            />
+                            <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                              <ZoomIn className="h-3.5 w-3.5" />
+                              {lang === "vi" ? "Phóng to ảnh" : lang === "ja" ? "画像を拡大" : "Zoom Image"}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                      {q.passageText && (
+                        <div className="whitespace-pre-line font-jp text-xs leading-relaxed text-slate-700">
+                          <FuriganaText text={q.passageText} />
+                        </div>
+                      )}
+                    </div>
+                  )
                 )}
 
                 {/* Question Prompt */}
@@ -1354,16 +1389,29 @@ export function TestTakeClient({
            * FORMAT 3: DOKKAI (PASSAGE GROUP SPLIT VIEW)
            * ========================================================== */}
           {activeQuestion.type === "dokkai" ? (
-            <div className="grid gap-6 lg:grid-cols-12">
-              {/* Left Pane: Japanese Reading Passage */}
-              <div className="rounded-2xl border border-sky-200/80 bg-[#FAF8F2] p-5 lg:col-span-6">
-                <div className="mb-3 flex items-center justify-between border-b border-slate-200 pb-2.5">
+            <div className="grid items-start gap-6 lg:grid-cols-12">
+              {/* Left Pane: Shared Japanese Reading Passage (Sticky on Desktop) */}
+              <div className="rounded-2xl border border-sky-200/80 bg-[#FAF8F2] p-5 lg:sticky lg:top-20 lg:col-span-6 lg:max-h-[78vh] lg:overflow-y-auto">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#135E36]">
                     <FileText className="h-4 w-4" />
-                    {lang === "vi" ? "Văn bản Đọc hiểu (Dokkai Passage)" : "Reading Passage (Dokkai)"}
+                    {lang === "vi" ? "Văn bản Đọc hiểu chung (Dokkai)" : "Shared Reading Passage (Dokkai)"}
                   </span>
-                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600">
-                    {lang === "vi" ? `Đi kèm ${dokkaiGroupQuestions.length} câu hỏi` : `${dokkaiGroupQuestions.length} paired questions`}
+                  <span className="rounded-full bg-white px-2.5 py-0.5 font-mono text-xs font-bold text-[#135E36]">
+                    {dokkaiGroupQuestions.length > 1
+                      ? (() => {
+                          const nums = dokkaiGroupQuestions.map(
+                            (dq) => questionNumberMap[dq.id]?.localNumber ?? 0
+                          );
+                          const minN = Math.min(...nums);
+                          const maxN = Math.max(...nums);
+                          return lang === "vi"
+                            ? `Chung ${dokkaiGroupQuestions.length} câu (${minN}–${maxN})`
+                            : `${dokkaiGroupQuestions.length} questions (${minN}–${maxN})`;
+                        })()
+                      : lang === "vi"
+                        ? "1 câu hỏi"
+                        : "1 question"}
                   </span>
                 </div>
 
@@ -1407,6 +1455,8 @@ export function TestTakeClient({
                   const subGlobalIdx = orderedQuestions.findIndex(
                     (item) => item.id === subQ.id
                   );
+                  const subMeta = questionNumberMap[subQ.id];
+                  const subDisplayNum = subMeta?.localNumber ?? subGlobalIdx + 1;
                   const selectedOpt = answers[subQ.id];
                   const isFocused = subQ.id === activeQuestion.id;
 
@@ -1422,7 +1472,7 @@ export function TestTakeClient({
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="rounded-lg bg-[#135E36] px-2.5 py-0.5 font-mono text-xs font-bold text-white">
-                          {lang === "vi" ? `Câu ${subGlobalIdx + 1} (${subQ.points}đ)` : `Question ${subGlobalIdx + 1} (${subQ.points}pts)`}
+                          {lang === "vi" ? `Câu ${subDisplayNum} (${subQ.points}đ)` : `Question ${subDisplayNum} (${subQ.points}pts)`}
                         </span>
                         <button
                           type="button"
@@ -1475,7 +1525,7 @@ export function TestTakeClient({
                                     : "bg-slate-100 text-slate-700"
                                 }`}
                               >
-                                {["A", "B", "C", "D"][optIdx]}
+                                {["1", "2", "3", "4"][optIdx]}
                               </span>
                               <span className="leading-relaxed">
                                 <FuriganaText text={opt} />
@@ -1686,7 +1736,7 @@ export function TestTakeClient({
                               : "bg-slate-100 text-slate-700"
                           }`}
                         >
-                          {["A", "B", "C", "D"][optIdx]}
+                          {["1", "2", "3", "4"][optIdx]}
                         </span>
                         <span className="leading-relaxed">
                           <FuriganaText text={opt} />
@@ -1717,12 +1767,18 @@ export function TestTakeClient({
           <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
             <button
               type="button"
-              disabled={activeIndex === 0}
-              onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+              disabled={groupFirstIndex === 0}
+              onClick={() => setActiveIndex(Math.max(0, groupFirstIndex - 1))}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
-              {lang === "vi" ? "Câu trước" : "Previous"}
+              {dokkaiGroupQuestions.length > 1
+                ? lang === "vi"
+                  ? "Bài / Câu trước"
+                  : "Previous"
+                : lang === "vi"
+                  ? "Câu trước"
+                  : "Previous"}
             </button>
 
             <span className="text-xs font-semibold text-slate-500">
@@ -1733,17 +1789,23 @@ export function TestTakeClient({
               )}
             </span>
 
-            {activeIndex < orderedQuestions.length - 1 ? (
+            {groupLastIndex < orderedQuestions.length - 1 ? (
               <button
                 type="button"
                 onClick={() =>
-                  setActiveIndex((i) =>
-                    Math.min(orderedQuestions.length - 1, i + 1)
+                  setActiveIndex(
+                    Math.min(orderedQuestions.length - 1, groupLastIndex + 1)
                   )
                 }
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0f4a2a]"
               >
-                {lang === "vi" ? "Câu tiếp theo" : "Next"}
+                {dokkaiGroupQuestions.length > 1
+                  ? lang === "vi"
+                    ? "Bài / Câu tiếp theo"
+                    : "Next"
+                  : lang === "vi"
+                    ? "Câu tiếp theo"
+                    : "Next"}
                 <ChevronRight className="h-4 w-4" />
               </button>
             ) : (

@@ -24,9 +24,11 @@ import {
   UserCheck,
   Users,
   XCircle,
+  ClipboardList,
 } from "lucide-react";
 import { FuriganaText } from "@/components/furigana-text";
 import { PdfImportDialog } from "@/components/portal/pdf-import-dialog";
+import { BatchAnswerDialog } from "@/components/portal/batch-answer-dialog";
 import type { TestQuestion } from "@/lib/test-center-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +94,7 @@ export default function AssignmentsPage() {
   const [viewingItem, setViewingItem] = useState<AssignmentDoc | null>(null);
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
+  const [isBatchAnswerOpen, setIsBatchAnswerOpen] = useState(false);
   const isCreatingRef = useRef(false);
   const draftAsgIdRef = useRef<string>(`asg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`);
 
@@ -1023,7 +1026,7 @@ export default function AssignmentsPage() {
                   {submittingItem.questions.map((q, qIdx) => {
                     const chosen = quizAnswers[q.id];
                     const correctIdx = quizResult?.answerKey?.[q.id];
-                    const letters = ["A", "B", "C", "D"];
+                    const letters = ["1", "2", "3", "4"];
 
                     return (
                       <div
@@ -1353,7 +1356,7 @@ export default function AssignmentsPage() {
               {viewingItem.questions && viewingItem.questions.length > 0 ? (
                 <div className="space-y-4">
                   {viewingItem.questions.map((q, qIdx) => {
-                    const letters = ["A", "B", "C", "D"];
+                    const letters = ["1", "2", "3", "4"];
                     return (
                       <div key={q.id} className="rounded-2xl border border-shinme-border bg-white p-4 space-y-3">
                         <div className="flex items-center justify-between">
@@ -1603,6 +1606,16 @@ export default function AssignmentsPage() {
                         <FileUp className="size-3.5" />
                         {lang === "vi" ? "Nhập đề từ PDF (AI)" : "Import PDF (AI)"}
                       </button>
+                      {formQuestions.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsBatchAnswerOpen(true)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-shinme-primary shadow-2xs hover:bg-emerald-100"
+                        >
+                          <ClipboardList className="size-3.5" />
+                          {lang === "vi" ? "Nhập đáp án nhanh" : "Batch Answers"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={handleAddManualQuizQuestion}
@@ -1635,7 +1648,7 @@ export default function AssignmentsPage() {
                       <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
                         {formQuestions.map((q, qIdx) => {
                           const missing = q.correctIndex < 0 || q.correctIndex > 3;
-                          const letters = ["A", "B", "C", "D"];
+                          const letters = ["1", "2", "3", "4"];
                           return (
                             <div
                               key={q.id}
@@ -1783,6 +1796,25 @@ export default function AssignmentsPage() {
         defaultLevel={formLevel === "KAIWA" ? "N3" : formLevel}
         modeType="assignment"
         onImported={handleAssignmentPdfImported}
+      />
+
+      <BatchAnswerDialog
+        open={isBatchAnswerOpen}
+        onOpenChange={setIsBatchAnswerOpen}
+        questions={formQuestions}
+        showSections={false}
+        onApply={(updates) => {
+          const count = Object.keys(updates).length;
+          if (count === 0) return;
+          setFormQuestions((prev) =>
+            prev.map((q) => (updates[q.id] !== undefined ? { ...q, correctIndex: updates[q.id] } : q))
+          );
+          toast.success(
+            lang === "vi"
+              ? `Đã áp dụng nhanh ${count} đáp án (1–4)!`
+              : `Applied ${count} answer keys (1–4)!`
+          );
+        }}
       />
     </div>
   );

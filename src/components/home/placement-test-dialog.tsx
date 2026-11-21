@@ -203,7 +203,7 @@ function Quiz() {
                         : "bg-shinme-bg-deep text-shinme-ink-soft",
                   )}
                 >
-                  {String.fromCharCode(65 + i)}
+                  {i + 1}
                 </span>
                 <span lang="ja" className="font-jp text-lg font-bold text-shinme-ink">
                   {opt}
@@ -230,7 +230,7 @@ function Quiz() {
                 <p className={cn("font-extrabold", correct ? "text-shinme-primary" : "text-shinme-danger")}>
                   {correct
                     ? (lang === "vi" ? "Chính xác! すごい！" : "Correct! Sugoi (Great)! 🎉")
-                    : (lang === "vi" ? `Chưa đúng — đáp án là ${String.fromCharCode(65 + q.answer)}` : `Incorrect — correct answer is ${String.fromCharCode(65 + q.answer)}`)}
+                    : (lang === "vi" ? `Chưa đúng — đáp án là ${q.answer + 1}` : `Incorrect — correct answer is ${q.answer + 1}`)}
                 </p>
                 <FuriganaText as="p" lang="vi" text={q.explain} className="mt-0.5 text-sm leading-[1.9] text-shinme-ink-soft" />
               </div>

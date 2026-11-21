@@ -24,10 +24,12 @@ import {
   Image as ImageIcon,
   Loader2,
   X,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FuriganaText } from "@/components/furigana-text";
 import { PdfImportDialog } from "@/components/portal/pdf-import-dialog";
+import { BatchAnswerDialog } from "@/components/portal/batch-answer-dialog";
 import { useTranslation } from "@/lib/i18n/context";
 import {
   getClasses,
@@ -231,11 +233,25 @@ function SenseiTestCreateContent() {
     createTemplateQuestion("choukai", 4),
   ]);
   const [isPdfImportOpen, setIsPdfImportOpen] = useState(false);
+  const [isBatchAnswerOpen, setIsBatchAnswerOpen] = useState(false);
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const [activeSectionTab, setActiveSectionTab] = useState<"ALL" | ExamSectionId>("ALL");
   const [uploadingPosterQid, setUploadingPosterQid] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const questionNumberMap = buildQuestionNumberMap(questions);
+
+  const handleApplyBatchAnswers = (updates: Record<string, number>) => {
+    const count = Object.keys(updates).length;
+    if (count === 0) return;
+    setQuestions((prev) =>
+      prev.map((q) => (updates[q.id] !== undefined ? { ...q, correctIndex: updates[q.id] } : q))
+    );
+    toast.success(
+      lang === "vi"
+        ? `Đã áp dụng nhanh ${count} đáp án (1–4) thành công!`
+        : `Applied ${count} answer keys (1–4) successfully!`
+    );
+  };
   // Idempotency key + synchronous lock: guarantees rapid multi-clicks NEVER create duplicate tests
   const draftTestIdRef = useRef<string>(
     editId || `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -903,10 +919,10 @@ function SenseiTestCreateContent() {
                 </p>
                 <p className="mt-0.5 text-xs text-amber-800">
                   {lang === "vi"
-                    ? "Hãy kiểm tra nhanh nội dung đề đã bóc và tích chọn đáp án A/B/C/D cho tất cả các câu trước khi xuất bản."
+                    ? "Hãy kiểm tra nhanh nội dung đề đã bóc và tích chọn đáp án 1/2/3/4 (hoặc dùng nút Nhập đáp án nhanh) cho tất cả các câu trước khi xuất bản."
                     : lang === "ja"
-                      ? "公開前に各問題の内容を確認し、正解（A/B/C/D）を選択してください。"
-                      : "Review extracted questions and select the correct A/B/C/D answer for every question before publishing."}
+                      ? "公開前に各問題の内容を確認し、正解（1/2/3/4）を選択してください。"
+                      : "Review extracted questions and select the correct 1/2/3/4 answer for every question before publishing."}
                 </p>
               </div>
             </div>
@@ -935,40 +951,55 @@ function SenseiTestCreateContent() {
           </div>
         )}
 
-        {/* SECTION 2B: JLPT EXAM SECTION TABS (1. 文字・語彙 / 2. 文法・読解 / 3. 聴解) */}
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-          {(["ALL", "goi", "bunpou_dokkai", "choukai"] as const).map((tab) => {
-            const count =
-              tab === "ALL"
-                ? questions.length
-                : questions.filter((q) => inferQuestionSection(q) === tab).length;
-            const label =
-              tab === "ALL"
-                ? (lang === "vi" ? "Tất cả phần thi" : "All Sections")
-                : EXAM_SECTION_META[tab].shortLabel;
-            const active = activeSectionTab === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveSectionTab(tab)}
-                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
-                  active
-                    ? "border-[#135E36] bg-[#135E36] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-emerald-50"
-                }`}
-              >
-                <span className="font-jp">{label}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 font-mono text-xs ${
-                    active ? "bg-white/20 text-white" : "bg-white text-slate-600"
+        {/* SECTION 2B: JLPT EXAM SECTION TABS + BATCH ANSWER KEY BUTTON */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            {(["ALL", "goi", "bunpou_dokkai", "choukai"] as const).map((tab) => {
+              const count =
+                tab === "ALL"
+                  ? questions.length
+                  : questions.filter((q) => inferQuestionSection(q) === tab).length;
+              const label =
+                tab === "ALL"
+                  ? (lang === "vi" ? "Tất cả phần thi" : "All Sections")
+                  : EXAM_SECTION_META[tab].shortLabel;
+              const active = activeSectionTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveSectionTab(tab)}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
+                    active
+                      ? "border-[#135E36] bg-[#135E36] text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-emerald-50"
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  <span className="font-jp">{label}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-xs ${
+                      active ? "bg-white/20 text-white" : "bg-white text-slate-600"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsBatchAnswerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-extrabold text-[#135E36] shadow-2xs transition hover:bg-emerald-100"
+          >
+            <ClipboardList className="h-4 w-4" />
+            {lang === "vi"
+              ? "Nhập đáp án nhanh (Batch 1–4)"
+              : lang === "ja"
+                ? "正解を一括入力 (1〜4)"
+                : "Batch Answer Key (1–4)"}
+          </button>
         </div>
 
         {/* SECTION 3: QUESTION EDITORS */}
@@ -981,7 +1012,7 @@ function SenseiTestCreateContent() {
 
             const numMeta = questionNumberMap[q.id];
             const meta = MONDAI_META[q.type];
-            const optionLetters = ["A", "B", "C", "D"];
+            const optionLetters = ["1", "2", "3", "4"];
 
             return (
               <div
@@ -1573,6 +1604,15 @@ function SenseiTestCreateContent() {
         onOpenChange={setIsPdfImportOpen}
         defaultLevel={classes.find((c) => c.id === classId)?.level || "N3"}
         onImported={handlePdfImported}
+      />
+
+      <BatchAnswerDialog
+        open={isBatchAnswerOpen}
+        onOpenChange={setIsBatchAnswerOpen}
+        questions={questions}
+        defaultScope={activeSectionTab}
+        showSections={true}
+        onApply={handleApplyBatchAnswers}
       />
     </div>
   );
