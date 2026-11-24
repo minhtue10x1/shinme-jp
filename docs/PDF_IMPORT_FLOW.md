@@ -9,70 +9,70 @@ Tài liệu này mô tả chi tiết toàn trình quy trình số hóa và tríc
 ```mermaid
 flowchart TD
     %% CLIENT PHASE
-    subgraph ClientSide["Client: Trình duyệt của Sensei (PdfImportDialog)"]
-        A["Sensei chọn/kéo thả file PDF (tối đa 30MB)"] --> B["pdf-lib đọc số trang & phân tích Page Range (VD: 1-12)"]
-        B --> C["Chia PDF thành các cụm nhỏ (Mỗi cụm 3 trang)"]
-        C --> D{"Kiểm tra dung lượng cụm\n(Ngưỡng an toàn 3.8MB)"}
+    subgraph ClientSide["Client: Sensei Browser (PdfImportDialog)"]
+        A["Sensei selects or drops PDF exam file (up to 30MB)"] --> B["pdf-lib analyzes page count and target page range (e.g. 1-12)"]
+        B --> C["Slice PDF into multi-page batches (3 pages per batch)"]
+        C --> D{"Check batch payload size\n(3.8MB safe ceiling)"}
         
-        D -- "Vượt quá 3.8MB" --> D1["Tự động tách nhỏ thành từng trang lẻ (1 trang/slice)"]
-        D -- "Hợp lệ <= 3.8MB" --> E["Cắt trang bằng pdf-lib & đóng gói Blob/FormData"]
+        D -- "Exceeds 3.8MB" --> D1["Auto-split into individual 1-page slices (1 page/slice)"]
+        D -- "Valid <= 3.8MB" --> E["Extract pages using pdf-lib and create Blob/FormData"]
         D1 --> E
         
-        E --> F["Lấy Firebase Auth ID Token (Role Sensei/Admin)"]
-        F --> G["Gửi POST /api/tests/import-pdf (kèm chunkLabel, mode, level)"]
+        E --> F["Retrieve Firebase Auth ID Token (Sensei/Admin role)"]
+        F --> G["Send POST /api/tests/import-pdf (with chunkLabel, mode, level)"]
     end
 
     %% SERVER API PHASE
     subgraph ServerSide["Serverless Backend: Next.js API Route (/api/tests/import-pdf)"]
-        G --> H{"Xác thực Firebase Admin SDK"}
-        H -- "Token sai / Không phải Sensei-Admin" --> H1["Trả lỗi 401/403 Forbidden"]
-        H -- "Hợp lệ" --> I["Đọc buffer PDF & chuyển sang base64"]
+        G --> H{"Authenticate via Firebase Admin SDK"}
+        H -- "Invalid Token / Not Sensei-Admin" --> H1["Return 401 Unauthorized / 403 Forbidden"]
+        H -- "Authorized" --> I["Read PDF buffer and convert to base64 payload"]
         
-        I --> J["Khám phá danh sách Gemini Model đang hoạt động\n(Lọc bỏ model cũ, ưu tiên Flash-lite -> Flash -> Pro)"]
-        J --> K["Nạp JLPT Barem điểm chuẩn theo cấp độ (N5-N1)"]
-        K --> L["Đóng gói System Prompt + JSON Schema\n(Luật gạch chân 【...】, furigana [..], 4 đáp án)"]
+        I --> J["Discover active Gemini models in real time\n(Filter deprecated/image models; prioritize Flash-Lite -> Flash -> Pro)"]
+        J --> K["Inject standard JLPT scoring barem by level (N5-N1)"]
+        K --> L["Package System Prompt and Structured JSON Schema\n(Visual underline 【...】, furigana [...], 4 choices)"]
         
-        L --> M["Vòng lặp gọi AI Fallback Pool (Gemini 3.5 Flash-lite / 3.8 Flash / Pro)"]
-        M --> N{"Gemini trả kết quả thành công?"}
+        L --> M["AI Fallback Loop (Gemini 3.5 Flash-Lite / 3.8 Flash / Pro)"]
+        M --> N{"Gemini inference succeeded?"}
         
-        N -- "Lỗi 503 / Timeout / Quá tải" --> M1["Tự động chuyển sang model tiếp theo trong pool"]
+        N -- "503 / Timeout / Rate Limit" --> M1["Auto-switch to next available model in pool"]
         M1 --> M
         
-        N -- "Thành công" --> O{"Parse JSON (với maxOutputTokens: 65536)"}
-        O -- "JSON bị cắt cụt / Parse lỗi" --> M1
+        N -- "Success" --> O{"Parse JSON payload (with maxOutputTokens: 65536)"}
+        O -- "Truncated JSON / Syntax Error" --> M1
         
-        O -- "JSON hợp lệ" --> P["Hậu xử lý dữ liệu (Post-processing)"]
-        P --> P1["Chuẩn hóa Furigana gạch chân: normalizeUnderlinedFurigana()"]
-        P --> P2["Tính điểm câu hỏi chuẩn theo JLPT Barem: resolveQuestionPoints()"]
-        P --> P3["Phân loại 3 phần thi JLPT: goi / bunpou_dokkai / choukai"]
+        O -- "Valid JSON" --> P["Data Post-processing and Validation"]
+        P --> P1["Normalize underlined furigana: normalizeUnderlinedFurigana()"]
+        P --> P2["Assign raw question points via JLPT barem: resolveQuestionPoints()"]
+        P --> P3["Map to JLPT exam sections: goi / bunpou_dokkai / choukai"]
         
-        P1 & P2 & P3 --> Q["Trả về JSON: { questions, suggestedTitle, count, usedModel }"]
+        P1 & P2 & P3 --> Q["Return JSON: { questions, suggestedTitle, count, usedModel }"]
     end
 
     %% CLIENT HANDLING & RETRY
-    subgraph ClientCompletion["Client: Nhận kết quả & Xử lý hoàn tất"]
-        Q --> R{"API trả về 200 OK?"}
+    subgraph ClientCompletion["Client: Response Handling and Aggregation"]
+        Q --> R{"API returned 200 OK?"}
         
-        R -- "Gặp lỗi (413/502/503)" --> S{"Cụm có nhiều hơn 1 trang?"}
-        S -- "Có (3 trang)" --> S1["Cơ chế Auto-retry: Tự động tách cụm này thành 3 trang lẻ và gửi lại từng trang"]
+        R -- "Failed (413/502/503)" --> S{"Batch contains multiple pages?"}
+        S -- "Yes (3 pages)" --> S1["Self-healing Auto-retry: Split batch into 3 single pages and re-send each"]
         S1 --> E
-        S -- "Đã là 1 trang lẻ" --> S2["Ghi nhận lỗi cụm trang vào failedChunkLabels"]
+        S -- "Single page slice" --> S2["Record batch failure in failedChunkLabels"]
         
-        R -- "Thành công 200" --> T["Gộp danh sách câu hỏi trắc nghiệm (Merge questions)"]
-        T --> U["Tự động gom nhóm các câu chung bài đọc Dokkai\n(khớp theo passageGroupId & nội dung bài đọc)"]
-        U --> V["Tự động gom cụm câu 37-38 vào nhóm Áp phích Tìm kiếm thông tin\n(info-retrieval-37-38)"]
+        R -- "Success 200" --> T["Merge extracted multiple-choice questions"]
+        T --> U["Group shared Dokkai reading passages\n(match by passageGroupId and passage text hash)"]
+        U --> V["Cluster Q37-38 into Information Retrieval poster group\n(info-retrieval-37-38)"]
         
-        V --> W{"Còn cụm trang tiếp theo?"}
-        W -- "Còn" --> C
-        W -- "Hết toàn bộ các trang" --> X["Đẩy danh sách hoàn chỉnh sang Trình tạo đề thi của Sensei (create/page.tsx)"]
+        V --> W{"More batches remaining?"}
+        W -- "Yes" --> C
+        W -- "All batches finished" --> X["Dispatch completed questions to Sensei Test Builder (create/page.tsx)"]
     end
 
     %% SENSEI REVIEW PHASE
-    subgraph SenseiReview["Sensei hoàn thiện & Xuất bản đề thi"]
-        X --> Y["Sensei kiểm tra đề thi theo 3 tab (Goi, Bunpou-Dokkai, Choukai)"]
-        Y --> Z1["Nhập đáp án hàng loạt nhanh: Batch 1-4 (VD: '1 2 1 4 3 2...')"]
-        Y --> Z2["Tải / Kéo thả / Ctrl+V ảnh áp phích cho câu 37-38 (tự đồng bộ cả cụm)"]
-        Z1 & Z2 --> FINAL["Bấm 'Lưu & Xuất bản Đề thi' lên Cloud Firestore"]
+    subgraph SenseiReview["Sensei Final Review and Publishing"]
+        X --> Y["Sensei reviews questions across 3 sections (Goi, Bunpou-Dokkai, Choukai)"]
+        Y --> Z1["Quick batch answer entry: Batch 1-4 (e.g. '1 2 1 4 3 2...')"]
+        Y --> Z2["Upload / Drag-drop / Ctrl+V poster image for Q37-38 (auto-synced)"]
+        Z1 & Z2 --> FINAL["Click 'Save and Publish Exam' to Cloud Firestore"]
     end
 ```
 
