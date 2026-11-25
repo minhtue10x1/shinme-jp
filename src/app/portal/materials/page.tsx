@@ -24,7 +24,6 @@ import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChokaiAudioPlayer } from "@/components/portal/chokai-audio-player";
 import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import { isSafeHttpUrl } from "@/lib/utils";
@@ -268,9 +267,6 @@ export default function MaterialsPage() {
           )}
         </div>
       </div>
-
-      {/* Interactive Chokai Player Banner */}
-      <ChokaiAudioPlayer />
 
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
