@@ -193,10 +193,11 @@ export default function MaterialsPage() {
           ? tr("Toàn bộ học viên", "All Students", "全受講生")
           : chosenClass?.name || tr("Lớp học", "Class", "クラス");
 
+      const trimmedTitleJa = formData.titleJa.trim();
       const payload: MaterialDoc = {
         id: `mat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
         title: formData.title.trim(),
-        titleJa: formData.titleJa.trim() || undefined,
+        ...(trimmedTitleJa ? { titleJa: trimmedTitleJa } : {}),
         classId: formData.classId,
         className,
         format: formData.format,
@@ -215,7 +216,21 @@ export default function MaterialsPage() {
       await loadData();
     } catch (err) {
       console.error("Upload material error:", err);
-      toast.error(tr("Không thể tải lên tài liệu. Vui lòng thử lại!", "Failed to upload material. Please try again!", "アップロードに失敗しました。もう一度お試しください！"));
+      const code = (err as { code?: string })?.code;
+      const detail =
+        code === "storage/unauthorized" || code === "permission-denied"
+          ? tr(
+              "Tài khoản hiện tại không có quyền ghi vào Storage/Firestore (hãy đăng nhập tài khoản Sensei/Admin thật thay vì chế độ Demo).",
+              "Permission denied on Storage/Firestore (please sign in with a real Sensei/Admin account rather than Demo mode).",
+              "Storage/Firestoreの書き込み権限がありません（デモではなく講師・管理者アカウントでログインしてください）。"
+            )
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      toast.error(
+        tr("Không thể tải lên tài liệu. Vui lòng thử lại!", "Failed to upload material. Please try again!", "アップロードに失敗しました。もう一度お試しください！"),
+        detail ? { description: detail } : undefined
+      );
     } finally {
       setIsUploading(false);
       setUploadPercent(0);
@@ -548,7 +563,7 @@ export default function MaterialsPage() {
                     }
                   }}
                   className="hidden"
-                  accept=".pdf,.mp3,.wav,.m4a,.ppt,.pptx,.doc,.docx,.xlsx,.zip"
+                  accept=".pdf,.mp3,.wav,.m4a,.ppt,.pptx,.doc,.docx,.xlsx,.png,.jpg,.jpeg,.webp"
                 />
                 {selectedFile ? (
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-shinme-border bg-white p-3 text-left">
@@ -587,7 +602,7 @@ export default function MaterialsPage() {
                       )}
                     </p>
                     <p className="text-xs text-shinme-muted">
-                      {tr("Hỗ trợ file tối đa 50MB", "Supports files up to 50MB", "最大50MBまで対応")}
+                      {tr("Hỗ trợ file tối đa 25MB", "Supports files up to 25MB", "最大25MBまで対応")}
                     </p>
                   </label>
                 )}

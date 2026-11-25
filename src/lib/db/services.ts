@@ -393,7 +393,10 @@ export async function getMaterials(classId?: string): Promise<MaterialDoc[]> {
 
 export async function saveMaterialDoc(material: MaterialDoc): Promise<void> {
   const ref = doc(db, "materials", material.id);
-  await setDoc(ref, material, { merge: true });
+  const cleanData = Object.fromEntries(
+    Object.entries(material).filter(([, v]) => v !== undefined)
+  );
+  await setDoc(ref, cleanData, { merge: true });
 }
 
 export async function deleteMaterialDoc(materialId: string, fileUrl?: string): Promise<void> {
@@ -422,7 +425,9 @@ export async function uploadMaterialFile(
   const path = `${folder}/${timestamp}_${cleanName}`;
   const fileStorageRef = storageRef(storage, path);
 
-  const uploadTask = uploadBytesResumable(fileStorageRef, file);
+  const uploadTask = uploadBytesResumable(fileStorageRef, file, {
+    contentType: file.type || undefined,
+  });
 
   return new Promise((resolve, reject) => {
     uploadTask.on(
