@@ -36,7 +36,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 export function AnnouncementFeed() {
   const { role, user } = useRole();
-  const { lang } = useTranslation();
+  const { lang, tr } = useTranslation();
   const activeClassId = useSyncExternalStore(
     subscribeActiveClass,
     () => getActiveClassId(role),
@@ -96,12 +96,12 @@ export function AnnouncementFeed() {
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
-      toast.error(lang === "vi" ? "Vui lòng nhập đầy đủ tiêu đề và nội dung." : "Please fill in both title and content.");
+      toast.error(tr("Vui lòng nhập đầy đủ tiêu đề và nội dung.", "Please fill in both title and content.", "タイトルと内容の両方を入力してください。"));
       return;
     }
 
     const cls = classes.find((c) => c.id === targetClassId);
-    const className = targetClassId === "ALL" ? (lang === "vi" ? "Toàn bộ lớp học" : "All Classes") : (cls?.name ?? (lang === "vi" ? "Lớp học" : "Class"));
+    const className = targetClassId === "ALL" ? tr("Toàn bộ lớp học", "All Classes", "全クラス") : (cls?.name ?? tr("Lớp học", "Class", "クラス"));
 
     const newAnn: AnnouncementDoc = {
       id: `ann-${Date.now().toString(36)}`,
@@ -120,11 +120,11 @@ export function AnnouncementFeed() {
     try {
       await saveAnnouncementDoc(newAnn);
       toast.success(
-        lang === "vi" ? "Đã đăng thông báo thành công!" : "Announcement posted successfully!",
+        tr("Đã đăng thông báo thành công!", "Announcement posted successfully!", "お知らせを投稿しました！"),
         {
           description: isPinned
-            ? (lang === "vi" ? "Thông báo đã được ghim lên đầu bảng tin." : "Announcement pinned to the top of the feed.")
-            : (lang === "vi" ? "Học viên sẽ thấy thông báo này trên bảng tin." : "Students will see this announcement on the feed."),
+            ? tr("Thông báo đã được ghim lên đầu bảng tin.", "Announcement pinned to the top of the feed.", "お知らせをトップに固定しました。")
+            : tr("Học viên sẽ thấy thông báo này trên bảng tin.", "Students will see this announcement on the feed.", "受講生のお知らせ一覧に表示されます。"),
         }
       );
 
@@ -136,7 +136,7 @@ export function AnnouncementFeed() {
       await loadData();
     } catch (err) {
       console.error("Create announcement error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi đăng thông báo. Vui lòng thử lại." : "Error posting announcement. Please try again.");
+      toast.error(tr("Lỗi khi đăng thông báo. Vui lòng thử lại.", "Error posting announcement. Please try again.", "投稿中にエラーが発生しました。もう一度お試しください。"));
     }
   };
 
@@ -145,25 +145,25 @@ export function AnnouncementFeed() {
       await togglePinAnnouncementDoc(id, currentPinned);
       toast.info(
         currentPinned
-          ? (lang === "vi" ? "Đã gỡ ghim thông báo." : "Announcement unpinned.")
-          : (lang === "vi" ? "Đã ghim thông báo lên đầu bảng tin." : "Announcement pinned to top of feed.")
+          ? tr("Đã gỡ ghim thông báo.", "Announcement unpinned.", "固定を解除しました。")
+          : tr("Đã ghim thông báo lên đầu bảng tin.", "Announcement pinned to top of feed.", "お知らせをトップに固定しました。")
       );
       await loadData();
     } catch (err) {
       console.error("Toggle pin error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi cập nhật ghim." : "Error updating pin status.");
+      toast.error(tr("Lỗi khi cập nhật ghim.", "Error updating pin status.", "固定状態の更新に失敗しました。"));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(lang === "vi" ? "Bạn có chắc chắn muốn xóa thông báo này?" : "Are you sure you want to delete this announcement?")) return;
+    if (!confirm(tr("Bạn có chắc chắn muốn xóa thông báo này?", "Are you sure you want to delete this announcement?", "このお知らせを削除してもよろしいですか？"))) return;
     try {
       await deleteAnnouncementDoc(id);
-      toast.success(lang === "vi" ? "Đã xóa thông báo." : "Announcement deleted.");
+      toast.success(tr("Đã xóa thông báo.", "Announcement deleted.", "お知らせを削除しました。"));
       await loadData();
     } catch (err) {
       console.error("Delete announcement error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi xóa thông báo." : "Error deleting announcement.");
+      toast.error(tr("Lỗi khi xóa thông báo.", "Error deleting announcement.", "お知らせの削除に失敗しました。"));
     }
   };
 
@@ -179,22 +179,24 @@ export function AnnouncementFeed() {
               <Megaphone className="size-4" />
             </span>
             <h2 className="text-lg font-black text-shinme-ink">
-              {lang === "vi" ? "Bảng tin & Thông báo lớp học" : "Feed & Class Announcements"}
+              {tr("Bảng tin & Thông báo lớp học", "Feed & Class Announcements", "クラスお知らせ・掲示板")}
             </h2>
             <Badge tone="leaf">
-              {lang === "vi" ? `${filtered.length} Tin` : `${filtered.length} Posts`}
+              {tr(`${filtered.length} Tin`, `${filtered.length} Posts`, `${filtered.length}件`)}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Dặn dò học vụ, lịch thi thử, bài tập về nhà và cập nhật từ Sensei"
-              : "Academic notices, mock test schedules, homework and updates from Sensei"}
+            {tr(
+              "Dặn dò học vụ, lịch thi thử, bài tập về nhà và cập nhật từ Sensei",
+              "Academic notices, mock test schedules, homework and updates from Sensei",
+              "学習連絡・模擬試験日程・宿題・講師からのお知らせ"
+            )}
           </p>
         </div>
 
         {role !== "student" && (
           <Button size="sm" onClick={() => setIsComposerOpen(true)}>
-            <Plus className="size-4" /> {lang === "vi" ? "Soạn thông báo mới" : "New Announcement"}
+            <Plus className="size-4" /> {tr("Soạn thông báo mới", "New Announcement", "新規お知らせ作成")}
           </Button>
         )}
       </div>
@@ -208,7 +210,7 @@ export function AnnouncementFeed() {
         </div>
       ) : sorted.length === 0 ? (
         <div className="py-8 text-center text-xs text-shinme-muted">
-          {lang === "vi" ? "Chưa có thông báo nào cho lớp học này." : "No announcements for this class yet."}
+          {tr("Chưa có thông báo nào cho lớp học này.", "No announcements for this class yet.", "このクラスのお知らせはまだありません。")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -226,28 +228,28 @@ export function AnnouncementFeed() {
                 <div className="flex flex-wrap items-center gap-2">
                   {item.isPinned && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-shinme-primary px-2.5 py-0.5 text-xs font-black text-white">
-                      <Pin className="size-3 fill-white" /> {lang === "vi" ? "Đã ghim" : "Pinned"}
+                      <Pin className="size-3 fill-white" /> {tr("Đã ghim", "Pinned", "固定済み")}
                     </span>
                   )}
                   <Badge tone={item.category === "BTVN & Luyện thi" ? "warn" : "leaf"}>
                     {item.category === "BTVN & Luyện thi"
-                      ? (lang === "vi" ? "BTVN & Luyện thi" : "Homework & Prep")
+                      ? tr("BTVN & Luyện thi", "Homework & Prep", "宿題・試験対策")
                       : item.category === "Lịch học & Phòng học"
-                      ? (lang === "vi" ? "Lịch học & Phòng học" : "Schedule & Room")
+                      ? tr("Lịch học & Phòng học", "Schedule & Room", "授業日程・教室")
                       : item.category === "Tài liệu học tập"
-                      ? (lang === "vi" ? "Tài liệu học tập" : "Learning Materials")
-                      : (lang === "vi" ? "Thông báo chung" : "General Notice")}
+                      ? tr("Tài liệu học tập", "Learning Materials", "教材資料")
+                      : tr("Thông báo chung", "General Notice", "一般お知らせ")}
                   </Badge>
                   <span className="rounded bg-shinme-bg px-2 py-0.5 font-mono text-xs font-bold text-shinme-muted">
                     {item.classId === "ALL"
-                      ? (lang === "vi" ? "Toàn trung tâm" : "Center-wide")
+                      ? tr("Toàn trung tâm", "Center-wide", "全校共通")
                       : item.className.split(" ")[0]}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <time className="text-xs text-shinme-muted">
-                    {new Date(item.createdAt).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-US", {
+                    {new Date(item.createdAt).toLocaleDateString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US", {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
@@ -260,7 +262,7 @@ export function AnnouncementFeed() {
                         type="button"
                         onClick={() => handleTogglePin(item.id, item.isPinned)}
                         className="rounded-lg p-1.5 text-shinme-muted hover:bg-shinme-bg hover:text-shinme-primary"
-                        title={item.isPinned ? (lang === "vi" ? "Bỏ ghim" : "Unpin") : (lang === "vi" ? "Ghim lên đầu" : "Pin to top")}
+                        title={item.isPinned ? tr("Bỏ ghim", "Unpin", "固定解除") : tr("Ghim lên đầu", "Pin to top", "トップに固定")}
                       >
                         {item.isPinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
                       </button>
@@ -268,7 +270,7 @@ export function AnnouncementFeed() {
                         type="button"
                         onClick={() => handleDelete(item.id)}
                         className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50"
-                        title={lang === "vi" ? "Xóa thông báo" : "Delete announcement"}
+                        title={tr("Xóa thông báo", "Delete announcement", "お知らせを削除")}
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -291,12 +293,12 @@ export function AnnouncementFeed() {
                 <div className="flex items-center gap-1.5 text-shinme-primary">
                   <UserCheck className="size-3.5" />
                   <span>
-                    {lang === "vi" ? "Người đăng:" : "Posted by:"}{" "}
+                    {tr("Người đăng:", "Posted by:", "投稿者：")}{" "}
                     <strong>{item.authorName} ({item.authorRole})</strong>
                   </span>
                 </div>
                 <span className="text-xs text-shinme-muted">
-                  {lang === "vi" ? "Thông báo chính thức Shinme" : "Shinme Official Notice"}
+                  {tr("Thông báo chính thức Shinme", "Shinme Official Notice", "Shinme公式お知らせ")}
                 </span>
               </div>
             </article>
@@ -312,25 +314,27 @@ export function AnnouncementFeed() {
               <div>
                 <DialogTitle className="text-xl font-black text-shinme-ink flex items-center gap-2">
                   <Megaphone className="size-5 text-shinme-primary" />{" "}
-                  {lang === "vi" ? "Đăng thông báo lớp học" : "Post Class Announcement"}
+                  {tr("Đăng thông báo lớp học", "Post Class Announcement", "クラスお知らせを投稿")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi"
-                    ? "Thông báo sẽ xuất hiện ngay lập tức trên bảng tin của học viên trong lớp."
-                    : "The announcement will immediately appear on the students' class feed."}
+                  {tr(
+                    "Thông báo sẽ xuất hiện ngay lập tức trên bảng tin của học viên trong lớp.",
+                    "The announcement will immediately appear on the students' class feed.",
+                    "投稿後すぐにクラス内の受講生掲示板に表示されます。"
+                  )}
                 </DialogDescription>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Lớp nhận thông báo" : "Target Class"} <span className="text-shinme-danger">*</span>
+                  {tr("Lớp nhận thông báo", "Target Class", "対象クラス")} <span className="text-shinme-danger">*</span>
                 </label>
                 <select
                   value={targetClassId}
                   onChange={(e) => setTargetClassId(e.target.value)}
                   className="h-11 w-full rounded-xl border-2 border-shinme-border bg-shinme-surface px-3 text-sm font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="ALL">{lang === "vi" ? "Toàn bộ tất cả các lớp học" : "All Classes"}</option>
+                  <option value="ALL">{tr("Toàn bộ tất cả các lớp học", "All Classes", "すべてのクラス")}</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -341,15 +345,15 @@ export function AnnouncementFeed() {
 
               <div className="space-y-1">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Chuyên mục thông báo" : "Announcement Category"}
+                  {tr("Chuyên mục thông báo", "Announcement Category", "カテゴリー")}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {(
                     [
-                      { id: "BTVN & Luyện thi", vi: "BTVN & Luyện thi", en: "Homework & Prep" },
-                      { id: "Lịch học & Phòng học", vi: "Lịch học & Phòng học", en: "Schedule & Room" },
-                      { id: "Tài liệu học tập", vi: "Tài liệu học tập", en: "Learning Materials" },
-                      { id: "Thông báo chung", vi: "Thông báo chung", en: "General Notice" },
+                      { id: "BTVN & Luyện thi", vi: "BTVN & Luyện thi", en: "Homework & Prep", ja: "宿題・試験対策" },
+                      { id: "Lịch học & Phòng học", vi: "Lịch học & Phòng học", en: "Schedule & Room", ja: "授業日程・教室" },
+                      { id: "Tài liệu học tập", vi: "Tài liệu học tập", en: "Learning Materials", ja: "教材資料" },
+                      { id: "Thông báo chung", vi: "Thông báo chung", en: "General Notice", ja: "一般お知らせ" },
                     ] as const
                   ).map((cat) => (
                     <button
@@ -363,7 +367,7 @@ export function AnnouncementFeed() {
                           : "bg-shinme-bg text-shinme-ink-soft border border-shinme-border hover:bg-shinme-leaf"
                       )}
                     >
-                      {lang === "vi" ? cat.vi : cat.en}
+                      {tr(cat.vi, cat.en, cat.ja)}
                     </button>
                   ))}
                 </div>
@@ -371,16 +375,16 @@ export function AnnouncementFeed() {
 
               <div className="space-y-1">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Tiêu đề thông báo" : "Announcement Title"}{" "}
+                  {tr("Tiêu đề thông báo", "Announcement Title", "タイトル")}{" "}
                   <span className="text-shinme-danger">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder={
-                    lang === "vi"
-                      ? "Ví dụ: [QUAN TRỌNG] Nhắc nhở nộp bài tập Minna no Nihongo Bài 26..."
-                      : "Example: [IMPORTANT] Reminder to submit Minna no Nihongo Lesson 26 homework..."
-                  }
+                  placeholder={tr(
+                    "Ví dụ: [QUAN TRỌNG] Nhắc nhở nộp bài tập Minna no Nihongo Bài 26...",
+                    "Example: [IMPORTANT] Reminder to submit Minna no Nihongo Lesson 26 homework...",
+                    "例：【重要】みんなの日本語 第26課の宿題提出について..."
+                  )}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="h-11 w-full rounded-xl border-2 border-shinme-border bg-shinme-surface px-4 text-sm font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none placeholder:text-shinme-muted/60"
@@ -389,12 +393,12 @@ export function AnnouncementFeed() {
 
               <div className="space-y-1">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Tiêu đề tiếng Nhật" : "Japanese Title"}{" "}
-                  <span className="text-shinme-muted font-normal">({lang === "vi" ? "tùy chọn" : "optional"})</span>
+                  {tr("Tiêu đề tiếng Nhật", "Japanese Title", "日本語タイトル")}{" "}
+                  <span className="text-shinme-muted font-normal">({tr("tùy chọn", "optional", "任意")})</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: 宿題[しゅくだい]の提出[ていしゅつ]について..."
+                  placeholder={tr("Ví dụ: 宿題[しゅくだい]の提出[ていしゅつ]について...", "Example: 宿題[しゅくだい]の提出[ていしゅつ]について...", "例：宿題[しゅくだい]の提出[ていしゅつ]について...")}
                   value={titleJa}
                   onChange={(e) => setTitleJa(e.target.value)}
                   className="h-11 w-full rounded-xl border-2 border-shinme-border bg-shinme-surface px-4 text-sm font-jp font-bold text-shinme-primary focus:border-shinme-primary focus:outline-none placeholder:text-shinme-muted/60"
@@ -403,16 +407,16 @@ export function AnnouncementFeed() {
 
               <div className="space-y-1">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Nội dung chi tiết" : "Detailed Content"}{" "}
+                  {tr("Nội dung chi tiết", "Detailed Content", "詳細内容")}{" "}
                   <span className="text-shinme-danger">*</span>
                 </label>
                 <textarea
                   rows={4}
-                  placeholder={
-                    lang === "vi"
-                      ? "Nhập nội dung dặn dò, hạn nộp, link học hoặc tài liệu đính kèm..."
-                      : "Enter details, submission deadlines, meeting links or attachments..."
-                  }
+                  placeholder={tr(
+                    "Nhập nội dung dặn dò, hạn nộp, link học hoặc tài liệu đính kèm...",
+                    "Enter details, submission deadlines, meeting links or attachments...",
+                    "連絡事項、提出期限、授業リンクなどを入力してください..."
+                  )}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="w-full rounded-xl border-2 border-shinme-border bg-shinme-surface p-3 text-sm text-shinme-ink focus:border-shinme-primary focus:outline-none"
@@ -428,18 +432,20 @@ export function AnnouncementFeed() {
                   className="size-4 rounded accent-shinme-primary cursor-pointer"
                 />
                 <label htmlFor="pin-toggle" className="text-xs font-black text-shinme-ink cursor-pointer">
-                  {lang === "vi"
-                    ? "Ghim thông báo quan trọng này lên đầu bảng tin"
-                    : "Pin this important announcement to the top"}
+                  {tr(
+                    "Ghim thông báo quan trọng này lên đầu bảng tin",
+                    "Pin this important announcement to the top",
+                    "この重要なお知らせをトップに固定する"
+                  )}
                 </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" type="button" onClick={() => setIsComposerOpen(false)}>
-                  {lang === "vi" ? "Hủy" : "Cancel"}
+                  {tr("Hủy", "Cancel", "キャンセル")}
                 </Button>
                 <Button size="sm" type="submit">
-                  <Send /> {lang === "vi" ? "Đăng thông báo" : "Post Announcement"}
+                  <Send /> {tr("Đăng thông báo", "Post Announcement", "投稿する")}
                 </Button>
               </div>
             </form>

@@ -12,7 +12,7 @@ const FIRST = PLACEMENT_TEST[0];
 
 export function Hero() {
   const { openTest, goToConsultation } = useHome();
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
 
   const bullets = [
     t.home.hero.bullet1,
@@ -84,19 +84,19 @@ export function Hero() {
             className="absolute -top-3 left-0 animate-[leaf-pop_700ms_var(--ease-out-expo)_400ms_both] rounded-2xl rounded-bl-sm bg-shinme-surface px-4 py-2.5 text-lg font-black text-shinme-primary shadow-[var(--shadow-card)] sm:left-2"
           >
             <span className="inline-flex items-center gap-1.5">
-              {lang === "vi" ? "Cố lên!" : "Ganbatte! (Keep it up!)"} <Heart className="size-4 fill-shinme-accent text-shinme-accent" />
+              {tr("Cố lên!", "Ganbatte! (Keep it up!)", "がんばって！")} <Heart className="size-4 fill-shinme-accent text-shinme-accent" />
             </span>
           </div>
 
           <div className="absolute bottom-0 left-0 right-6 rounded-2xl border border-shinme-border bg-shinme-surface p-5 shadow-[var(--shadow-lift)] sm:right-16">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-extrabold text-shinme-primary">
-                {lang === "vi" ? "Thi thử Mini · Câu 1/5" : "Mini Mock Test · Q 1/5"}
+                {tr("Thi thử Mini · Câu 1/5", "Mini Mock Test · Q 1/5", "ミニ模擬試験 · 第1問/5")}
               </p>
-              <span className="text-xs font-semibold text-shinme-muted">~3 min</span>
+              <span className="text-xs font-semibold text-shinme-muted">{tr("~3 phút", "~3 min", "約3分")}</span>
             </div>
             <p className="mt-2 text-sm text-shinme-muted">
-              {lang === "vi" ? FIRST.hint : "Choose the correct particle for the blank"}
+              {lang === "en" ? FIRST.hintEn : lang === "ja" ? FIRST.hintJa : FIRST.hint}
             </p>
             <FuriganaText as="p" text={FIRST.prompt} className="mt-1 text-xl font-bold text-shinme-ink" />
             <div className="mt-3 grid grid-cols-4 gap-2">

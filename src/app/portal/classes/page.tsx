@@ -36,7 +36,7 @@ import { toast } from "sonner";
 
 export default function ClassesPage() {
   const { role, user } = useRole();
-  const { lang, t } = useTranslation();
+  const { tr } = useTranslation();
 
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [users, setUsers] = useState<UserProfileDoc[]>([]);
@@ -80,7 +80,7 @@ export default function ClassesPage() {
       setUsers(userList);
     } catch (err) {
       console.error("Failed to load classes or users:", err);
-      toast.error(lang === "vi" ? "Không thể tải danh sách lớp học từ hệ thống." : "Failed to load classes from system.");
+      toast.error(tr("Không thể tải danh sách lớp học từ hệ thống.", "Failed to load classes from system.", "クラス一覧を読み込めませんでした。"));
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +116,7 @@ export default function ClassesPage() {
       time: "19:00 – 21:00",
       room: "Phòng 204 & Zoom ID: 889-234-112",
       totalSessions: 40,
-      currentLesson: lang === "vi" ? "Bài 1: Nhập môn" : "Lesson 1: Introduction",
+      currentLesson: tr("Bài 1: Nhập môn", "Lesson 1: Introduction", "第1課：入門"),
     });
     setIsClassModalOpen(true);
   };
@@ -142,7 +142,7 @@ export default function ClassesPage() {
   const handleSaveClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.code.trim()) {
-      toast.error(lang === "vi" ? "Vui lòng điền đầy đủ Mã lớp và Tên lớp!" : "Please fill in Class Code and Name!");
+      toast.error(tr("Vui lòng điền đầy đủ Mã lớp và Tên lớp!", "Please fill in Class Code and Name!", "クラスコードとクラス名を入力してください！"));
       return;
     }
 
@@ -170,29 +170,29 @@ export default function ClassesPage() {
       await saveClass(payload);
       toast.success(
         editingClass
-          ? (lang === "vi" ? "Cập nhật lớp học thành công!" : "Class updated successfully!")
-          : (lang === "vi" ? "Tạo lớp học mới thành công!" : "New class created successfully!")
+          ? tr("Cập nhật lớp học thành công!", "Class updated successfully!", "クラス情報を更新しました！")
+          : tr("Tạo lớp học mới thành công!", "New class created successfully!", "新しいクラスを作成しました！")
       );
       setIsClassModalOpen(false);
       await loadData();
     } catch (err) {
       console.error("Save class error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi lưu lớp học." : "Error saving class.");
+      toast.error(tr("Lỗi khi lưu lớp học.", "Error saving class.", "クラスの保存中にエラーが発生しました。"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteClass = async (classId: string, className: string) => {
-    if (!confirm(lang === "vi" ? `Bạn có chắc chắn muốn xóa lớp "${className}"?` : `Are you sure you want to delete class "${className}"?`)) return;
+    if (!confirm(tr(`Bạn có chắc chắn muốn xóa lớp "${className}"?`, `Are you sure you want to delete class "${className}"?`, `クラス「${className}」を削除してもよろしいですか？`))) return;
     try {
       await deleteClass(classId);
-      toast.success(lang === "vi" ? `Đã xóa lớp ${className}` : `Deleted class ${className}`);
+      toast.success(tr(`Đã xóa lớp ${className}`, `Deleted class ${className}`, `クラス ${className} を削除しました`));
       await loadData();
       if (selectedClass?.id === classId) setSelectedClass(null);
     } catch (err) {
       console.error("Delete class error:", err);
-      toast.error(lang === "vi" ? "Không thể xóa lớp học." : "Failed to delete class.");
+      toast.error(tr("Không thể xóa lớp học.", "Failed to delete class.", "クラスを削除できませんでした。"));
     }
   };
 
@@ -202,11 +202,11 @@ export default function ClassesPage() {
     if (!targetClass) return;
     try {
       await updateUserClassByAdmin(studentUid, targetClass.id, targetClass.name);
-      toast.success(lang === "vi" ? `Đã chuyển học viên sang lớp ${targetClass.shortName}` : `Reassigned student to ${targetClass.shortName}`);
+      toast.success(tr(`Đã chuyển học viên sang lớp ${targetClass.shortName}`, `Reassigned student to ${targetClass.shortName}`, `受講生を ${targetClass.shortName} に移動しました`));
       await loadData();
     } catch (err) {
       console.error("Reassign error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi chuyển lớp cho học viên." : "Error reassigning student.");
+      toast.error(tr("Lỗi khi chuyển lớp cho học viên.", "Error reassigning student.", "クラス移動中にエラーが発生しました。"));
     }
   };
 
@@ -223,21 +223,23 @@ export default function ClassesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            {lang === "vi" ? "Lớp học & Lịch đào tạo" : "Classes & Training Schedule"}
+            {tr("Lớp học & Lịch đào tạo", "Classes & Training Schedule", "クラス・授業スケジュール")}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            {lang === "vi"
-              ? "Quản lý danh sách lớp học, lịch giảng dạy và sĩ số học viên"
-              : "Manage class directory, teaching schedules, and student enrollment"}
+            {tr(
+              "Quản lý danh sách lớp học, lịch giảng dạy và sĩ số học viên",
+              "Manage class directory, teaching schedules, and student enrollment",
+              "クラス一覧・授業スケジュール・受講生人数を管理します"
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Badge tone="leaf">
-            {lang === "vi" ? `${classes.length} Lớp đang mở` : `${classes.length} Active Classes`}
+            {tr(`${classes.length} Lớp đang mở`, `${classes.length} Active Classes`, `開講中 ${classes.length}クラス`)}
           </Badge>
           {role === "admin" && (
             <Button size="sm" onClick={handleOpenCreateModal}>
-              <Plus className="size-4" /> {lang === "vi" ? "Thêm lớp mới" : "Add New Class"}
+              <Plus className="size-4" /> {tr("Thêm lớp mới", "Add New Class", "新規クラス追加")}
             </Button>
           )}
         </div>
@@ -257,14 +259,14 @@ export default function ClassesPage() {
             <GraduationCap className="size-8" />
           </div>
           <h3 className="mt-4 text-lg font-black text-shinme-ink">
-            {lang === "vi" ? "Chưa có lớp học nào" : "No classes found"}
+            {tr("Chưa có lớp học nào", "No classes found", "クラスがありません")}
           </h3>
           <p className="mt-1 text-sm text-shinme-muted">
-            {lang === "vi" ? "Hệ thống chưa có lớp học nào trong cơ sở dữ liệu." : "No classes registered in the system database."}
+            {tr("Hệ thống chưa có lớp học nào trong cơ sở dữ liệu.", "No classes registered in the system database.", "データベースに登録されているクラスがありません。")}
           </p>
           {role === "admin" && (
             <Button className="mt-5" onClick={handleOpenCreateModal}>
-              <Plus className="size-4" /> {lang === "vi" ? "Tạo lớp học đầu tiên" : "Create First Class"}
+              <Plus className="size-4" /> {tr("Tạo lớp học đầu tiên", "Create First Class", "最初のクラスを作成")}
             </Button>
           )}
         </div>
@@ -292,12 +294,12 @@ export default function ClassesPage() {
                       <span className="font-mono text-xs font-bold text-shinme-muted">{c.code}</span>
                       {isUserInThisClass && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-shinme-accent/20 px-2 py-0.5 text-xs font-black text-shinme-primary-deep">
-                          <Sparkles className="size-3" /> {lang === "vi" ? "Lớp của bạn" : "Your Class"}
+                          <Sparkles className="size-3" /> {tr("Lớp của bạn", "Your Class", "あなたのクラス")}
                         </span>
                       )}
                     </div>
                     <Badge tone="leaf">
-                      {classStudents.length || c.studentsCount || 0} {lang === "vi" ? "Học viên" : "Students"}
+                      {classStudents.length || c.studentsCount || 0} {tr("Học viên", "Students", "名")}
                     </Badge>
                   </div>
 
@@ -309,9 +311,9 @@ export default function ClassesPage() {
                   {/* Progress & Current Lesson */}
                   <div className="mt-4 rounded-xl bg-shinme-bg p-3">
                     <div className="flex items-center justify-between text-xs font-semibold text-shinme-muted">
-                      <span>{lang === "vi" ? "Tiến độ bài học:" : "Lesson Progress:"}</span>
+                      <span>{tr("Tiến độ bài học:", "Lesson Progress:", "授業進捗：")}</span>
                       <span className="font-bold text-shinme-primary">
-                        {c.completedSessions} / {c.totalSessions} {lang === "vi" ? "buổi" : "sessions"}
+                        {c.completedSessions} / {c.totalSessions} {tr("buổi", "sessions", "回")}
                       </span>
                     </div>
                     <p className="mt-1 text-xs font-medium text-shinme-ink line-clamp-1">
@@ -355,8 +357,8 @@ export default function ClassesPage() {
                     >
                       <Users className="size-3.5" />{" "}
                       {role === "student"
-                        ? (lang === "vi" ? `Bạn cùng lớp (${classStudents.length})` : `Classmates (${classStudents.length})`)
-                        : (lang === "vi" ? `Danh sách học viên (${classStudents.length})` : `Class Roster (${classStudents.length})`)}
+                        ? tr(`Bạn cùng lớp (${classStudents.length})`, `Classmates (${classStudents.length})`, `クラスメイト (${classStudents.length})`)
+                        : tr(`Danh sách học viên (${classStudents.length})`, `Class Roster (${classStudents.length})`, `受講生名簿 (${classStudents.length})`)}
                     </Button>
 
                     {role === "admin" && (
@@ -365,15 +367,15 @@ export default function ClassesPage() {
                           type="button"
                           onClick={() => handleOpenEditModal(c)}
                           className="rounded-lg p-2 text-xs font-bold text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary"
-                          title={lang === "vi" ? "Chỉnh sửa thông tin lớp" : "Edit class details"}
+                          title={tr("Chỉnh sửa thông tin lớp", "Edit class details", "クラス情報を編集")}
                         >
-                          {lang === "vi" ? "Sửa" : "Edit"}
+                          {tr("Sửa", "Edit", "編集")}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteClass(c.id, c.name)}
                           className="rounded-lg p-2 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                          title={lang === "vi" ? "Xóa lớp học" : "Delete class"}
+                          title={tr("Xóa lớp học", "Delete class", "クラスを削除")}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -394,12 +396,14 @@ export default function ClassesPage() {
         <DialogContent className="max-w-2xl">
           <DialogTitle className="flex items-center gap-2 text-lg font-black text-shinme-ink">
             <Users className="size-5 text-shinme-primary" />
-            {lang === "vi" ? `Học viên lớp: ${selectedClass?.shortName}` : `Class Roster: ${selectedClass?.shortName}`}
+            {tr(`Học viên lớp: ${selectedClass?.shortName}`, `Class Roster: ${selectedClass?.shortName}`, `受講生名簿：${selectedClass?.shortName}`)}
           </DialogTitle>
           <DialogDescription className="text-xs text-shinme-muted">
-            {lang === "vi"
-              ? `Tổng cộng: ${modalClassStudents.length} học viên đăng ký chính thức trên hệ thống`
-              : `Total: ${modalClassStudents.length} students enrolled in system`}
+            {tr(
+              `Tổng cộng: ${modalClassStudents.length} học viên đăng ký chính thức trên hệ thống`,
+              `Total: ${modalClassStudents.length} students enrolled in system`,
+              `合計：システム登録受講生 ${modalClassStudents.length}名`
+            )}
           </DialogDescription>
 
           <div className="mt-4">
@@ -409,7 +413,7 @@ export default function ClassesPage() {
                 type="text"
                 value={studentSearch}
                 onChange={(e) => setStudentSearch(e.target.value)}
-                placeholder={lang === "vi" ? "Tìm học viên theo tên, mã HV hoặc email..." : "Search students by name, ID or email..."}
+                placeholder={tr("Tìm học viên theo tên, mã HV hoặc email...", "Search students by name, ID or email...", "氏名・ID・メールで検索...")}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
               />
             </div>
@@ -417,8 +421,8 @@ export default function ClassesPage() {
             {filteredModalStudents.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-shinme-border py-8 text-center text-xs text-shinme-muted">
                 {modalClassStudents.length === 0
-                  ? (lang === "vi" ? "Chưa có học viên nào được gán vào lớp này." : "No students assigned to this class yet.")
-                  : (lang === "vi" ? "Không tìm thấy học viên phù hợp từ khóa." : "No matching students found.")}
+                  ? tr("Chưa có học viên nào được gán vào lớp này.", "No students assigned to this class yet.", "このクラスにはまだ受講生が配属されていません。")
+                  : tr("Không tìm thấy học viên phù hợp từ khóa.", "No matching students found.", "該当する受講生が見つかりません。")}
               </div>
             ) : (
               <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
@@ -440,7 +444,7 @@ export default function ClassesPage() {
                           <span className="font-mono text-xs font-bold text-shinme-muted">{st.code}</span>
                           {st.targetJLPT && (
                             <span className="rounded bg-shinme-bg px-1.5 py-0.5 font-mono text-xs font-extrabold text-shinme-primary">
-                              {lang === "vi" ? `Mục tiêu: ${st.targetJLPT}` : `Target: ${st.targetJLPT}`}
+                              {tr(`Mục tiêu: ${st.targetJLPT}`, `Target: ${st.targetJLPT}`, `目標：${st.targetJLPT}`)}
                             </span>
                           )}
                         </div>
@@ -478,24 +482,26 @@ export default function ClassesPage() {
       <Dialog open={isClassModalOpen} onOpenChange={setIsClassModalOpen}>
         <DialogContent className="max-w-xl">
           <DialogTitle className="text-lg font-black text-shinme-ink">
-            {editingClass ? (lang === "vi" ? "Chỉnh sửa lớp học" : "Edit Class") : (lang === "vi" ? "Tạo lớp học mới" : "Create New Class")}
+            {editingClass ? tr("Chỉnh sửa lớp học", "Edit Class", "クラスを編集") : tr("Tạo lớp học mới", "Create New Class", "新規クラス作成")}
           </DialogTitle>
           <DialogDescription className="text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Thiết lập thông tin lịch học, giáo viên phụ trách và trình độ đào tạo"
-              : "Configure schedule, instructor, and training level"}
+            {tr(
+              "Thiết lập thông tin lịch học, giáo viên phụ trách và trình độ đào tạo",
+              "Configure schedule, instructor, and training level",
+              "授業スケジュール・担当講師・レベルを設定します"
+            )}
           </DialogDescription>
 
           <form onSubmit={handleSaveClass} className="mt-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Mã lớp *" : "Class Code *"}
+                  {tr("Mã lớp *", "Class Code *", "クラスコード *")}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={lang === "vi" ? "Ví dụ: N3-Tối 246" : "e.g. N3-Evening 246"}
+                  placeholder={tr("Ví dụ: N3-Tối 246", "e.g. N3-Evening 246", "例：N3-夜間246")}
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -504,31 +510,31 @@ export default function ClassesPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Cấp độ đào tạo *" : "Training Level *"}
+                  {tr("Cấp độ đào tạo *", "Training Level *", "レベル *")}
                 </label>
                 <select
                   value={formData.level}
                   onChange={(e) => setFormData({ ...formData, level: e.target.value as ClassDoc["level"] })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="N5">JLPT N5 {lang === "vi" ? "(Nhập môn)" : "(Beginner)"}</option>
-                  <option value="N4">JLPT N4 {lang === "vi" ? "(Sơ cấp)" : "(Elementary)"}</option>
-                  <option value="N3">JLPT N3 {lang === "vi" ? "(Trung cấp)" : "(Intermediate)"}</option>
-                  <option value="N2">JLPT N2 {lang === "vi" ? "(Thượng cấp)" : "(Upper-Intermediate)"}</option>
-                  <option value="N1">JLPT N1 {lang === "vi" ? "(Cao cấp)" : "(Advanced)"}</option>
-                  <option value="KAIWA">{lang === "vi" ? "Giao tiếp Kaiwa" : "Conversation Kaiwa"}</option>
+                  <option value="N5">JLPT N5 {tr("(Nhập môn)", "(Beginner)", "（入門）")}</option>
+                  <option value="N4">JLPT N4 {tr("(Sơ cấp)", "(Elementary)", "（初級）")}</option>
+                  <option value="N3">JLPT N3 {tr("(Trung cấp)", "(Intermediate)", "（中級）")}</option>
+                  <option value="N2">JLPT N2 {tr("(Thượng cấp)", "(Upper-Intermediate)", "（中上級）")}</option>
+                  <option value="N1">JLPT N1 {tr("(Cao cấp)", "(Advanced)", "（上級）")}</option>
+                  <option value="KAIWA">{tr("Giao tiếp Kaiwa", "Conversation Kaiwa", "会話（Kaiwa）")}</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {lang === "vi" ? "Tên lớp đầy đủ *" : "Full Class Name *"}
+                {tr("Tên lớp đầy đủ *", "Full Class Name *", "正式クラス名 *")}
               </label>
               <input
                 type="text"
                 required
-                placeholder={lang === "vi" ? "Ví dụ: N3-Tối 246 (Sensei Tanaka)" : "e.g. N3-Evening 246 (Sensei Tanaka)"}
+                placeholder={tr("Ví dụ: N3-Tối 246 (Sensei Tanaka)", "e.g. N3-Evening 246 (Sensei Tanaka)", "例：N3-夜間246（田中先生）")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -538,12 +544,12 @@ export default function ClassesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Sensei phụ trách *" : "Assigned Sensei *"}
+                  {tr("Sensei phụ trách *", "Assigned Sensei *", "担当講師 *")}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ví dụ: Tanaka Yuki"
+                  placeholder={tr("Ví dụ: Tanaka Yuki", "e.g. Tanaka Yuki", "例：田中由紀")}
                   value={formData.senseiName}
                   onChange={(e) => setFormData({ ...formData, senseiName: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -552,7 +558,7 @@ export default function ClassesPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Tổng số buổi" : "Total Sessions"}
+                  {tr("Tổng số buổi", "Total Sessions", "総授業回数")}
                 </label>
                 <input
                   type="number"
@@ -568,11 +574,11 @@ export default function ClassesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Lịch học trong tuần" : "Weekly Schedule"}
+                  {tr("Lịch học trong tuần", "Weekly Schedule", "曜日スケジュール")}
                 </label>
                 <input
                   type="text"
-                  placeholder={lang === "vi" ? "Ví dụ: Thứ 2 · 4 · 6" : "e.g. Mon · Wed · Fri"}
+                  placeholder={tr("Ví dụ: Thứ 2 · 4 · 6", "e.g. Mon · Wed · Fri", "例：月・水・金")}
                   value={formData.schedule}
                   onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -581,7 +587,7 @@ export default function ClassesPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Giờ học" : "Class Time"}
+                  {tr("Giờ học", "Class Time", "授業時間")}
                 </label>
                 <input
                   type="text"
@@ -595,11 +601,11 @@ export default function ClassesPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {lang === "vi" ? "Phòng học / Link Online" : "Room / Online Link"}
+                {tr("Phòng học / Link Online", "Room / Online Link", "教室・オンラインリンク")}
               </label>
               <input
                 type="text"
-                placeholder={lang === "vi" ? "Ví dụ: Phòng 204 & Zoom ID: 889-234-112" : "e.g. Room 204 & Zoom ID: 889-234-112"}
+                placeholder={tr("Ví dụ: Phòng 204 & Zoom ID: 889-234-112", "e.g. Room 204 & Zoom ID: 889-234-112", "例：204教室 & Zoom ID: 889-234-112")}
                 value={formData.room}
                 onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -608,11 +614,11 @@ export default function ClassesPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {lang === "vi" ? "Bài học hiện tại" : "Current Lesson"}
+                {tr("Bài học hiện tại", "Current Lesson", "現在の単元")}
               </label>
               <input
                 type="text"
-                placeholder={lang === "vi" ? "Ví dụ: Bài 26: Ngữ pháp Soumatome" : "e.g. Lesson 26: Soumatome Grammar"}
+                placeholder={tr("Ví dụ: Bài 26: Ngữ pháp Soumatome", "e.g. Lesson 26: Soumatome Grammar", "例：第26課：総まとめ文法")}
                 value={formData.currentLesson}
                 onChange={(e) => setFormData({ ...formData, currentLesson: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -621,14 +627,14 @@ export default function ClassesPage() {
 
             <div className="flex justify-end gap-2 pt-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsClassModalOpen(false)}>
-                {lang === "vi" ? "Hủy" : "Cancel"}
+                {tr("Hủy", "Cancel", "キャンセル")}
               </Button>
               <Button type="submit" size="sm" disabled={isSubmitting}>
                 {isSubmitting
-                  ? (lang === "vi" ? "Đang lưu..." : "Saving...")
+                  ? tr("Đang lưu...", "Saving...", "保存中...")
                   : editingClass
-                  ? (lang === "vi" ? "Lưu thay đổi" : "Save Changes")
-                  : (lang === "vi" ? "Tạo lớp học" : "Create Class")}
+                  ? tr("Lưu thay đổi", "Save Changes", "変更を保存")
+                  : tr("Tạo lớp học", "Create Class", "クラスを作成")}
               </Button>
             </div>
           </form>

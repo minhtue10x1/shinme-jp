@@ -31,7 +31,7 @@ import { toast } from "sonner";
 
 export default function TestsHubPage() {
   const { role, user, firebaseUser } = useRole();
-  const { lang, t } = useTranslation();
+  const { lang, tr } = useTranslation();
 
   const [tests, setTests] = useState<JLPTTestDoc[]>([]);
   const [submissions, setSubmissions] = useState<TestSubmissionDoc[]>([]);
@@ -57,7 +57,7 @@ export default function TestsHubPage() {
       setClasses(classList);
     } catch (err) {
       console.error("Load tests error:", err);
-      toast.error(lang === "vi" ? "Không thể tải danh sách đề thi." : "Failed to load test list.");
+      toast.error(tr("Không thể tải danh sách đề thi.", "Failed to load test list.", "試験一覧を読み込めませんでした。"));
     } finally {
       setIsLoading(false);
     }
@@ -105,20 +105,24 @@ export default function TestsHubPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-              {lang === "vi" ? "Trung tâm Khảo thí & Đề thi JLPT" : "JLPT Testing Center & Exams"}
+              {tr("Trung tâm Khảo thí & Đề thi JLPT", "JLPT Testing Center & Exams", "JLPT試験センター・模擬試験")}
             </h1>
             <Badge tone="leaf">
-              {lang === "vi" ? "Ngân hàng đề JLPT" : "JLPT Question Bank"}
+              {tr("Ngân hàng đề JLPT", "JLPT Question Bank", "JLPT問題バンク")}
             </Badge>
           </div>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
             {role === "student"
-              ? (lang === "vi"
-                  ? "Phòng thi trực tuyến chuẩn cấu trúc JLPT (Goi · Bunpou · Dấu sao ★ · Dokkai · Choukai)"
-                  : "Online exam hall formatted for JLPT (Goi · Bunpou · Star ★ · Dokkai · Choukai)")
-              : (lang === "vi"
-                  ? "Thiết kế đề thi có Furigana trực tiếp, quản lý ngân hàng đề và phân tích kết quả bài nộp của học viên"
-                  : "Author exams with Furigana, manage question banks, and analyze student submission analytics")}
+              ? tr(
+                  "Phòng thi trực tuyến chuẩn cấu trúc JLPT (Goi · Bunpou · Dấu sao ★ · Dokkai · Choukai)",
+                  "Online exam hall formatted for JLPT (Goi · Bunpou · Star ★ · Dokkai · Choukai)",
+                  "JLPT公式形式対応オンライン試験室（語彙 · 文法 · ★並び替え · 読解 · 聴解）"
+                )
+              : tr(
+                  "Thiết kế đề thi có Furigana trực tiếp, quản lý ngân hàng đề và phân tích kết quả bài nộp của học viên",
+                  "Author exams with Furigana, manage question banks, and analyze student submission analytics",
+                  "ふりがな付き問題作成・問題バンク管理・受講生解答データの分析を行います"
+                )}
           </p>
         </div>
 
@@ -127,12 +131,12 @@ export default function TestsHubPage() {
             <>
               <Button asChild variant="outline" size="sm">
                 <Link href="/portal/tests/manage">
-                  <FolderCog /> {lang === "vi" ? `Quản lý đề thi (${tests.length})` : `Manage Tests (${tests.length})`}
+                  <FolderCog /> {tr(`Quản lý đề thi (${tests.length})`, `Manage Tests (${tests.length})`, `試験管理 (${tests.length})`)}
                 </Link>
               </Button>
               <Button asChild size="sm">
                 <Link href="/portal/tests/create">
-                  <FilePlus2 /> {lang === "vi" ? "Tạo đề thi JLPT mới" : "Create New JLPT Exam"}
+                  <FilePlus2 /> {tr("Tạo đề thi JLPT mới", "Create New JLPT Exam", "JLPT試験を新規作成")}
                 </Link>
               </Button>
             </>
@@ -140,8 +144,8 @@ export default function TestsHubPage() {
           <Button asChild variant="outline" size="sm">
             <Link href="/portal/gradebook">
               <BarChart3 /> {role === "student"
-                ? (lang === "vi" ? "Bảng điểm cá nhân" : "My Gradebook")
-                : (lang === "vi" ? "Sổ điểm & Phân tích câu sai" : "Gradebook & Error Analysis")}
+                ? tr("Bảng điểm cá nhân", "My Gradebook", "個人成績表")
+                : tr("Sổ điểm & Phân tích câu sai", "Gradebook & Error Analysis", "成績表・誤答分析")}
             </Link>
           </Button>
         </div>
@@ -156,10 +160,10 @@ export default function TestsHubPage() {
               onChange={(e) => setSelectedClassId(e.target.value)}
               className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
             >
-              <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
+              <option value="ALL">{tr("Tất cả lớp học", "All Classes", "すべてのクラス")}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
-                  {lang === "vi" ? `Lớp: ${cls.shortName}` : `Class: ${cls.shortName}`}
+                  {tr(`Lớp: ${cls.shortName}`, `Class: ${cls.shortName}`, `クラス：${cls.shortName}`)}
                 </option>
               ))}
             </select>
@@ -170,13 +174,13 @@ export default function TestsHubPage() {
             onChange={(e) => setSelectedLevel(e.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            <option value="ALL">{lang === "vi" ? "Tất cả cấp độ" : "All Levels"}</option>
+            <option value="ALL">{tr("Tất cả cấp độ", "All Levels", "すべてのレベル")}</option>
             <option value="N5">JLPT N5</option>
             <option value="N4">JLPT N4</option>
             <option value="N3">JLPT N3</option>
             <option value="N2">JLPT N2</option>
             <option value="N1">JLPT N1</option>
-            <option value="KAIWA">{lang === "vi" ? "Giao tiếp Kaiwa" : "Kaiwa Communication"}</option>
+            <option value="KAIWA">{tr("Giao tiếp Kaiwa", "Kaiwa Communication", "会話（Kaiwa）")}</option>
           </select>
         </div>
 
@@ -186,7 +190,7 @@ export default function TestsHubPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={lang === "vi" ? "Tìm đề thi theo mã, tên..." : "Search tests by code, title..."}
+            placeholder={tr("Tìm đề thi theo mã, tên...", "Search tests by code, title...", "試験コード・タイトルで検索...")}
             className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
           />
         </div>
@@ -196,42 +200,50 @@ export default function TestsHubPage() {
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2 text-xs font-black text-shinme-primary">
-            <Layers className="size-4" /> {lang === "vi" ? "Trắc nghiệm Goi / Bunpou" : "Goi / Bunpou Choice"}
+            <Layers className="size-4" /> {tr("Trắc nghiệm Goi / Bunpou", "Goi / Bunpou Choice", "語彙・文法 選択問題")}
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Câu hỏi chuẩn 4 đáp án A, B, C, D hỗ trợ gõ và hiển thị Furigana trực tiếp."
-              : "Standard 4-choice questions with direct Furigana annotations."}
+            {tr(
+              "Câu hỏi chuẩn 4 đáp án A, B, C, D hỗ trợ gõ và hiển thị Furigana trực tiếp.",
+              "Standard 4-choice questions with direct Furigana annotations.",
+              "ふりがな表示対応の標準4択問題。"
+            )}
           </p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2 text-xs font-black text-shinme-primary">
-            <Star className="size-4 fill-shinme-accent text-shinme-primary" /> {lang === "vi" ? "Bài tập dấu sao ★" : "Star Exercise ★"}
+            <Star className="size-4 fill-shinme-accent text-shinme-primary" /> {tr("Bài tập dấu sao ★", "Star Exercise ★", "文の組み立て ★問題")}
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Sắp xếp 4 mảnh ghép vào 4 ô trống ___ ___ ★ ___ và chọn từ đứng ở vị trí ★."
-              : "Arrange 4 words into ___ ___ ★ ___ and select the token at position ★."}
+            {tr(
+              "Sắp xếp 4 mảnh ghép vào 4 ô trống ___ ___ ★ ___ và chọn từ đứng ở vị trí ★.",
+              "Arrange 4 words into ___ ___ ★ ___ and select the token at position ★.",
+              "4つの語句を ___ ___ ★ ___ に並び替え、★に入るものを選択します。"
+            )}
           </p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2 text-xs font-black text-shinme-primary">
-            <BookOpen className="size-4" /> {lang === "vi" ? "Đọc hiểu Dokkai" : "Dokkai Reading"}
+            <BookOpen className="size-4" /> {tr("Đọc hiểu Dokkai", "Dokkai Reading", "読解")}
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Giao diện chia đôi: bài đọc tiếng Nhật dài bên trái, nhóm câu hỏi con bên phải."
-              : "Split-pane view: long Japanese passage on left, sub-questions on right."}
+            {tr(
+              "Giao diện chia đôi: bài đọc tiếng Nhật dài bên trái, nhóm câu hỏi con bên phải.",
+              "Split-pane view: long Japanese passage on left, sub-questions on right.",
+              "分割画面：左側に本文、右側に設問を並べて表示。"
+            )}
           </p>
         </div>
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2 text-xs font-black text-shinme-primary">
-            <Headphones className="size-4" /> {lang === "vi" ? "Nghe hiểu Choukai" : "Choukai Listening"}
+            <Headphones className="size-4" /> {tr("Nghe hiểu Choukai", "Choukai Listening", "聴解")}
           </div>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Trình phát MP3 giới hạn số lượt nghe (1 lần / 2 lần / Không giới hạn) sát kỳ thi thật."
-              : "MP3 player with replay limits (1x / 2x / unlimited) mirroring real JLPT."}
+            {tr(
+              "Trình phát MP3 giới hạn số lượt nghe (1 lần / 2 lần / Không giới hạn) sát kỳ thi thật.",
+              "MP3 player with replay limits (1x / 2x / unlimited) mirroring real JLPT.",
+              "本番同様の再生回数制限（1回 / 2回 / 無制限）付き音声プレーヤー。"
+            )}
           </p>
         </div>
       </div>
@@ -249,17 +261,19 @@ export default function TestsHubPage() {
             <GraduationCap className="size-8" />
           </div>
           <h3 className="mt-4 text-lg font-black text-shinme-ink">
-            {lang === "vi" ? "Chưa có đề thi nào" : "No Exams Available"}
+            {tr("Chưa có đề thi nào", "No Exams Available", "試験がありません")}
           </h3>
           <p className="mt-1 text-sm text-shinme-muted">
-            {lang === "vi"
-              ? "Không tìm thấy đề thi phù hợp với lớp học hoặc bộ lọc hiện tại."
-              : "No tests match your class or currently selected filters."}
+            {tr(
+              "Không tìm thấy đề thi phù hợp với lớp học hoặc bộ lọc hiện tại.",
+              "No tests match your class or currently selected filters.",
+              "クラスまたは検索条件に一致する試験が見つかりません。"
+            )}
           </p>
           {role !== "student" && (
             <Button asChild className="mt-5">
               <Link href="/portal/tests/create">
-                <FilePlus2 className="size-4" /> {lang === "vi" ? "Tạo đề thi đầu tiên" : "Create First Exam"}
+                <FilePlus2 className="size-4" /> {tr("Tạo đề thi đầu tiên", "Create First Exam", "最初の試験を作成")}
               </Link>
             </Button>
           )}
@@ -302,7 +316,7 @@ export default function TestsHubPage() {
                       <Badge tone="neutral">{test.className}</Badge>
                       {test.shuffleQuestions && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf-faint px-2.5 py-0.5 text-xs font-bold text-shinme-primary border border-shinme-accent/40">
-                          <Shuffle className="size-3" /> {lang === "vi" ? "Trộn câu ngẫu nhiên" : "Randomized Order"}
+                          <Shuffle className="size-3" /> {tr("Trộn câu ngẫu nhiên", "Randomized Order", "ランダム出題")}
                         </span>
                       )}
                     </div>
@@ -319,22 +333,22 @@ export default function TestsHubPage() {
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {stdCount > 0 && (
                         <span className="rounded-full bg-shinme-bg px-3 py-1 text-xs font-bold text-shinme-ink-soft border border-shinme-line">
-                          Goi / Bunpou: <strong>{stdCount} {lang === "vi" ? "câu" : "items"}</strong>
+                          {tr("Goi / Bunpou", "Goi / Bunpou", "語彙・文法")}: <strong>{stdCount} {tr("câu", "items", "問")}</strong>
                         </span>
                       )}
                       {starCount > 0 && (
                         <span className="rounded-full bg-shinme-bg px-3 py-1 text-xs font-bold text-shinme-ink-soft border border-shinme-line">
-                          {lang === "vi" ? "Dấu sao ★" : "Star ★"}: <strong>{starCount} {lang === "vi" ? "câu" : "items"}</strong>
+                          {tr("Dấu sao ★", "Star ★", "★問題")}: <strong>{starCount} {tr("câu", "items", "問")}</strong>
                         </span>
                       )}
                       {dokkaiCount > 0 && (
                         <span className="rounded-full bg-shinme-bg px-3 py-1 text-xs font-bold text-shinme-ink-soft border border-shinme-line">
-                          {lang === "vi" ? "Đọc hiểu Dokkai" : "Dokkai"}: <strong>{dokkaiCount} {lang === "vi" ? "câu" : "items"}</strong>
+                          {tr("Đọc hiểu Dokkai", "Dokkai", "読解")}: <strong>{dokkaiCount} {tr("câu", "items", "問")}</strong>
                         </span>
                       )}
                       {choukaiCount > 0 && (
                         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-200">
-                          {lang === "vi" ? "Nghe Choukai" : "Choukai"}: <strong>{choukaiCount} {lang === "vi" ? "câu" : "items"}</strong>
+                          {tr("Nghe Choukai", "Choukai", "聴解")}: <strong>{choukaiCount} {tr("câu", "items", "問")}</strong>
                         </span>
                       )}
                     </div>
@@ -342,20 +356,20 @@ export default function TestsHubPage() {
                     {/* Metadata */}
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 pt-2 text-xs font-semibold text-shinme-muted">
                       <span className="inline-flex items-center gap-1">
-                        <Clock className="size-3.5 text-shinme-primary" /> {lang === "vi" ? "Thời gian:" : "Time:"}{" "}
-                        <strong className="tabular text-shinme-ink">{test.durationMinutes} {lang === "vi" ? "phút" : "mins"}</strong>
+                        <Clock className="size-3.5 text-shinme-primary" /> {tr("Thời gian:", "Time:", "試験時間：")}{" "}
+                        <strong className="tabular text-shinme-ink">{test.durationMinutes} {tr("phút", "mins", "分")}</strong>
                       </span>
                       <span className="inline-flex items-center gap-1">
-                        <Award className="size-3.5 text-shinme-primary" /> {lang === "vi" ? "Điểm đạt:" : "Pass score:"}{" "}
+                        <Award className="size-3.5 text-shinme-primary" /> {tr("Điểm đạt:", "Pass score:", "合格点：")}{" "}
                         <strong className="tabular text-shinme-ink">
-                          {test.passScore}/{test.totalPoints} {lang === "vi" ? "điểm" : "pts"}
+                          {test.passScore}/{test.totalPoints} {tr("điểm", "pts", "点")}
                         </strong>
                       </span>
                       {test.deadline && (
                         <span className="inline-flex items-center gap-1">
-                          <Calendar className="size-3.5 text-shinme-danger" /> {lang === "vi" ? "Hạn chót:" : "Deadline:"}{" "}
+                          <Calendar className="size-3.5 text-shinme-danger" /> {tr("Hạn chót:", "Deadline:", "締切：")}{" "}
                           <strong className="tabular text-shinme-danger">
-                            {new Date(test.deadline).toLocaleString(lang === "vi" ? "vi-VN" : "en-US", {
+                            {new Date(test.deadline).toLocaleString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US", {
                               day: "2-digit",
                               month: "2-digit",
                               year: "numeric",
@@ -366,11 +380,11 @@ export default function TestsHubPage() {
                         </span>
                       )}
                       <span>
-                        {lang === "vi" ? "Số lượt làm:" : "Attempts:"}{" "}
+                        {tr("Số lượt làm:", "Attempts:", "受験回数：")}{" "}
                         <strong className="text-shinme-ink">
                           {test.maxAttempts === 0
-                            ? (lang === "vi" ? "Không giới hạn" : "Unlimited")
-                            : (lang === "vi" ? `Tối đa ${test.maxAttempts} lần` : `Up to ${test.maxAttempts} times`)}
+                            ? tr("Không giới hạn", "Unlimited", "無制限")
+                            : tr(`Tối đa ${test.maxAttempts} lần`, `Up to ${test.maxAttempts} times`, `最大 ${test.maxAttempts}回`)}
                         </strong>
                       </span>
                     </div>
@@ -383,29 +397,29 @@ export default function TestsHubPage() {
                         {bestAttempt ? (
                           <div className="rounded-2xl bg-shinme-leaf-faint px-4 py-2.5 text-right border border-shinme-accent/40">
                             <span className="inline-flex items-center gap-1 text-xs font-black text-shinme-primary">
-                              <CheckCircle2 className="size-3.5" /> {lang === "vi" ? `Đã làm (${myAttempts.length} lượt)` : `Done (${myAttempts.length} attempts)`}
+                              <CheckCircle2 className="size-3.5" /> {tr(`Đã làm (${myAttempts.length} lượt)`, `Done (${myAttempts.length} attempts)`, `受験済み（${myAttempts.length}回）`)}
                             </span>
                             <p className="tabular text-lg font-black text-shinme-ink">
-                              {lang === "vi" ? "Điểm cao nhất:" : "Best score:"} {bestAttempt.score}/{bestAttempt.totalPoints}
+                              {tr("Điểm cao nhất:", "Best score:", "最高点：")} {bestAttempt.score}/{bestAttempt.totalPoints}
                             </p>
                           </div>
                         ) : (
-                          <Badge tone="warn">{lang === "vi" ? "Chưa làm bài" : "Not submitted"}</Badge>
+                          <Badge tone="warn">{tr("Chưa làm bài", "Not submitted", "未受験")}</Badge>
                         )}
 
                         <div className="flex flex-wrap justify-end gap-2">
                           {bestAttempt && (
                             <Button asChild variant="outline" size="md">
                               <Link href={`/portal/tests/${test.id}/take?mode=review`}>
-                                {lang === "vi" ? "Xem lại bài làm" : lang === "ja" ? "解答を確認" : "Review Attempt"}
+                                {tr("Xem lại bài làm", "Review Attempt", "解答を確認")}
                               </Link>
                             </Button>
                           )}
                           <Button asChild size="md">
                             <Link href={`/portal/tests/${test.id}/take`}>
                               {bestAttempt
-                                ? (lang === "vi" ? "Làm lại đề thi" : "Retake Exam")
-                                : (lang === "vi" ? "Vào phòng thi ngay" : "Enter Exam Room")}
+                                ? tr("Làm lại đề thi", "Retake Exam", "再受験する")
+                                : tr("Vào phòng thi ngay", "Enter Exam Room", "試験室へ入る")}
                               <ArrowRight />
                             </Link>
                           </Button>
@@ -414,26 +428,26 @@ export default function TestsHubPage() {
                     ) : (
                       <>
                         <div className="rounded-2xl bg-shinme-bg px-4 py-2.5 text-right border border-shinme-line">
-                          <span className="text-xs font-bold text-shinme-muted">{lang === "vi" ? "Lượt nộp của lớp" : "Submissions"}</span>
+                          <span className="text-xs font-bold text-shinme-muted">{tr("Lượt nộp của lớp", "Submissions", "提出数")}</span>
                           <p className="tabular text-lg font-black text-shinme-primary">
-                            {allTestAttempts.length} {lang === "vi" ? "bài nộp" : "submissions"}
+                            {allTestAttempts.length} {tr("bài nộp", "submissions", "件")}
                           </p>
                         </div>
 
                         <div className="flex flex-wrap justify-end gap-2">
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/portal/tests/${test.id}/take?mode=live`}>
-                              {lang === "vi" ? "Xem đề (Chữa bài)" : lang === "ja" ? "問題表示（解説用）" : "Live View"}
+                              {tr("Xem đề (Chữa bài)", "Live View", "問題表示（解説用）")}
                             </Link>
                           </Button>
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/portal/tests/create?editId=${test.id}`}>
-                              {lang === "vi" ? "Sửa đề" : lang === "ja" ? "編集" : "Edit"}
+                              {tr("Sửa đề", "Edit", "編集")}
                             </Link>
                           </Button>
                           <Button asChild size="sm">
                             <Link href={`/portal/gradebook?testId=${test.id}`}>
-                              <BarChart3 /> {lang === "vi" ? "Phân tích điểm" : "Analytics"}
+                              <BarChart3 /> {tr("Phân tích điểm", "Analytics", "成績分析")}
                             </Link>
                           </Button>
                         </div>

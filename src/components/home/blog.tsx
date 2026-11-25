@@ -2,11 +2,11 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { FuriganaText } from "@/components/furigana-text";
-import { BLOG_POSTS } from "@/data/blog";
+import { BLOG_POSTS, localizeBlogPost } from "@/data/blog";
 import { useTranslation } from "@/lib/i18n/context";
 
 export function Blog() {
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
 
   return (
     <section id="blog" aria-labelledby="blog-title" className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -23,31 +23,34 @@ export function Blog() {
       </div>
 
       <ul className="mt-10 divide-y divide-shinme-line border-y border-shinme-line">
-        {BLOG_POSTS.map((p) => (
-          <li key={p.slug}>
-            <a
-              href="#blog"
-              className="group grid gap-2 py-7 transition-colors sm:grid-cols-[9rem_1fr_auto] sm:items-baseline sm:gap-8"
-            >
-              <span className="text-sm font-bold text-shinme-muted">
-                <span className="text-shinme-primary">{p.category}</span> · {p.date}
-              </span>
-              <span>
-                <span className="block text-xl font-extrabold text-shinme-ink transition-colors group-hover:text-shinme-primary sm:text-2xl">
-                  {p.title}
+        {BLOG_POSTS.map((p) => {
+          const loc = localizeBlogPost(p, lang);
+          return (
+            <li key={p.slug}>
+              <a
+                href="#blog"
+                className="group grid gap-2 py-7 transition-colors sm:grid-cols-[9rem_1fr_auto] sm:items-baseline sm:gap-8"
+              >
+                <span className="text-sm font-bold text-shinme-muted">
+                  <span className="text-shinme-primary">{p.category}</span> · {p.date}
                 </span>
-                {p.titleJa && (
-                  <FuriganaText text={p.titleJa} className="mt-1 block text-sm font-bold text-shinme-primary-soft" />
-                )}
-                <span className="mt-2 block max-w-[64ch] leading-relaxed text-shinme-muted">{p.excerpt}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 text-sm font-bold text-shinme-ink-soft">
-                {p.readMinutes} {lang === "vi" ? "phút đọc" : "min read"}
-                <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </span>
-            </a>
-          </li>
-        ))}
+                <span>
+                  <span className="block text-xl font-extrabold text-shinme-ink transition-colors group-hover:text-shinme-primary sm:text-2xl">
+                    <FuriganaText text={loc.title} />
+                  </span>
+                  {lang !== "ja" && p.titleJa && (
+                    <FuriganaText text={p.titleJa} className="mt-1 block text-sm font-bold text-shinme-primary-soft" />
+                  )}
+                  <span className="mt-2 block max-w-[64ch] leading-relaxed text-shinme-muted">{loc.excerpt}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-sm font-bold text-shinme-ink-soft">
+                  {p.readMinutes} {tr("phút đọc", "min read", "分で読めます")}
+                  <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </span>
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

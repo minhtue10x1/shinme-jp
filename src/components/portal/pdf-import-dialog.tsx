@@ -74,7 +74,7 @@ export function PdfImportDialog({
   onImported,
 }: PdfImportDialogProps) {
   const { firebaseUser } = useRole();
-  const { lang } = useTranslation();
+  const { lang, tr } = useTranslation();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -95,20 +95,22 @@ export function PdfImportDialog({
 
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
       setErrorMsg(
-        lang === "vi"
-          ? "Vui lòng chọn tệp định dạng PDF (.pdf)."
-          : lang === "ja"
-            ? "PDFファイル（.pdf）を選択してください。"
-            : "Please select a valid PDF file (.pdf)."
+        tr(
+          "Vui lòng chọn tệp định dạng PDF (.pdf).",
+          "Please select a valid PDF file (.pdf).",
+          "PDFファイル（.pdf）を選択してください。"
+        )
       );
       return;
     }
 
     if (file.size > MAX_RAW_PDF_BYTES) {
       setErrorMsg(
-        lang === "vi"
-          ? "File PDF vượt quá 30MB. Vui lòng nén nhẹ file trước khi tải lên."
-          : "PDF file exceeds 30MB limit."
+        tr(
+          "File PDF vượt quá 30MB. Vui lòng nén nhẹ file trước khi tải lên.",
+          "PDF file exceeds 30MB limit.",
+          "PDFファイルが30MBの上限を超えています。"
+        )
       );
       return;
     }
@@ -127,9 +129,11 @@ export function PdfImportDialog({
     if (!selectedFile) return;
     if (!firebaseUser) {
       toast.error(
-        lang === "vi"
-          ? "Vui lòng đăng nhập tài khoản Sensei/Admin để sử dụng tính năng này."
-          : "Please sign in as Sensei/Admin to use PDF import."
+        tr(
+          "Vui lòng đăng nhập tài khoản Sensei/Admin để sử dụng tính năng này.",
+          "Please sign in as Sensei/Admin to use PDF import.",
+          "PDF取り込みを利用するには講師・管理者アカウントでログインしてください。"
+        )
       );
       return;
     }
@@ -139,11 +143,11 @@ export function PdfImportDialog({
       setErrorMsg(null);
       setProgressPercent(5);
       setProgressText(
-        lang === "vi"
-          ? "Đang phân tích & cắt nhỏ các trang PDF..."
-          : lang === "ja"
-            ? "PDFページを分割しています..."
-            : "Analyzing & splitting PDF pages..."
+        tr(
+          "Đang phân tích & cắt nhỏ các trang PDF...",
+          "Analyzing & splitting PDF pages...",
+          "PDFページを分割しています..."
+        )
       );
 
       const rawBuffer = await selectedFile.arrayBuffer();
@@ -153,9 +157,11 @@ export function PdfImportDialog({
 
       if (targetIndices.length === 0) {
         setErrorMsg(
-          lang === "vi"
-            ? `Khoảng trang không hợp lệ (file PDF có tổng cộng ${docPageCount} trang).`
-            : `Invalid page range (PDF has ${docPageCount} pages).`
+          tr(
+            `Khoảng trang không hợp lệ (file PDF có tổng cộng ${docPageCount} trang).`,
+            `Invalid page range (PDF has ${docPageCount} pages).`,
+            `ページ範囲が無効です（全 ${docPageCount} ページ）。`
+          )
         );
         return;
       }
@@ -278,11 +284,11 @@ export function PdfImportDialog({
 
         setProgressPercent(Math.round(((cIdx + 0.3) / chunks.length) * 100));
         setProgressText(
-          lang === "vi"
-            ? `Đang bóc cụm ${cIdx + 1}/${chunks.length} (${label}) · Đã thu được ${allExtracted.length} câu...`
-            : lang === "ja"
-              ? `バッチ ${cIdx + 1}/${chunks.length} (${label}) を解析中 · 抽出済み ${allExtracted.length}問...`
-              : `Extracting batch ${cIdx + 1}/${chunks.length} (${label}) · ${allExtracted.length} questions so far...`
+          tr(
+            `Đang bóc cụm ${cIdx + 1}/${chunks.length} (${label}) · Đã thu được ${allExtracted.length} câu...`,
+            `Extracting batch ${cIdx + 1}/${chunks.length} (${label}) · ${allExtracted.length} questions so far...`,
+            `バッチ ${cIdx + 1}/${chunks.length} (${label}) を解析中 · 抽出済み ${allExtracted.length}問...`
+          )
         );
 
         const result = await sendSlice(indices, `c${cIdx + 1}`);
@@ -295,9 +301,11 @@ export function PdfImportDialog({
               const singlePageIdx = indices[pPos];
               const singleLabel = `Trang ${singlePageIdx + 1}`;
               setProgressText(
-                lang === "vi"
-                  ? `Cụm ${label} quá dày/nặng — đang tự tách bóc lẻ ${singleLabel} (${pPos + 1}/${indices.length}) · Đã thu ${allExtracted.length} câu...`
-                  : `Retrying ${singleLabel} individually (${pPos + 1}/${indices.length}) · ${allExtracted.length} questions so far...`
+                tr(
+                  `Cụm ${label} quá dày/nặng — đang tự tách bóc lẻ ${singleLabel} (${pPos + 1}/${indices.length}) · Đã thu ${allExtracted.length} câu...`,
+                  `Retrying ${singleLabel} individually (${pPos + 1}/${indices.length}) · ${allExtracted.length} questions so far...`,
+                  `${singleLabel} を個別解析中 (${pPos + 1}/${indices.length}) · 抽出済み ${allExtracted.length}問...`
+                )
               );
               const singleRes = await sendSlice([singlePageIdx], `c${cIdx + 1}p${pPos + 1}`);
               if (!singleRes.ok) {
@@ -317,9 +325,11 @@ export function PdfImportDialog({
       if (allExtracted.length === 0) {
         setErrorMsg(
           lastChunkError ||
-            (lang === "vi"
-              ? "Không trích xuất được câu hỏi trắc nghiệm nào từ các trang đã chọn."
-              : "No multiple-choice questions could be extracted from the selected pages.")
+          tr(
+            "Không trích xuất được câu hỏi trắc nghiệm nào từ các trang đã chọn.",
+            "No multiple-choice questions could be extracted from the selected pages.",
+            "選択したページから選択式問題を抽出できませんでした。"
+          )
         );
         return;
       }
@@ -362,30 +372,32 @@ export function PdfImportDialog({
 
       if (failedChunkLabels.length > 0) {
         toast.warning(
-          lang === "vi"
-            ? `Đã bóc được ${allExtracted.length} câu, nhưng có phần bị lỗi: ${failedChunkLabels.join(", ")}`
-            : `Extracted ${allExtracted.length} questions, but some slices failed: ${failedChunkLabels.join(", ")}`,
+          tr(
+            `Đã bóc được ${allExtracted.length} câu, nhưng có phần bị lỗi: ${failedChunkLabels.join(", ")}`,
+            `Extracted ${allExtracted.length} questions, but some slices failed: ${failedChunkLabels.join(", ")}`,
+            `${allExtracted.length}問を抽出しましたが、一部のページでエラーが発生しました: ${failedChunkLabels.join(", ")}`
+          ),
           {
-            description:
-              lang === "vi"
-                ? `Bạn có thể nhập lại riêng các trang bị lỗi bằng chế độ "Thêm nối tiếp". (${lastChunkError})`
-                : `You can re-import failed pages using Append mode. (${lastChunkError})`,
+            description: tr(
+              `Bạn có thể nhập lại riêng các trang bị lỗi bằng chế độ "Thêm nối tiếp". (${lastChunkError})`,
+              `You can re-import failed pages using Append mode. (${lastChunkError})`,
+              `「末尾に追加する」モードで失敗したページのみ再取り込みできます。(${lastChunkError})`
+            ),
           }
         );
       } else {
         toast.success(
-          lang === "vi"
-            ? `Đã bóc tách thành công ${allExtracted.length} câu hỏi từ PDF!`
-            : lang === "ja"
-              ? `PDFから${allExtracted.length}問を抽出しました！`
-              : `Extracted ${allExtracted.length} questions from PDF!`,
+          tr(
+            `Đã bóc tách thành công ${allExtracted.length} câu hỏi từ PDF!`,
+            `Extracted ${allExtracted.length} questions from PDF!`,
+            `PDFから${allExtracted.length}問を抽出しました！`
+          ),
           {
-            description:
-              lang === "vi"
-                ? "Sensei hãy rà soát lại đề và chọn đáp án đúng cho từng câu trước khi xuất bản."
-                : lang === "ja"
-                  ? "公開前に各問題の内容を確認し、正解を選択してください。"
-                  : "Please review each question and select the correct answer before publishing.",
+            description: tr(
+              "Sensei hãy rà soát lại đề và chọn đáp án đúng cho từng câu trước khi xuất bản.",
+              "Please review each question and select the correct answer before publishing.",
+              "公開前に各問題の内容を確認し、正解を選択してください。"
+            ),
           }
         );
       }
@@ -399,9 +411,7 @@ export function PdfImportDialog({
       setErrorMsg(
         err instanceof Error
           ? err.message
-          : lang === "vi"
-            ? "Lỗi khi xử lý file PDF."
-            : "Error while processing PDF."
+          : tr("Lỗi khi xử lý file PDF.", "Error while processing PDF.", "PDF処理中にエラーが発生しました。")
       );
     } finally {
       setIsProcessing(false);
@@ -420,18 +430,14 @@ export function PdfImportDialog({
             </div>
             <div>
               <DialogTitle className="text-lg font-black text-shinme-ink">
-                {lang === "vi"
-                  ? "Nhập đề thi JLPT từ file PDF (AI)"
-                  : lang === "ja"
-                    ? "PDFファイルからJLPT問題を取り込む (AI)"
-                    : "Import JLPT Exam from PDF (AI)"}
+                {tr("Nhập đề thi JLPT từ file PDF (AI)", "Import JLPT Exam from PDF (AI)", "PDFファイルからJLPT問題を取り込む (AI)")}
               </DialogTitle>
               <DialogDescription className="mt-1 text-xs leading-relaxed text-shinme-muted">
-                {lang === "vi"
-                  ? "Tự động cắt PDF thành từng cụm 3 trang để bóc nhanh, chống quá tải và hỗ trợ đề dài tới 30MB. Đáp án được để trống để Sensei tự rà soát & chọn."
-                  : lang === "ja"
-                    ? "PDFを3ページずつ自動分割して高速抽出します（最大30MB対応）。正解は講師が確認して選択できます。"
-                    : "Automatically slices PDF into 3-page batches for fast, reliable extraction (up to 30MB). Answer keys are left blank for Sensei to review."}
+                {tr(
+                  "Tự động cắt PDF thành từng cụm 3 trang để bóc nhanh, chống quá tải và hỗ trợ đề dài tới 30MB. Đáp án được để trống để Sensei tự rà soát & chọn.",
+                  "Automatically slices PDF into 3-page batches for fast, reliable extraction (up to 30MB). Answer keys are left blank for Sensei to review.",
+                  "PDFを3ページずつ自動分割して高速抽出します（最大30MB対応）。正解は講師が確認して選択できます。"
+                )}
               </DialogDescription>
             </div>
           </div>
@@ -462,7 +468,7 @@ export function PdfImportDialog({
                     <p className="truncate text-sm font-bold text-shinme-ink">{selectedFile.name}</p>
                     <p className="text-xs text-shinme-muted">
                       {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                      {totalPages !== null ? ` · ${totalPages} trang PDF` : " · PDF"}
+                      {totalPages !== null ? ` · ${totalPages} ${tr("trang PDF", "PDF pages", "ページ")}` : " · PDF"}
                     </p>
                   </div>
                 </div>
@@ -532,7 +538,7 @@ export function PdfImportDialog({
                 disabled={isProcessing}
                 value={pageRange}
                 onChange={(e) => setPageRange(e.target.value)}
-                placeholder={lang === "vi" ? "VD: 1-6 hoặc 2-4, 7-9 (trống = tất cả)" : "e.g. 1-6 or 2-4, 7-9"}
+                placeholder={tr("VD: 1-6 hoặc 2-4, 7-9 (trống = tất cả)", "e.g. 1-6 or 2-4, 7-9", "例：1-6 または 2-4, 7-9（空欄＝全ページ）")}
                 className="w-full rounded-xl border border-shinme-border bg-white px-3 py-2 text-xs font-medium text-shinme-ink focus:border-shinme-primary focus:outline-none"
               />
             </div>
@@ -605,7 +611,7 @@ export function PdfImportDialog({
             <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-bold text-shinme-primary">
               <div className="flex items-center gap-2.5">
                 <Loader2 className="size-4 shrink-0 animate-spin" />
-                <span>{progressText || "Đang xử lý PDF..."}</span>
+                <span>{progressText || tr("Đang xử lý PDF...", "Processing PDF...", "PDFを処理中...")}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-200/70">
                 <div

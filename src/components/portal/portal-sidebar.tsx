@@ -44,7 +44,7 @@ export function PortalSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { role, user, logout } = useRole();
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -146,7 +146,7 @@ export function PortalSidebar() {
         </div>
       </div>
 
-      <nav aria-label="Menu chức năng LMS" className="flex-1 overflow-y-auto p-4">
+      <nav aria-label={tr("Menu chức năng LMS", "LMS Navigation Menu", "LMS機能メニュー")} className="flex-1 overflow-y-auto p-4">
         <p className="px-3 text-xs font-bold uppercase tracking-wider text-white/40">{t.common.actions}</p>
         <ul className="mt-2 space-y-1">
           {visible.map((item) => {
@@ -217,7 +217,7 @@ export function PortalSidebar() {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="Mở menu LMS"
+          aria-label={tr("Mở menu LMS", "Open LMS menu", "LMSメニューを開く")}
           className="grid size-10 place-items-center rounded-xl border border-shinme-border text-shinme-primary hover:bg-shinme-leaf"
         >
           <Menu className="size-5" />
@@ -243,7 +243,7 @@ export function PortalSidebar() {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              aria-label="Đóng menu"
+              aria-label={tr("Đóng menu", "Close menu", "メニューを閉じる")}
               className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
             >
               <X className="size-4" />
@@ -254,7 +254,7 @@ export function PortalSidebar() {
       )}
 
       {/* Desktop sidebar */}
-      <aside aria-label="Thanh điều hướng LMS" className="hidden w-[var(--sidebar-w)] shrink-0 lg:block">
+      <aside aria-label={tr("Thanh điều hướng LMS", "LMS Sidebar", "LMSサイドバー")} className="hidden w-[var(--sidebar-w)] shrink-0 lg:block">
         <div className="sticky top-0 h-screen">{sidebarContent}</div>
       </aside>
 
@@ -274,6 +274,8 @@ export function PortalSidebar() {
                   <DialogDescription className="mt-1 text-xs text-shinme-muted leading-relaxed">
                     {lang === "vi" ? (
                       <>Bạn có chắc chắn muốn đăng xuất khỏi tài khoản <strong className="text-shinme-ink">{user.name}</strong> ({user.code}) không?</>
+                    ) : lang === "ja" ? (
+                      <>アカウント <strong className="text-shinme-ink">{user.name}</strong>（{user.code}）からログアウトしてもよろしいですか？</>
                     ) : (
                       <>Are you sure you want to log out of account <strong className="text-shinme-ink">{user.name}</strong> ({user.code})?</>
                     )}

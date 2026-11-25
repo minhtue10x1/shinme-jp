@@ -49,7 +49,16 @@ const CATEGORIES_VI = [
 
 export default function MaterialsPage() {
   const { role, user } = useRole();
-  const { lang, t } = useTranslation();
+  const { tr } = useTranslation();
+
+  const categoryLabel = (cat: string) => {
+    if (cat === "Giáo trình chính") return tr("Giáo trình chính", "Main Curriculum", "メイン教材");
+    if (cat === "Kanji & Từ vựng") return tr("Kanji & Từ vựng", "Kanji & Vocabulary", "漢字・語彙");
+    if (cat === "Nghe hiểu Chokai") return tr("Nghe hiểu Chokai", "Chokai Listening", "聴解練習");
+    if (cat === "Ngữ pháp & Đề thi") return tr("Ngữ pháp & Đề thi", "Grammar & Exams", "文法・試験対策");
+    if (cat === "Tài liệu bổ trợ") return tr("Tài liệu bổ trợ", "Supplementary Materials", "補助教材");
+    return cat;
+  };
 
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [materials, setMaterials] = useState<MaterialDoc[]>([]);
@@ -88,7 +97,7 @@ export default function MaterialsPage() {
       setMaterials(materialList);
     } catch (err) {
       console.error("Load materials error:", err);
-      toast.error(lang === "vi" ? "Không thể tải danh sách tài liệu từ hệ thống." : "Failed to load materials from system.");
+      toast.error(tr("Không thể tải danh sách tài liệu từ hệ thống.", "Failed to load materials from system.", "教材一覧を読み込めませんでした。"));
     } finally {
       setIsLoading(false);
     }
@@ -152,17 +161,17 @@ export default function MaterialsPage() {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
-      toast.error(lang === "vi" ? "Vui lòng nhập tiêu đề tài liệu!" : "Please enter material title!");
+      toast.error(tr("Vui lòng nhập tiêu đề tài liệu!", "Please enter material title!", "教材タイトルを入力してください！"));
       return;
     }
 
     if (!selectedFile && !formData.externalUrl.trim()) {
-      toast.error(lang === "vi" ? "Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!" : "Please choose a file or paste a direct link!");
+      toast.error(tr("Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!", "Please choose a file or paste a direct link!", "ファイルを選択するか、直接リンクを貼り付けてください！"));
       return;
     }
 
     if (!selectedFile && !isSafeHttpUrl(formData.externalUrl)) {
-      toast.error(lang === "vi" ? "Link tài liệu phải bắt đầu bằng https:// hoặc http://" : "Link must start with https:// or http://");
+      toast.error(tr("Link tài liệu phải bắt đầu bằng https:// hoặc http://", "Link must start with https:// or http://", "URLは https:// または http:// で始まる必要があります"));
       return;
     }
 
@@ -171,7 +180,7 @@ export default function MaterialsPage() {
       setUploadPercent(10);
 
       let fileUrl = formData.externalUrl.trim();
-      const fileName = selectedFile ? selectedFile.name : (lang === "vi" ? "Tài liệu trực tuyến" : "Online Resource");
+      const fileName = selectedFile ? selectedFile.name : tr("Tài liệu trực tuyến", "Online Resource", "オンライン教材");
       let sizeFormatted = "Google Drive / Link";
 
       // Upload file to Firebase Storage if file was provided
@@ -188,8 +197,8 @@ export default function MaterialsPage() {
       const chosenClass = classes.find((c) => c.id === formData.classId);
       const className =
         formData.classId === "ALL"
-          ? (lang === "vi" ? "Toàn bộ học viên" : "All Students")
-          : chosenClass?.name || (lang === "vi" ? "Lớp học" : "Class");
+          ? tr("Toàn bộ học viên", "All Students", "全受講生")
+          : chosenClass?.name || tr("Lớp học", "Class", "クラス");
 
       const payload: MaterialDoc = {
         id: `mat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -208,12 +217,12 @@ export default function MaterialsPage() {
       };
 
       await saveMaterialDoc(payload);
-      toast.success(lang === "vi" ? "Tải lên và lưu tài liệu thành công!" : "Material uploaded and saved successfully!");
+      toast.success(tr("Tải lên và lưu tài liệu thành công!", "Material uploaded and saved successfully!", "教材をアップロードしました！"));
       setIsUploadOpen(false);
       await loadData();
     } catch (err) {
       console.error("Upload material error:", err);
-      toast.error(lang === "vi" ? "Không thể tải lên tài liệu. Vui lòng thử lại!" : "Failed to upload material. Please try again!");
+      toast.error(tr("Không thể tải lên tài liệu. Vui lòng thử lại!", "Failed to upload material. Please try again!", "アップロードに失敗しました。もう一度お試しください！"));
     } finally {
       setIsUploading(false);
       setUploadPercent(0);
@@ -221,14 +230,14 @@ export default function MaterialsPage() {
   };
 
   const handleDeleteMaterial = async (m: MaterialDoc) => {
-    if (!confirm(lang === "vi" ? `Bạn có chắc chắn muốn xóa tài liệu "${m.title}"?` : `Are you sure you want to delete "${m.title}"?`)) return;
+    if (!confirm(tr(`Bạn có chắc chắn muốn xóa tài liệu "${m.title}"?`, `Are you sure you want to delete "${m.title}"?`, `教材「${m.title}」を削除してもよろしいですか？`))) return;
     try {
       await deleteMaterialDoc(m.id, m.fileUrl);
-      toast.success(lang === "vi" ? `Đã xóa tài liệu ${m.title}` : `Deleted material ${m.title}`);
+      toast.success(tr(`Đã xóa tài liệu ${m.title}`, `Deleted material ${m.title}`, `教材 ${m.title} を削除しました`));
       await loadData();
     } catch (err) {
       console.error("Delete material error:", err);
-      toast.error(lang === "vi" ? "Không thể xóa tài liệu." : "Failed to delete material.");
+      toast.error(tr("Không thể xóa tài liệu.", "Failed to delete material.", "教材を削除できませんでした。"));
     }
   };
 
@@ -238,21 +247,23 @@ export default function MaterialsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            {lang === "vi" ? "Kho học liệu & Giáo trình" : "Learning Materials & Curriculum"}
+            {tr("Kho học liệu & Giáo trình", "Learning Materials & Curriculum", "教材ライブラリ・カリキュラム")}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            {lang === "vi"
-              ? "Tài liệu số hóa, slide giảng dạy, bảng từ vựng và audio chokai dành cho các lớp học"
-              : "Digital documents, lecture slides, vocabulary sheets, and Chokai audio for classes"}
+            {tr(
+              "Tài liệu số hóa, slide giảng dạy, bảng từ vựng và audio chokai dành cho các lớp học",
+              "Digital documents, lecture slides, vocabulary sheets, and Chokai audio for classes",
+              "クラス向けのデジタル資料・講義スライド・語彙表・聴解音声"
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Badge tone="leaf">
-            {lang === "vi" ? `${materials.length} Tài liệu` : `${materials.length} Materials`}
+            {tr(`${materials.length} Tài liệu`, `${materials.length} Materials`, `教材 ${materials.length}件`)}
           </Badge>
           {role !== "student" && (
             <Button size="sm" onClick={handleOpenUploadModal}>
-              <Upload className="size-4" /> {lang === "vi" ? "Tải lên tài liệu mới" : "Upload New Material"}
+              <Upload className="size-4" /> {tr("Tải lên tài liệu mới", "Upload New Material", "新規教材をアップロード")}
             </Button>
           )}
         </div>
@@ -270,10 +281,10 @@ export default function MaterialsPage() {
             onChange={(e) => setSelectedClassId(e.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
+            <option value="ALL">{tr("Tất cả lớp học", "All Classes", "すべてのクラス")}</option>
             {classes.map((cls) => (
               <option key={cls.id} value={cls.id}>
-                {lang === "vi" ? `Lớp: ${cls.shortName} (${cls.level})` : `Class: ${cls.shortName} (${cls.level})`}
+                {tr(`Lớp: ${cls.shortName} (${cls.level})`, `Class: ${cls.shortName} (${cls.level})`, `クラス：${cls.shortName} (${cls.level})`)}
               </option>
             ))}
           </select>
@@ -286,16 +297,16 @@ export default function MaterialsPage() {
           >
             {(
               [
-                { id: "Tất cả danh mục", vi: "Tất cả danh mục", en: "All Categories" },
-                { id: "Giáo trình chính", vi: "Giáo trình chính", en: "Main Curriculum" },
-                { id: "Kanji & Từ vựng", vi: "Kanji & Từ vựng", en: "Kanji & Vocabulary" },
-                { id: "Nghe hiểu Chokai", vi: "Nghe hiểu Chokai", en: "Chokai Listening" },
-                { id: "Ngữ pháp & Đề thi", vi: "Ngữ pháp & Đề thi", en: "Grammar & Exams" },
-                { id: "Tài liệu bổ trợ", vi: "Tài liệu bổ trợ", en: "Supplementary Materials" },
+                { id: "Tất cả danh mục", vi: "Tất cả danh mục", en: "All Categories", ja: "すべてのカテゴリー" },
+                { id: "Giáo trình chính", vi: "Giáo trình chính", en: "Main Curriculum", ja: "メイン教材" },
+                { id: "Kanji & Từ vựng", vi: "Kanji & Từ vựng", en: "Kanji & Vocabulary", ja: "漢字・語彙" },
+                { id: "Nghe hiểu Chokai", vi: "Nghe hiểu Chokai", en: "Chokai Listening", ja: "聴解練習" },
+                { id: "Ngữ pháp & Đề thi", vi: "Ngữ pháp & Đề thi", en: "Grammar & Exams", ja: "文法・試験対策" },
+                { id: "Tài liệu bổ trợ", vi: "Tài liệu bổ trợ", en: "Supplementary Materials", ja: "補助教材" },
               ] as const
             ).map((cat) => (
               <option key={cat.id} value={cat.id}>
-                {lang === "vi" ? cat.vi : cat.en}
+                {tr(cat.vi, cat.en, cat.ja)}
               </option>
             ))}
           </select>
@@ -308,7 +319,7 @@ export default function MaterialsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={lang === "vi" ? "Tìm theo tiêu đề, bài học..." : "Search by title, lesson..."}
+            placeholder={tr("Tìm theo tiêu đề, bài học...", "Search by title, lesson...", "タイトル・単元で検索...")}
             className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
           />
         </div>
@@ -327,16 +338,16 @@ export default function MaterialsPage() {
             <BookOpen className="size-8" />
           </div>
           <h3 className="mt-4 text-lg font-black text-shinme-ink">
-            {lang === "vi" ? "Chưa có tài liệu nào" : "No materials found"}
+            {tr("Chưa có tài liệu nào", "No materials found", "教材がありません")}
           </h3>
           <p className="mt-1 text-sm text-shinme-muted">
             {searchQuery || selectedClassId !== "ALL" || selectedCategory !== "Tất cả danh mục"
-              ? (lang === "vi" ? "Không có tài liệu nào phù hợp với bộ lọc hiện tại." : "No materials match the current filters.")
-              : (lang === "vi" ? "Lớp học chưa có học liệu số hóa được tải lên." : "No digitized learning materials uploaded for this class yet.")}
+              ? tr("Không có tài liệu nào phù hợp với bộ lọc hiện tại.", "No materials match the current filters.", "条件に一致する教材が見つかりません。")
+              : tr("Lớp học chưa có học liệu số hóa được tải lên.", "No digitized learning materials uploaded for this class yet.", "このクラスにはまだ教材がアップロードされていません。")}
           </p>
           {role !== "student" && (
             <Button className="mt-5" onClick={handleOpenUploadModal}>
-              <Upload className="size-4" /> {lang === "vi" ? "Tải lên tài liệu đầu tiên" : "Upload First Material"}
+              <Upload className="size-4" /> {tr("Tải lên tài liệu đầu tiên", "Upload First Material", "最初の教材をアップロード")}
             </Button>
           )}
         </div>
@@ -355,9 +366,9 @@ export default function MaterialsPage() {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-shinme-muted">
-                      {m.classId === "ALL" ? (lang === "vi" ? "Chung" : "All") : m.className.split(" ")[0]}
+                      {m.classId === "ALL" ? tr("Chung", "All", "共通") : m.className.split(" ")[0]}
                     </span>
-                    <Badge tone="leaf">{m.category}</Badge>
+                    <Badge tone="leaf">{categoryLabel(m.category)}</Badge>
                   </div>
                 </div>
 
@@ -383,13 +394,13 @@ export default function MaterialsPage() {
                   onClick={(e) => {
                     if (!isSafeHttpUrl(m.fileUrl)) {
                       e.preventDefault();
-                      toast.error(lang === "vi" ? "Đường dẫn tài liệu không hợp lệ." : "Invalid material URL.");
+                      toast.error(tr("Đường dẫn tài liệu không hợp lệ.", "Invalid material URL.", "教材のURLが無効です。"));
                     }
                   }}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline"
                 >
                   <Download className="size-3.5" />
-                  {lang === "vi" ? "Mở / Tải về máy" : "Open / Download"}
+                  {tr("Mở / Tải về máy", "Open / Download", "開く / ダウンロード")}
                   <ExternalLink className="size-3 opacity-70" />
                 </a>
 
@@ -398,7 +409,7 @@ export default function MaterialsPage() {
                     type="button"
                     onClick={() => handleDeleteMaterial(m)}
                     className="rounded-lg p-1.5 text-xs text-rose-600 hover:bg-rose-50"
-                    title={lang === "vi" ? "Xóa tài liệu này" : "Delete material"}
+                    title={tr("Xóa tài liệu này", "Delete material", "この教材を削除")}
                   >
                     <Trash2 className="size-4" />
                   </button>
@@ -416,23 +427,25 @@ export default function MaterialsPage() {
         <DialogContent className="max-w-xl">
           <DialogTitle className="flex items-center gap-2 text-lg font-black text-shinme-ink">
             <Upload className="size-5 text-shinme-primary" />
-            {lang === "vi" ? "Tải lên tài liệu lớp học" : "Upload Class Material"}
+            {tr("Tải lên tài liệu lớp học", "Upload Class Material", "クラス教材をアップロード")}
           </DialogTitle>
           <DialogDescription className="text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học"
-              : "Add new materials or share external links with students by class"}
+            {tr(
+              "Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học",
+              "Add new materials or share external links with students by class",
+              "クラス別に新しい教材を追加または外部リンクを共有します"
+            )}
           </DialogDescription>
 
           <form onSubmit={handleUploadSubmit} className="mt-4 space-y-4">
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {lang === "vi" ? "Tiêu đề tài liệu *" : "Material Title *"}
+                {tr("Tiêu đề tài liệu *", "Material Title *", "教材タイトル *")}
               </label>
               <input
                 type="text"
                 required
-                placeholder={lang === "vi" ? "Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4" : "e.g. Soumatome N3 Textbook — Grammar Week 1-4"}
+                placeholder={tr("Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4", "e.g. Soumatome N3 Textbook — Grammar Week 1-4", "例：日本語総まとめ N3 文法 第1〜4週")}
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -442,14 +455,14 @@ export default function MaterialsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Lớp học áp dụng *" : "Target Class *"}
+                  {tr("Lớp học áp dụng *", "Target Class *", "対象クラス *")}
                 </label>
                 <select
                   value={formData.classId}
                   onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="ALL">{lang === "vi" ? "Toàn bộ trung tâm (Chung)" : "All Center (General)"}</option>
+                  <option value="ALL">{tr("Toàn bộ trung tâm (Chung)", "All Center (General)", "全校共通")}</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.shortName} ({cls.level})
@@ -460,18 +473,18 @@ export default function MaterialsPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Danh mục học liệu *" : "Category *"}
+                  {tr("Danh mục học liệu *", "Category *", "カテゴリー *")}
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as MaterialDoc["category"] })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="Giáo trình chính">{lang === "vi" ? "Giáo trình chính" : "Main Curriculum"}</option>
-                  <option value="Kanji & Từ vựng">{lang === "vi" ? "Kanji & Từ vựng" : "Kanji & Vocabulary"}</option>
-                  <option value="Nghe hiểu Chokai">{lang === "vi" ? "Nghe hiểu Chokai" : "Chokai Listening"}</option>
-                  <option value="Ngữ pháp & Đề thi">{lang === "vi" ? "Ngữ pháp & Đề thi" : "Grammar & Exams"}</option>
-                  <option value="Tài liệu bổ trợ">{lang === "vi" ? "Tài liệu bổ trợ" : "Supplementary Materials"}</option>
+                  <option value="Giáo trình chính">{tr("Giáo trình chính", "Main Curriculum", "メイン教材")}</option>
+                  <option value="Kanji & Từ vựng">{tr("Kanji & Từ vựng", "Kanji & Vocabulary", "漢字・語彙")}</option>
+                  <option value="Nghe hiểu Chokai">{tr("Nghe hiểu Chokai", "Chokai Listening", "聴解練習")}</option>
+                  <option value="Ngữ pháp & Đề thi">{tr("Ngữ pháp & Đề thi", "Grammar & Exams", "文法・試験対策")}</option>
+                  <option value="Tài liệu bổ trợ">{tr("Tài liệu bổ trợ", "Supplementary Materials", "補助教材")}</option>
                 </select>
               </div>
             </div>
@@ -479,27 +492,27 @@ export default function MaterialsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Định dạng file" : "File Format"}
+                  {tr("Định dạng file", "File Format", "ファイル形式")}
                 </label>
                 <select
                   value={formData.format}
                   onChange={(e) => setFormData({ ...formData, format: e.target.value as MaterialDoc["format"] })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="PDF">{lang === "vi" ? "Tài liệu PDF" : "PDF Document"}</option>
-                  <option value="Audio">{lang === "vi" ? "Audio / MP3 (Chokai)" : "Audio / MP3 (Chokai)"}</option>
-                  <option value="Slide">{lang === "vi" ? "Bài giảng Slide / PPTX" : "Slide / PPTX"}</option>
-                  <option value="Doc">{lang === "vi" ? "Văn bản Docx / Excel" : "Docx / Excel"}</option>
+                  <option value="PDF">{tr("Tài liệu PDF", "PDF Document", "PDF資料")}</option>
+                  <option value="Audio">{tr("Audio / MP3 (Chokai)", "Audio / MP3 (Chokai)", "音声 / MP3（聴解）")}</option>
+                  <option value="Slide">{tr("Bài giảng Slide / PPTX", "Slide / PPTX", "スライド / PPTX")}</option>
+                  <option value="Doc">{tr("Văn bản Docx / Excel", "Docx / Excel", "Word / Excel")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Bài học tương ứng" : "Lesson"}
+                  {tr("Bài học tương ứng", "Lesson", "対応単元")}
                 </label>
                 <input
                   type="text"
-                  placeholder={lang === "vi" ? "Ví dụ: Bài 26 hoặc Tuần 2" : "e.g. Lesson 26 or Week 2"}
+                  placeholder={tr("Ví dụ: Bài 26 hoặc Tuần 2", "e.g. Lesson 26 or Week 2", "例：第26課 または 第2週")}
                   value={formData.lesson}
                   onChange={(e) => setFormData({ ...formData, lesson: e.target.value })}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
@@ -509,11 +522,11 @@ export default function MaterialsPage() {
 
             <div>
               <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {lang === "vi" ? "Tiêu đề tiếng Nhật / Furigana (tùy chọn)" : "Japanese Title / Furigana (optional)"}
+                {tr("Tiêu đề tiếng Nhật / Furigana (tùy chọn)", "Japanese Title / Furigana (optional)", "日本語タイトル・ふりがな（任意）")}
               </label>
               <input
                 type="text"
-                placeholder="Ví dụ: 第26課[だいにじゅうろっか] 文法[ぶんぽう]"
+                placeholder={tr("Ví dụ: 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "e.g. 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "例：第26課[だいにじゅうろっか] 文法[ぶんぽう]")}
                 value={formData.titleJa}
                 onChange={(e) => setFormData({ ...formData, titleJa: e.target.value })}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none font-jp"
@@ -541,13 +554,15 @@ export default function MaterialsPage() {
                   {selectedFile ? (
                     <span className="text-shinme-primary font-mono">{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
                   ) : (
-                    lang === "vi"
-                      ? "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)"
-                      : "Click to select a file from computer (PDF, MP3, PPTX, DOCX...)"
+                    tr(
+                      "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)",
+                      "Click to select a file from computer (PDF, MP3, PPTX, DOCX...)",
+                      "クリックしてファイルを選択（PDF, MP3, PPTX, DOCX...）"
+                    )
                   )}
                 </p>
                 <p className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi" ? "Hỗ trợ file tối đa 50MB" : "Supports files up to 50MB"}
+                  {tr("Hỗ trợ file tối đa 50MB", "Supports files up to 50MB", "最大50MBまで対応")}
                 </p>
               </label>
             </div>
@@ -555,9 +570,11 @@ export default function MaterialsPage() {
             {/* External URL alternative */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-shinme-muted">
-                {lang === "vi"
-                  ? "Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)"
-                  : "Or paste direct resource link (Google Drive / OneDrive / YouTube)"}
+                {tr(
+                  "Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)",
+                  "Or paste direct resource link (Google Drive / OneDrive / YouTube)",
+                  "または直接リンクを貼り付け（Google Drive / OneDrive / YouTube）"
+                )}
               </label>
               <input
                 type="url"
@@ -572,7 +589,7 @@ export default function MaterialsPage() {
             {isUploading && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-shinme-primary">
-                  <span>{lang === "vi" ? "Đang lưu tài liệu..." : "Saving document..."}</span>
+                  <span>{tr("Đang lưu tài liệu...", "Saving document...", "教材を保存中...")}</span>
                   <span className="tabular">{uploadPercent}%</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-shinme-line">
@@ -586,12 +603,12 @@ export default function MaterialsPage() {
 
             <div className="flex justify-end gap-2 pt-3">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsUploadOpen(false)} disabled={isUploading}>
-                {lang === "vi" ? "Hủy" : "Cancel"}
+                {tr("Hủy", "Cancel", "キャンセル")}
               </Button>
               <Button type="submit" size="sm" disabled={isUploading}>
                 {isUploading
-                  ? (lang === "vi" ? `Đang tải lên (${uploadPercent}%)...` : `Uploading (${uploadPercent}%)...`)
-                  : (lang === "vi" ? "Lưu & Xuất bản" : "Save & Publish")}
+                  ? tr(`Đang tải lên (${uploadPercent}%)...`, `Uploading (${uploadPercent}%)...`, `アップロード中 (${uploadPercent}%)...`)
+                  : tr("Lưu & Xuất bản", "Save & Publish", "保存して公開")}
               </Button>
             </div>
           </form>

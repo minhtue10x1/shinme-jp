@@ -28,7 +28,15 @@ const LEAD_STATUSES: LeadDoc["status"][] = [
 
 export default function LeadsPage() {
   const { role } = useRole();
-  const { lang } = useTranslation();
+  const { lang, tr } = useTranslation();
+
+  const statusLabel = (st: LeadDoc["status"]) => {
+    if (st === "Chưa liên hệ") return tr("Chưa liên hệ", "New / Uncontacted", "未連絡");
+    if (st === "Đang tư vấn") return tr("Đang tư vấn", "In Consultation", "相談中");
+    if (st === "Đã đăng ký") return tr("Đã đăng ký", "Enrolled", "登録済み");
+    if (st === "Hủy") return tr("Hủy", "Cancelled", "キャンセル");
+    return st;
+  };
 
   const [leads, setLeads] = useState<LeadDoc[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,9 +52,11 @@ export default function LeadsPage() {
     } catch (err) {
       console.error("Failed to load leads from Firestore:", err);
       toast.error(
-        lang === "vi"
-          ? "Không thể tải danh sách khách tư vấn từ hệ thống."
-          : "Failed to load consultation leads."
+        tr(
+          "Không thể tải danh sách khách tư vấn từ hệ thống.",
+          "Failed to load consultation leads.",
+          "相談リード一覧を読み込めませんでした。"
+        )
       );
     } finally {
       setIsLoading(false);
@@ -86,13 +96,15 @@ export default function LeadsPage() {
       await saveLeadDoc(updated);
       setLeads((prev) => prev.map((item) => (item.id === lead.id ? updated : item)));
       toast.success(
-        lang === "vi"
-          ? `Đã cập nhật trạng thái "${lead.fullName}" → ${nextStatus}`
-          : `Updated status for "${lead.fullName}" → ${nextStatus}`
+        tr(
+          `Đã cập nhật trạng thái "${lead.fullName}" → ${statusLabel(nextStatus)}`,
+          `Updated status for "${lead.fullName}" → ${statusLabel(nextStatus)}`,
+          `「${lead.fullName}」のステータスを「${statusLabel(nextStatus)}」に更新しました`
+        )
       );
     } catch (err) {
       console.error("Update lead status error:", err);
-      toast.error(lang === "vi" ? "Không thể cập nhật trạng thái." : "Failed to update status.");
+      toast.error(tr("Không thể cập nhật trạng thái.", "Failed to update status.", "ステータスを更新できませんでした。"));
     } finally {
       setUpdatingId(null);
     }
@@ -101,9 +113,11 @@ export default function LeadsPage() {
   const handleDeleteLead = async (lead: LeadDoc) => {
     if (
       !window.confirm(
-        lang === "vi"
-          ? `Xóa yêu cầu tư vấn của "${lead.fullName}" (${lead.phone})?`
-          : `Delete consultation lead from "${lead.fullName}" (${lead.phone})?`
+        tr(
+          `Xóa yêu cầu tư vấn của "${lead.fullName}" (${lead.phone})?`,
+          `Delete consultation lead from "${lead.fullName}" (${lead.phone})?`,
+          `「${lead.fullName}」（${lead.phone}）の相談リードを削除しますか？`
+        )
       )
     ) {
       return;
@@ -111,15 +125,25 @@ export default function LeadsPage() {
     try {
       await deleteLeadDoc(lead.id);
       setLeads((prev) => prev.filter((item) => item.id !== lead.id));
-      toast.success(lang === "vi" ? "Đã xóa bản ghi tư vấn." : "Deleted lead record.");
+      toast.success(tr("Đã xóa bản ghi tư vấn.", "Deleted lead record.", "リード記録を削除しました。"));
     } catch (err) {
       console.error("Delete lead error:", err);
-      toast.error(lang === "vi" ? "Không thể xóa bản ghi." : "Failed to delete lead.");
+      toast.error(tr("Không thể xóa bản ghi.", "Failed to delete lead.", "記録を削除できませんでした。"));
     }
   };
 
   const handleExportCsv = () => {
-    const header = ["ID", "Họ tên", "SĐT", "Email", "Trình độ", "Mục tiêu", "Trạng thái", "Ghi chú", "Ngày đăng ký"];
+    const header = [
+      "ID",
+      tr("Họ tên", "Full Name", "氏名"),
+      tr("SĐT", "Phone", "電話番号"),
+      "Email",
+      tr("Trình độ", "Level", "レベル"),
+      tr("Mục tiêu", "Goal", "目標"),
+      tr("Trạng thái", "Status", "ステータス"),
+      tr("Ghi chú", "Notes", "備考"),
+      tr("Ngày đăng ký", "Submitted At", "登録日時"),
+    ];
     const rows = filteredLeads.map((l) => [
       l.id,
       l.fullName,
@@ -150,15 +174,17 @@ export default function LeadsPage() {
           <Users className="size-6" />
         </div>
         <h2 className="text-xl font-bold text-shinme-ink">
-          {lang === "vi" ? "Quyền truy cập hạn chế" : "Restricted Access"}
+          {tr("Quyền truy cập hạn chế", "Restricted Access", "アクセス制限")}
         </h2>
         <p className="text-sm text-shinme-muted max-w-md mx-auto">
-          {lang === "vi"
-            ? "Chức năng Quản lý Khách tư vấn (Leads) chỉ dành cho vai trò Quản trị viên (Admin)."
-            : "Consultation Leads management is reserved for Administrator (Admin) roles."}
+          {tr(
+            "Chức năng Quản lý Khách tư vấn (Leads) chỉ dành cho vai trò Quản trị viên (Admin).",
+            "Consultation Leads management is reserved for Administrator (Admin) roles.",
+            "相談リード管理は管理者（Admin）専用機能です。"
+          )}
         </p>
         <Button asChild size="sm">
-          <Link href="/portal">{lang === "vi" ? "Quay về Tổng quan" : "Back to Overview"}</Link>
+          <Link href="/portal">{tr("Quay về Tổng quan", "Back to Overview", "ダッシュボードへ戻る")}</Link>
         </Button>
       </div>
     );
@@ -169,26 +195,28 @@ export default function LeadsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            {lang === "vi" ? "Danh sách Khách tư vấn (Leads)" : "Consultation Leads"}
+            {tr("Danh sách Khách tư vấn (Leads)", "Consultation Leads", "相談リード一覧")}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            {lang === "vi"
-              ? "Dữ liệu đồng bộ trực tiếp từ Form tư vấn & Bài Thi thử Mini trên trang chủ"
-              : "Live leads synced directly from homepage consultation forms & mini placement tests"}
+            {tr(
+              "Dữ liệu đồng bộ trực tiếp từ Form tư vấn & Bài Thi thử Mini trên trang chủ",
+              "Live leads synced directly from homepage consultation forms & mini placement tests",
+              "トップページの相談フォーム・ミニテストとリアルタイム連携しています"
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadLeads} disabled={isLoading}>
             <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            {lang === "vi" ? "Làm mới" : "Refresh"}
+            {tr("Làm mới", "Refresh", "更新")}
           </Button>
           {filteredLeads.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleExportCsv}>
               <Download className="size-3.5" />
-              {lang === "vi" ? "Xuất CSV" : "Export CSV"}
+              {tr("Xuất CSV", "Export CSV", "CSV出力")}
             </Button>
           )}
-          <Badge tone="warn">{lang === "vi" ? "Quản trị viên" : "Admin"}</Badge>
+          <Badge tone="warn">{tr("Quản trị viên", "Admin", "管理者")}</Badge>
         </div>
       </div>
 
@@ -206,7 +234,7 @@ export default function LeadsPage() {
                   : "border border-shinme-border bg-shinme-surface text-shinme-ink-soft hover:bg-shinme-leaf"
               }`}
             >
-              {st === "ALL" ? (lang === "vi" ? `Tất cả (${leads.length})` : `All (${leads.length})`) : st}
+              {st === "ALL" ? tr(`Tất cả (${leads.length})`, `All (${leads.length})`, `すべて (${leads.length})`) : statusLabel(st as LeadDoc["status"])}
             </button>
           ))}
         </div>
@@ -217,7 +245,7 @@ export default function LeadsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={lang === "vi" ? "Tìm theo tên, SĐT, ghi chú..." : "Search by name, phone, notes..."}
+            placeholder={tr("Tìm theo tên, SĐT, ghi chú...", "Search by name, phone, notes...", "氏名・電話番号・メモで検索...")}
             className="h-9 w-full rounded-full border border-shinme-border bg-shinme-surface pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
           />
         </div>
@@ -226,7 +254,7 @@ export default function LeadsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 rounded-2xl border border-shinme-border bg-shinme-surface p-12 text-sm font-semibold text-shinme-muted">
           <Loader2 className="size-5 animate-spin text-shinme-primary" />
-          {lang === "vi" ? "Đang tải danh sách khách tư vấn..." : "Loading consultation leads..."}
+          {tr("Đang tải danh sách khách tư vấn...", "Loading consultation leads...", "相談リードを読み込み中...")}
         </div>
       ) : filteredLeads.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-12 text-center">
@@ -234,16 +262,18 @@ export default function LeadsPage() {
             <Users className="size-6" />
           </div>
           <h3 className="text-lg font-bold text-shinme-ink">
-            {lang === "vi" ? "Chưa có thông tin đăng ký phù hợp" : "No matching registration leads"}
+            {tr("Chưa có thông tin đăng ký phù hợp", "No matching registration leads", "該当する登録データがありません")}
           </h3>
           <p className="mt-2 text-sm text-shinme-muted max-w-md mx-auto">
-            {lang === "vi"
-              ? "Học viên khi gửi đơn từ Form tư vấn hoặc hoàn thành bài thi thử mini sẽ hiển thị tại đây."
-              : "Prospective students submitting the homepage consultation form will appear here."}
+            {tr(
+              "Học viên khi gửi đơn từ Form tư vấn hoặc hoàn thành bài thi thử mini sẽ hiển thị tại đây.",
+              "Prospective students submitting the homepage consultation form will appear here.",
+              "トップページの相談フォーム送信やミニテスト完了時にこちらへ表示されます。"
+            )}
           </p>
           <Button asChild size="sm" className="mt-5">
             <Link href="/#tu-van">
-              <ArrowLeft /> {lang === "vi" ? "Đến Form tư vấn trang chủ" : "Go to Homepage Consultation Form"}
+              <ArrowLeft /> {tr("Đến Form tư vấn trang chủ", "Go to Homepage Consultation Form", "相談フォームへ移動")}
             </Link>
           </Button>
         </div>
@@ -251,9 +281,9 @@ export default function LeadsPage() {
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface overflow-hidden shadow-[var(--shadow-card)]">
           <div className="p-4 border-b border-shinme-line flex items-center justify-between">
             <span className="text-sm font-extrabold text-shinme-ink">
-              {lang === "vi" ? "Hiển thị: " : "Showing: "}
+              {tr("Hiển thị: ", "Showing: ", "表示中：")}
               <strong className="text-shinme-primary">{filteredLeads.length}</strong>{" "}
-              {lang === "vi" ? "khách hàng" : "leads"}
+              {tr("khách hàng", "leads", "件")}
             </span>
           </div>
 
@@ -261,13 +291,13 @@ export default function LeadsPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-shinme-line bg-shinme-bg text-xs font-extrabold uppercase text-shinme-muted">
                 <tr>
-                  <th className="py-3 px-4">{lang === "vi" ? "Họ và tên" : "Full Name"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "SĐT / Zalo" : "Phone / Zalo"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Trình độ" : "Level"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Mục tiêu & Ghi chú" : "Goal & Notes"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Trạng thái" : "Status"}</th>
-                  <th className="py-3 px-4 text-right">{lang === "vi" ? "Thời gian gửi" : "Submitted At"}</th>
-                  <th className="py-3 px-4 text-right">{lang === "vi" ? "Xóa" : "Delete"}</th>
+                  <th className="py-3 px-4">{tr("Họ và tên", "Full Name", "氏名")}</th>
+                  <th className="py-3 px-4">{tr("SĐT / Zalo", "Phone / Zalo", "電話 / Zalo")}</th>
+                  <th className="py-3 px-4">{tr("Trình độ", "Level", "レベル")}</th>
+                  <th className="py-3 px-4">{tr("Mục tiêu & Ghi chú", "Goal & Notes", "目標・備考")}</th>
+                  <th className="py-3 px-4">{tr("Trạng thái", "Status", "ステータス")}</th>
+                  <th className="py-3 px-4 text-right">{tr("Thời gian gửi", "Submitted At", "送信日時")}</th>
+                  <th className="py-3 px-4 text-right">{tr("Xóa", "Delete", "削除")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-shinme-line">
@@ -297,14 +327,14 @@ export default function LeadsPage() {
                       >
                         {LEAD_STATUSES.map((st) => (
                           <option key={st} value={st}>
-                            {st}
+                            {statusLabel(st)}
                           </option>
                         ))}
                       </select>
                     </td>
                     <td className="py-3 px-4 text-right text-xs text-shinme-muted tabular">
                       {l.createdAt
-                        ? new Date(l.createdAt).toLocaleString(lang === "vi" ? "vi-VN" : "en-US", {
+                        ? new Date(l.createdAt).toLocaleString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US", {
                             day: "2-digit",
                             month: "2-digit",
                             hour: "2-digit",
@@ -317,7 +347,7 @@ export default function LeadsPage() {
                         type="button"
                         onClick={() => handleDeleteLead(l)}
                         className="rounded-lg p-1.5 text-shinme-muted hover:bg-rose-50 hover:text-rose-600"
-                        title={lang === "vi" ? "Xóa bản ghi" : "Delete record"}
+                        title={tr("Xóa bản ghi", "Delete record", "削除")}
                       >
                         <Trash2 className="size-4" />
                       </button>

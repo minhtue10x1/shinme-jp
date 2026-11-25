@@ -16,7 +16,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 export function ClassSelector() {
   const { role, user } = useRole();
-  const { lang } = useTranslation();
+  const { tr } = useTranslation();
   const [classes, setClasses] = useState<ClassDoc[]>([]);
 
   useEffect(() => {
@@ -53,9 +53,9 @@ export function ClassSelector() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
-                {lang === "vi" ? "Lớp học của bạn:" : "Your class:"}
+                {tr("Lớp học của bạn:", "Your class:", "受講中のクラス：")}
               </span>
-              <Badge tone="leaf">{lang === "vi" ? "Chính khóa" : "Enrolled"}</Badge>
+              <Badge tone="leaf">{tr("Chính khóa", "Enrolled", "正規クラス")}</Badge>
             </div>
             <p className="text-base font-black text-shinme-ink">{studentClass.name}</p>
             <p className="text-xs text-shinme-muted">
@@ -66,7 +66,7 @@ export function ClassSelector() {
 
         <div className="flex items-center gap-2 text-xs font-semibold text-shinme-muted">
           <span className="inline-flex items-center gap-1 text-shinme-primary font-bold">
-            <School className="size-3.5" /> {lang === "vi" ? "Giảng viên:" : "Instructor:"} {studentClass.senseiName}
+            <School className="size-3.5" /> {tr("Giảng viên:", "Instructor:", "担当講師：")} {studentClass.senseiName}
           </span>
         </div>
       </div>
@@ -94,8 +94,8 @@ export function ClassSelector() {
           <div>
             <p className="text-xs font-bold text-shinme-muted uppercase tracking-wider">
               {role === "sensei"
-                ? (lang === "vi" ? "Lớp đang quản lý & giảng dạy" : "Assigned & Active Class")
-                : (lang === "vi" ? "Xem dữ liệu theo lớp học" : "Viewing data by class")}
+                ? tr("Lớp đang quản lý & giảng dạy", "Assigned & Active Class", "担当クラス")
+                : tr("Xem dữ liệu theo lớp học", "Viewing data by class", "クラス別データ表示")}
             </p>
             <p className="text-base font-black text-shinme-ink">{currentClass.name}</p>
           </div>
@@ -103,7 +103,7 @@ export function ClassSelector() {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-shinme-muted">
-            {lang === "vi" ? "Chuyển lớp:" : "Switch class:"}
+            {tr("Chuyển lớp:", "Switch class:", "クラス切替：")}
           </span>
           <div className="flex flex-wrap gap-1.5">
             {allowedClasses.map((cls) => {

@@ -79,7 +79,7 @@ export function TestTakeClient({
   initialMode?: "take" | "review" | "live";
 }) {
   const { user: currentUser, firebaseUser, role } = useRole();
-  const { lang, t } = useTranslation();
+  const { lang, tr } = useTranslation();
   const isLiveTeachingMode = initialMode === "live" && (role === "sensei" || role === "admin");
   const isReviewMode = initialMode === "review";
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
@@ -120,7 +120,7 @@ export function TestTakeClient({
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (!res.ok) {
-          setReviewError(data?.error || (lang === "vi" ? "Không thể tải bài làm để xem lại." : "Could not load exam review."));
+          setReviewError(data?.error || tr("Không thể tải bài làm để xem lại.", "Could not load exam review.", "解答レビューを読み込めませんでした。"));
           return;
         }
 
@@ -372,9 +372,11 @@ export function TestTakeClient({
             console.error("[exam] Server submit failed:", res.status, errBody);
             if (errBody?.code !== "ADMIN_NOT_CONFIGURED") {
               toast.error(
-                lang === "vi"
-                  ? "Không thể chấm bài trên máy chủ. Vui lòng thử lại."
-                  : "Could not grade exam on server. Please try again.",
+                tr(
+                  "Không thể chấm bài trên máy chủ. Vui lòng thử lại.",
+                  "Could not grade exam on server. Please try again.",
+                  "サーバーでの採点に失敗しました。もう一度お試しください。"
+                ),
                 {
                   description: errBody?.error ? `HTTP ${res.status}: ${errBody.error}` : `HTTP ${res.status}`,
                 }
@@ -438,12 +440,14 @@ export function TestTakeClient({
       });
 
       if (isAutoSubmit) {
-        toast.warning(lang === "vi" ? "Hết giờ làm bài! Hệ thống đã tự động thu bài và chấm điểm." : "Time is up! Exam auto-submitted and scored.");
+        toast.warning(tr("Hết giờ làm bài! Hệ thống đã tự động thu bài và chấm điểm.", "Time is up! Exam auto-submitted and scored.", "制限時間終了！自動的に提出・採点されました。"));
       } else {
         toast.success(
-          lang === "vi"
-            ? `Đã nộp bài thành công! Điểm của bạn: ${earned}/${total} điểm.`
-            : `Submitted successfully! Your score: ${earned}/${total} points.`
+          tr(
+            `Đã nộp bài thành công! Điểm của bạn: ${earned}/${total} điểm.`,
+            `Submitted successfully! Your score: ${earned}/${total} points.`,
+            `提出完了！得点：${earned}/${total} 点。`
+          )
         );
       }
     },
@@ -550,9 +554,11 @@ export function TestTakeClient({
 
     if (limit > 0 && usedPlays >= limit) {
       toast.error(
-        lang === "vi"
-          ? `Bạn đã sử dụng hết ${limit}/${limit} lượt nghe cho phép của câu hỏi này.`
-          : `You have reached the maximum ${limit}/${limit} audio plays allowed for this item.`
+        tr(
+          `Bạn đã sử dụng hết ${limit}/${limit} lượt nghe cho phép của câu hỏi này.`,
+          `You have reached the maximum ${limit}/${limit} audio plays allowed for this item.`,
+          `この問題の再生回数上限（${limit}/${limit}回）に達しました。`
+        )
       );
       return;
     }
@@ -634,7 +640,7 @@ export function TestTakeClient({
   if (isReviewMode && isLoadingReview && !submittedResult) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-semibold text-slate-600">
-        {lang === "vi" ? "Đang tải lại bài làm và đáp án của bạn..." : "Loading your graded exam review..."}
+        {tr("Đang tải lại bài làm và đáp án của bạn...", "Loading your graded exam review...", "採点結果と解答を読み込み中...")}
       </div>
     );
   }
@@ -648,7 +654,7 @@ export function TestTakeClient({
           className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2 text-xs font-bold text-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          {lang === "vi" ? "Quay lại danh sách đề thi" : "Back to Tests"}
+          {tr("Quay lại danh sách đề thi", "Back to Tests", "試験一覧へ戻る")}
         </Link>
       </div>
     );
@@ -668,8 +674,8 @@ export function TestTakeClient({
             }`}
           >
             {submittedResult.passed
-              ? (lang === "vi" ? "🎉 CHÚC MỪNG! BẠN ĐÃ VƯỢT QUA BÀI KIỂM TRA TIẾNG NHẬT JLPT" : "🎉 CONGRATULATIONS! YOU PASSED THE JLPT JAPANESE EXAM")
-              : (lang === "vi" ? "🌱 CHƯA ĐẠT ĐIỂM CHUẨN — HÃY XEM KỸ LỜI GIẢI CỦA SENSEI ĐỂ PHỤC THÙ NHÉ!" : "🌱 PASS MARK NOT MET — REVIEW SENSEI'S EXPLANATIONS BELOW!")}
+              ? tr("🎉 CHÚC MỪNG! BẠN ĐÃ VƯỢT QUA BÀI KIỂM TRA TIẾNG NHẬT JLPT", "🎉 CONGRATULATIONS! YOU PASSED THE JLPT JAPANESE EXAM", "🎉 おめでとうございます！JLPT模擬試験に合格しました")
+              : tr("🌱 CHƯA ĐẠT ĐIỂM CHUẨN — HÃY XEM KỸ LỜI GIẢI CỦA SENSEI ĐỂ PHỤC THÙ NHÉ!", "🌱 PASS MARK NOT MET — REVIEW SENSEI'S EXPLANATIONS BELOW!", "🌱 合格点まであと一歩 — 下の解説をしっかり復習しましょう！")}
           </div>
 
           <div className="grid items-center gap-6 p-6 lg:grid-cols-12">
@@ -689,12 +695,12 @@ export function TestTakeClient({
                   {submittedResult.passed ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-[#135E36]" />
-                      {lang === "vi" ? "KẾT QUẢ: ĐẠT (GOUKAKU 合格)" : "RESULT: PASSED (GOUKAKU 合格)"}
+                      {tr("KẾT QUẢ: ĐẠT (GOUKAKU 合格)", "RESULT: PASSED (GOUKAKU 合格)", "判定：合格")}
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4 text-rose-700" />
-                      {lang === "vi" ? `KẾT QUẢ: CHƯA ĐẠT (Cần ${test.passScore} điểm)` : `RESULT: NOT PASSED (Needs ${test.passScore} pts)`}
+                      {tr(`KẾT QUẢ: CHƯA ĐẠT (Cần ${test.passScore} điểm)`, `RESULT: NOT PASSED (Needs ${test.passScore} pts)`, `判定：不合格（合格ライン ${test.passScore}点）`)}
                     </>
                   )}
                 </span>
@@ -712,7 +718,7 @@ export function TestTakeClient({
               {/* 4 Score KPI Cards */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
-                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Tổng điểm" : "Total Score"}</p>
+                  <p className="text-xs font-bold text-slate-500">{tr("Tổng điểm", "Total Score", "合計得点")}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-[#135E36]">
                     {submittedResult.score}
                     <span className="text-sm font-semibold text-slate-500">
@@ -722,18 +728,18 @@ export function TestTakeClient({
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
-                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Số câu đúng" : "Correct Answers"}</p>
+                  <p className="text-xs font-bold text-slate-500">{tr("Số câu đúng", "Correct Answers", "正答数")}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-slate-900">
                     {submittedResult.correctCount}
                     <span className="text-sm font-semibold text-slate-500">
-                      /{orderedQuestions.length} {lang === "vi" ? "câu" : "items"}
+                      /{orderedQuestions.length} {tr("câu", "items", "問")}
                     </span>
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
                   <p className="text-xs font-bold text-slate-500">
-                    {lang === "vi" ? "Thời gian hoàn thành" : "Completion Time"}
+                    {tr("Thời gian hoàn thành", "Completion Time", "所要時間")}
                   </p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-slate-900">
                     {formatMMSS(submittedResult.durationSeconds)}
@@ -741,9 +747,9 @@ export function TestTakeClient({
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-[#FAF8F2] p-3.5">
-                  <p className="text-xs font-bold text-slate-500">{lang === "vi" ? "Điểm chuẩn" : "Pass Mark"}</p>
+                  <p className="text-xs font-bold text-slate-500">{tr("Điểm chuẩn", "Pass Mark", "合格基準")}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold text-[#135E36]">
-                    {test.passScore}{lang === "vi" ? "đ" : "pts"}
+                    {test.passScore}{tr("đ", "pts", "点")}
                   </p>
                 </div>
               </div>
@@ -763,7 +769,7 @@ export function TestTakeClient({
                   className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#0f4a2a]"
                 >
                   <RotateCcw className="h-4 w-4 text-[#6CC24A]" />
-                  {lang === "vi" ? "Làm lại đề thi này" : "Retake This Exam"}
+                  {tr("Làm lại đề thi này", "Retake This Exam", "もう一度受験する")}
                 </button>
 
                 <Link
@@ -771,7 +777,7 @@ export function TestTakeClient({
                   className="inline-flex items-center gap-2 rounded-xl border border-[#135E36]/20 bg-[#FAF8F2] px-4 py-2.5 text-xs font-bold text-[#135E36] hover:bg-emerald-50"
                 >
                   <BarChart3 className="h-4 w-4" />
-                  {lang === "vi" ? "Xem Bảng điểm lớp & Phân tích câu sai" : "View Gradebook & Error Analysis"}
+                  {tr("Xem Bảng điểm lớp & Phân tích câu sai", "View Gradebook & Error Analysis", "成績表・誤答分析を見る")}
                 </Link>
 
                 <Link
@@ -779,7 +785,7 @@ export function TestTakeClient({
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  {lang === "vi" ? "Về danh sách bài thi" : "Back to Exam List"}
+                  {tr("Về danh sách bài thi", "Back to Exam List", "試験一覧へ戻る")}
                 </Link>
               </div>
             </div>
@@ -797,7 +803,7 @@ export function TestTakeClient({
                   />
                 </div>
                 <span className="absolute -top-2.5 -right-3 rounded-full bg-[#135E36] px-3 py-1 text-xs font-extrabold text-white shadow">
-                  {lang === "vi" ? "Cố lên! ♡" : "Ganbatte! ♡"}
+                  {tr("Cố lên! ♡", "Ganbatte! ♡", "がんばって！♡")}
                 </span>
               </div>
               <p className="font-jp text-xs font-bold text-[#135E36]">
@@ -805,12 +811,16 @@ export function TestTakeClient({
               </p>
               <p className="mt-1 text-xs leading-relaxed text-slate-600">
                 {submittedResult.passed
-                  ? (lang === "vi"
-                      ? "Tuyệt vời lắm! Hãy đọc lại giải thích chi tiết bên dưới để nhớ sâu hơn các cấu trúc ngữ pháp N3 nhé!"
-                      : "Fantastic job! Review Sensei's detailed explanations below to cement your knowledge!")
-                  : (lang === "vi"
-                      ? "Đừng nản lòng nhé! Mỗi câu sai hôm nay là một điểm ngữ pháp bạn sẽ không bao giờ quên trong kỳ thi JLPT thật!"
-                      : "Don't be discouraged! Every mistake today turns into solid mastery for the real JLPT test!")}
+                  ? tr(
+                      "Tuyệt vời lắm! Hãy đọc lại giải thích chi tiết bên dưới để nhớ sâu hơn các cấu trúc ngữ pháp N3 nhé!",
+                      "Fantastic job! Review Sensei's detailed explanations below to cement your knowledge!",
+                      "素晴らしいです！下の解説を見直して、さらに知識を定着させましょう！"
+                    )
+                  : tr(
+                      "Đừng nản lòng nhé! Mỗi câu sai hôm nay là một điểm ngữ pháp bạn sẽ không bao giờ quên trong kỳ thi JLPT thật!",
+                      "Don't be discouraged! Every mistake today turns into solid mastery for the real JLPT test!",
+                      "落ち込まないで！今日のミスは本番のJLPTで確実に得点できる力になります！"
+                    )}
               </p>
             </div>
           </div>
@@ -820,10 +830,14 @@ export function TestTakeClient({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-slate-900">
-              {lang === "vi" ? `Chi tiết đáp án & Lời giải từ Sensei (${orderedQuestions.length} câu)` : `Detailed Answers & Sensei Explanations (${orderedQuestions.length} items)`}
+              {tr(
+                `Chi tiết đáp án & Lời giải từ Sensei (${orderedQuestions.length} câu)`,
+                `Detailed Answers & Sensei Explanations (${orderedQuestions.length} items)`,
+                `解答詳細・講師解説（全${orderedQuestions.length}問）`
+              )}
             </h2>
             <span className="text-xs font-semibold text-slate-500">
-              {lang === "vi" ? "So sánh lựa chọn của bạn với đáp án chuẩn" : "Compare your choices against standard solutions"}
+              {tr("So sánh lựa chọn của bạn với đáp án chuẩn", "Compare your choices against standard solutions", "あなたの解答と正解を比較")}
             </span>
           </div>
 
@@ -860,7 +874,7 @@ export function TestTakeClient({
                       ) : (
                         <XCircle className="h-3.5 w-3.5" />
                       )}
-                      {lang === "vi" ? `Câu ${displayNum}` : `Question ${displayNum}`} • {isCorrect ? `+${q.points}${lang === "vi" ? "đ" : "pts"}` : `0/${q.points}${lang === "vi" ? "đ" : "pts"}`}
+                      {tr(`Câu ${displayNum}`, `Question ${displayNum}`, `問${displayNum}`)} • {isCorrect ? `+${q.points}${tr("đ", "pts", "点")}` : `0/${q.points}${tr("đ", "pts", "点")}`}
                     </span>
                     {secMeta && (
                       <span className="rounded-full bg-[#135E36]/10 px-2.5 py-0.5 font-jp text-xs font-bold text-[#135E36]">
@@ -881,12 +895,14 @@ export function TestTakeClient({
                     }`}
                   >
                     {studentChoice === undefined
-                      ? (lang === "vi" ? "Bỏ trống (Chưa chọn)" : "Skipped (Unanswered)")
+                      ? tr("Bỏ trống (Chưa chọn)", "Skipped (Unanswered)", "未回答")
                       : isCorrect
-                        ? (lang === "vi" ? "Trả lời chính xác" : "Correct answer")
-                        : (lang === "vi"
-                            ? `Bạn chọn ${optionLetters[studentChoice]} • Đáp án đúng: ${optionLetters[q.correctIndex]}`
-                            : `You chose ${optionLetters[studentChoice]} • Correct: ${optionLetters[q.correctIndex]}`)}
+                        ? tr("Trả lời chính xác", "Correct answer", "正解")
+                        : tr(
+                            `Bạn chọn ${optionLetters[studentChoice]} • Đáp án đúng: ${optionLetters[q.correctIndex]}`,
+                            `You chose ${optionLetters[studentChoice]} • Correct: ${optionLetters[q.correctIndex]}`,
+                            `あなたの解答: ${optionLetters[studentChoice]} • 正解: ${optionLetters[q.correctIndex]}`
+                          )}
                   </span>
                 </div>
 
@@ -895,9 +911,11 @@ export function TestTakeClient({
                   sameDokkaiAsPrev ? (
                     <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50/70 px-3 py-1 text-xs font-bold text-sky-900">
                       <FileText className="h-3.5 w-3.5 text-sky-700" />
-                      {lang === "vi"
-                        ? "Chung bài đọc hiểu / áp phích phía trên"
-                        : "Same reading passage / poster as above"}
+                      {tr(
+                        "Chung bài đọc hiểu / áp phích phía trên",
+                        "Same reading passage / poster as above",
+                        "上の読解本文・ポスターと共通"
+                      )}
                     </div>
                   ) : (
                     <div className="mb-4 rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
@@ -944,7 +962,7 @@ export function TestTakeClient({
                 {q.type === "star" && (
                   <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 font-jp text-sm text-amber-950">
                     <span className="mr-2 text-xs font-extrabold text-amber-800">
-                      {lang === "vi" ? "Câu sắp xếp hoàn chỉnh:" : "Complete sentence:"}
+                      {tr("Câu sắp xếp hoàn chỉnh:", "Complete sentence:", "完成した文：")}
                     </span>
                     <FuriganaText text={q.starPrefix || ""} />{" "}
                     {(q.starCorrectOrder ?? [0, 1, 2, 3]).map((optIndex, slotIdx) => {
@@ -999,13 +1017,13 @@ export function TestTakeClient({
                           {isCorrectOpt && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#135E36] px-2 py-0.5 text-xs text-white">
                               <CheckCircle2 className="h-3 w-3 text-[#6CC24A]" />
-                              {lang === "vi" ? "Đáp án đúng" : "Correct"}
+                              {tr("Đáp án đúng", "Correct", "正解")}
                             </span>
                           )}
                           {isStudentOpt && !isCorrectOpt && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-xs text-white">
                               <XCircle className="h-3 w-3" />
-                              {lang === "vi" ? "Bạn đã chọn" : "Your choice"}
+                              {tr("Bạn đã chọn", "Your choice", "あなたの解答")}
                             </span>
                           )}
                         </div>
@@ -1018,7 +1036,7 @@ export function TestTakeClient({
                 {q.type === "choukai" && q.audioScript && q.audioScript.length > 0 && (
                   <div className="mb-3 rounded-xl border border-purple-200 bg-purple-50/40 p-3.5">
                     <p className="mb-2 text-xs font-extrabold text-purple-900">
-                      {lang === "vi" ? "🎧 Script Hội thoại Nghe hiểu (Choukai Transcript):" : "🎧 Listening Audio Transcript (Choukai):"}
+                      {tr("🎧 Script Hội thoại Nghe hiểu (Choukai Transcript):", "🎧 Listening Audio Transcript (Choukai):", "🎧 聴解スクリプト：")}
                     </p>
                     <div className="space-y-2">
                       {q.audioScript.map((line, lIdx) => (
@@ -1043,7 +1061,7 @@ export function TestTakeClient({
                 <div className="rounded-xl border border-[#135E36]/20 bg-[#FAF8F2] p-4">
                   <p className="mb-1 flex items-center gap-1.5 text-xs font-extrabold text-[#135E36]">
                     <Sparkles className="h-3.5 w-3.5" />
-                    {lang === "vi" ? "Giải thích đáp án từ Sensei:" : "Explanation from Sensei:"}
+                    {tr("Giải thích đáp án từ Sensei:", "Explanation from Sensei:", "講師による解説：")}
                   </p>
                   <p className="font-jp text-sm leading-relaxed text-slate-800">
                     <FuriganaText text={q.explanation} />
@@ -1106,14 +1124,16 @@ export function TestTakeClient({
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-[#135E36]">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                {lang === "vi" ? "Đã tự động lưu (localStorage)" : "Auto-saved (localStorage)"}
+                {tr("Đã tự động lưu (localStorage)", "Auto-saved (localStorage)", "自動保存済み (localStorage)")}
               </span>
             </div>
             {restoredFromStorage && (
               <p className="text-xs font-semibold text-amber-700">
-                {lang === "vi"
-                  ? "⚡ Đã khôi phục tiến độ bài làm trước đó của bạn (F5 không mất bài)."
-                  : "⚡ Restored your previous exam progress (safe against page refresh)."}
+                {tr(
+                  "⚡ Đã khôi phục tiến độ bài làm trước đó của bạn (F5 không mất bài).",
+                  "⚡ Restored your previous exam progress (safe against page refresh).",
+                  "⚡ 前回の解答状況を復元しました（再読み込みしても消えません）。"
+                )}
               </p>
             )}
           </div>
@@ -1134,14 +1154,14 @@ export function TestTakeClient({
                   href={`/portal/tests/create?editId=${test.id}`}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50"
                 >
-                  {lang === "vi" ? "Sửa đề thi" : lang === "ja" ? "テスト編集" : "Edit Exam"}
+                  {tr("Sửa đề thi", "Edit Exam", "テスト編集")}
                 </Link>
                 <Link
                   href="/portal/tests"
                   className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  {lang === "vi" ? "Thoát" : "Exit"}
+                  {tr("Thoát", "Exit", "終了")}
                 </Link>
               </>
             ) : (
@@ -1163,9 +1183,11 @@ export function TestTakeClient({
                   className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#0f4a2a]"
                 >
                   <Send className="h-3.5 w-3.5 text-[#6CC24A]" />
-                  {lang === "vi"
-                    ? `Nộp bài (${answeredCount}/${orderedQuestions.length})`
-                    : `Submit (${answeredCount}/${orderedQuestions.length})`}
+                  {tr(
+                    `Nộp bài (${answeredCount}/${orderedQuestions.length})`,
+                    `Submit (${answeredCount}/${orderedQuestions.length})`,
+                    `提出 (${answeredCount}/${orderedQuestions.length})`
+                  )}
                 </button>
               </>
             )}
@@ -1176,13 +1198,13 @@ export function TestTakeClient({
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600">
             <span>
-              {lang === "vi" ? "Tiến độ hoàn thành:" : "Exam Progress:"}{" "}
+              {tr("Tiến độ hoàn thành:", "Exam Progress:", "解答進捗:")}{" "}
               <strong className="text-[#135E36]">
-                {answeredCount}/{orderedQuestions.length} {lang === "vi" ? "câu" : "items"} ({progressPercent}%)
+                {answeredCount}/{orderedQuestions.length} {tr("câu", "items", "問")} ({progressPercent}%)
               </strong>
             </span>
             <span>
-              {lang === "vi" ? "Đánh dấu xem lại:" : "Flagged:"} <strong className="text-amber-700">{flaggedCount}</strong>
+              {tr("Đánh dấu xem lại:", "Flagged:", "見直しフラグ:")} <strong className="text-amber-700">{flaggedCount}</strong>
             </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -1266,7 +1288,7 @@ export function TestTakeClient({
                           className={`relative flex h-7 w-8 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
                             isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
                           }`}
-                          title={`${mKey} · ${lang === "vi" ? "Câu" : "Q"} ${meta?.localNumber ?? idx + 1}`}
+                          title={`${mKey} · ${tr("Câu", "Q", "問")} ${meta?.localNumber ?? idx + 1}`}
                         >
                           {meta?.localNumber ?? idx + 1}
                           {isFlagged && (
@@ -1301,7 +1323,7 @@ export function TestTakeClient({
                     className={`relative flex h-8 w-9 items-center justify-center rounded-lg border font-mono text-xs font-extrabold transition ${btnClass} ${
                       isCurrent ? "ring-2 ring-[#6CC24A] ring-offset-1" : ""
                     }`}
-                    title={`${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${meta?.localNumber ?? idx + 1}: ${q.mondaiLabel}`}
+                    title={`${EXAM_SECTION_META[activeSection].labelJa} · ${tr("Câu", "Q", "問")} ${meta?.localNumber ?? idx + 1}: ${q.mondaiLabel}`}
                   >
                     {meta?.localNumber ?? idx + 1}
                     {isFlagged && (
@@ -1316,15 +1338,15 @@ export function TestTakeClient({
           {/* Palette Legend */}
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-[#135E36]" /> {lang === "vi" ? "Đã làm" : "Answered"}
+              <span className="h-3 w-3 rounded-sm bg-[#135E36]" /> {tr("Đã làm", "Answered", "解答済み")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-sm border border-slate-300 bg-slate-50" />{" "}
-              {lang === "vi" ? "Chưa làm" : "Unanswered"}
+              {tr("Chưa làm", "Unanswered", "未解答")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-sm border border-amber-400 bg-amber-100" />{" "}
-              {lang === "vi" ? "Đánh dấu xem lại" : "Flagged"}
+              {tr("Đánh dấu xem lại", "Flagged", "見直しフラグ")}
             </span>
           </div>
         </div>
@@ -1339,11 +1361,13 @@ export function TestTakeClient({
               <span className="rounded-xl bg-[#135E36] px-3 py-1 font-mono text-xs font-extrabold text-white">
                 {activeNumMeta
                   ? activeSection === "choukai"
-                    ? `${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${activeNumMeta.localNumber}`
-                    : `${EXAM_SECTION_META[activeSection].labelJa} · ${lang === "vi" ? "Câu" : "Q"} ${activeNumMeta.localNumber} / ${activeNumMeta.sectionTotal}`
-                  : lang === "vi"
-                    ? `Câu ${activeIndex + 1} / ${orderedQuestions.length}`
-                    : `Question ${activeIndex + 1} / ${orderedQuestions.length}`}
+                    ? `${EXAM_SECTION_META[activeSection].labelJa} · ${tr("Câu", "Q", "問")} ${activeNumMeta.localNumber}`
+                    : `${EXAM_SECTION_META[activeSection].labelJa} · ${tr("Câu", "Q", "問")} ${activeNumMeta.localNumber} / ${activeNumMeta.sectionTotal}`
+                  : tr(
+                      `Câu ${activeIndex + 1} / ${orderedQuestions.length}`,
+                      `Question ${activeIndex + 1} / ${orderedQuestions.length}`,
+                      `問題 ${activeIndex + 1} / ${orderedQuestions.length}`
+                    )}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F2] px-3 py-1 text-xs font-bold text-[#135E36]">
                 {activeQuestion.type === "standard" && (
@@ -1361,7 +1385,7 @@ export function TestTakeClient({
                 {activeQuestion.mondaiLabel}
               </span>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-bold text-slate-700">
-                {activeQuestion.points} {lang === "vi" ? "điểm" : "pts"}
+                {activeQuestion.points} {tr("điểm", "pts", "点")}
               </span>
             </div>
 
@@ -1380,8 +1404,8 @@ export function TestTakeClient({
                 }`}
               />
               {flagged[activeQuestion.id]
-                ? (lang === "vi" ? "Đã đánh dấu xem lại" : "Flagged")
-                : (lang === "vi" ? "Đánh dấu xem lại" : "Flag for review")}
+                ? tr("Đã đánh dấu xem lại", "Flagged", "フラグ済み")
+                : tr("Đánh dấu xem lại", "Flag for review", "見直しフラグ")}
             </button>
           </div>
 
@@ -1395,7 +1419,7 @@ export function TestTakeClient({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#135E36]">
                     <FileText className="h-4 w-4" />
-                    {lang === "vi" ? "Văn bản Đọc hiểu chung (Dokkai)" : "Shared Reading Passage (Dokkai)"}
+                    {tr("Văn bản Đọc hiểu chung (Dokkai)", "Shared Reading Passage (Dokkai)", "共通読解本文 (読解)")}
                   </span>
                   <span className="rounded-full bg-white px-2.5 py-0.5 font-mono text-xs font-bold text-[#135E36]">
                     {dokkaiGroupQuestions.length > 1
@@ -1405,13 +1429,13 @@ export function TestTakeClient({
                           );
                           const minN = Math.min(...nums);
                           const maxN = Math.max(...nums);
-                          return lang === "vi"
-                            ? `Chung ${dokkaiGroupQuestions.length} câu (${minN}–${maxN})`
-                            : `${dokkaiGroupQuestions.length} questions (${minN}–${maxN})`;
+                          return tr(
+                            `Chung ${dokkaiGroupQuestions.length} câu (${minN}–${maxN})`,
+                            `${dokkaiGroupQuestions.length} questions (${minN}–${maxN})`,
+                            `共通${dokkaiGroupQuestions.length}問 (${minN}〜${maxN})`
+                          );
                         })()
-                      : lang === "vi"
-                        ? "1 câu hỏi"
-                        : "1 question"}
+                      : tr("1 câu hỏi", "1 question", "1問")}
                   </span>
                 </div>
 
@@ -1436,7 +1460,7 @@ export function TestTakeClient({
                       />
                       <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-[#135E36]/90 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition group-hover:bg-[#135E36]">
                         <ZoomIn className="h-3.5 w-3.5" />
-                        {lang === "vi" ? "Bấm để phóng to" : lang === "ja" ? "クリックして拡大" : "Click to Zoom"}
+                        {tr("Bấm để phóng to", "Click to Zoom", "クリックして拡大")}
                       </span>
                     </button>
                   </div>
@@ -1472,7 +1496,7 @@ export function TestTakeClient({
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="rounded-lg bg-[#135E36] px-2.5 py-0.5 font-mono text-xs font-bold text-white">
-                          {lang === "vi" ? `Câu ${subDisplayNum} (${subQ.points}đ)` : `Question ${subDisplayNum} (${subQ.points}pts)`}
+                          {tr(`Câu ${subDisplayNum} (${subQ.points}đ)`, `Question ${subDisplayNum} (${subQ.points}pts)`, `問${subDisplayNum} (${subQ.points}点)`)}
                         </span>
                         <button
                           type="button"
@@ -1486,8 +1510,8 @@ export function TestTakeClient({
                         >
                           <Flag className="h-3.5 w-3.5" />
                           {flagged[subQ.id]
-                            ? (lang === "vi" ? "Đã đánh dấu" : "Flagged")
-                            : (lang === "vi" ? "Xem lại" : "Review")}
+                            ? tr("Đã đánh dấu", "Flagged", "フラグ済み")
+                            : tr("Xem lại", "Review", "見直し")}
                         </button>
                       </div>
 
@@ -1546,7 +1570,11 @@ export function TestTakeClient({
             <div className="space-y-5">
               {activeQuestion.instruction && (
                 <p className="text-xs font-bold text-slate-500">
-                  {lang === "vi" ? `💡 Hướng dẫn: ${activeQuestion.instruction}` : `💡 Instruction: ${activeQuestion.instruction}`}
+                  {tr(
+                    `💡 Hướng dẫn: ${activeQuestion.instruction}`,
+                    `💡 Instruction: ${activeQuestion.instruction}`,
+                    `💡 指示: ${activeQuestion.instruction}`
+                  )}
                 </p>
               )}
 
@@ -1594,12 +1622,16 @@ export function TestTakeClient({
                         </div>
                         <p className="mt-0.5 text-xs text-slate-600">
                           {playingQuestionId === activeQuestion.id
-                            ? (lang === "vi"
-                                ? "Đang phát băng nghe tiếng Nhật... Hãy chú ý lắng nghe!"
-                                : "Playing Japanese audio track... Listen attentively!")
-                            : (lang === "vi"
-                                ? "Nhấn nút Play để bắt đầu nghe đoạn hội thoại."
-                                : "Press Play button to start audio playback.")}
+                            ? tr(
+                                "Đang phát băng nghe tiếng Nhật... Hãy chú ý lắng nghe!",
+                                "Playing Japanese audio track... Listen attentively!",
+                                "日本語音声を再生中... 集中してお聞きください！"
+                              )
+                            : tr(
+                                "Nhấn nút Play để bắt đầu nghe đoạn hội thoại.",
+                                "Press Play button to start audio playback.",
+                                "再生ボタンを押して音声の再生を開始してください。"
+                              )}
                         </p>
                       </div>
                     </div>
@@ -1607,16 +1639,20 @@ export function TestTakeClient({
                     {/* Play Limit Counter Badge */}
                     <div className="rounded-xl border border-purple-200 bg-white px-4 py-2.5 text-right">
                       <p className="text-xs font-bold text-slate-500">
-                        {lang === "vi" ? "Giới hạn số lần nghe" : "Audio Play Limits"}
+                        {tr("Giới hạn số lần nghe", "Audio Play Limits", "再生回数制限")}
                       </p>
                       <p className="font-mono text-sm font-extrabold text-purple-900">
                         {(activeQuestion.audioPlayLimit ?? 0) === 0
-                          ? (lang === "vi"
-                              ? `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} lần (Không giới hạn)`
-                              : `Played ${audioPlays[activeQuestion.id] ?? 0} times (Unlimited)`)
-                          : (lang === "vi"
-                              ? `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} lần`
-                              : `Played ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} times`)}
+                          ? tr(
+                              `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} lần (Không giới hạn)`,
+                              `Played ${audioPlays[activeQuestion.id] ?? 0} times (Unlimited)`,
+                              `再生回数 ${audioPlays[activeQuestion.id] ?? 0}回（無制限）`
+                            )
+                          : tr(
+                              `Đã nghe ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} lần`,
+                              `Played ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit} times`,
+                              `再生回数 ${audioPlays[activeQuestion.id] ?? 0} / ${activeQuestion.audioPlayLimit}回`
+                            )}
                       </p>
                     </div>
                   </div>
@@ -1644,9 +1680,11 @@ export function TestTakeClient({
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-900">
                       <Star className="h-4 w-4 fill-amber-500 text-amber-600" />
-                      {lang === "vi"
-                        ? "Khung lắp ghép câu 4 vị trí (Nhấn vào các mảnh từ bên dưới để điền vào ô và chọn đáp án ở vị trí ★)"
-                        : "4-slot sentence frame (Click word chips below to place in slots; token at ★ is your answer)"}
+                      {tr(
+                        "Khung lắp ghép câu 4 vị trí (Nhấn vào các mảnh từ bên dưới để điền vào ô và chọn đáp án ở vị trí ★)",
+                        "4-slot sentence frame (Click word chips below to place in slots; token at ★ is your answer)",
+                        "4つの空欄の並び替え（下の語句をクリックして配置し、★に入る答えを選んでください）"
+                      )}
                     </span>
                     <button
                       type="button"
@@ -1654,7 +1692,7 @@ export function TestTakeClient({
                       className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100"
                     >
                       <RotateCcw className="h-3 w-3" />
-                      {lang === "vi" ? "Xóa xếp lại" : "Reset slots"}
+                      {tr("Xóa xếp lại", "Reset slots", "リセット")}
                     </button>
                   </div>
 
@@ -1689,7 +1727,7 @@ export function TestTakeClient({
                             <FuriganaText text={filledText} />
                           ) : (
                             <span className="font-sans text-xs font-semibold text-slate-400">
-                              {isStar ? (lang === "vi" ? "Vị trí ★" : "Slot ★") : (lang === "vi" ? `Ô trống ${slotIdx + 1}` : `Slot ${slotIdx + 1}`)}
+                              {isStar ? tr("Vị trí ★", "Slot ★", "★の位置") : tr(`Ô trống ${slotIdx + 1}`, `Slot ${slotIdx + 1}`, `空欄 ${slotIdx + 1}`)}
                             </span>
                           )}
                         </div>
@@ -1746,7 +1784,7 @@ export function TestTakeClient({
                       <div className="flex items-center gap-1.5">
                         {activeQuestion.type === "star" && slotOrder !== -1 && (
                           <span className="rounded-lg bg-amber-100 px-2 py-0.5 font-sans text-xs font-bold text-amber-900">
-                            {lang === "vi" ? `Ô ${slotOrder + 1}` : `Slot ${slotOrder + 1}`}
+                            {tr(`Ô ${slotOrder + 1}`, `Slot ${slotOrder + 1}`, `枠 ${slotOrder + 1}`)}
                             {(activeQuestion.starSlotIndex ?? 2) === slotOrder
                               ? " (★)"
                               : ""}
@@ -1773,17 +1811,15 @@ export function TestTakeClient({
             >
               <ChevronLeft className="h-4 w-4" />
               {dokkaiGroupQuestions.length > 1
-                ? lang === "vi"
-                  ? "Bài / Câu trước"
-                  : "Previous"
-                : lang === "vi"
-                  ? "Câu trước"
-                  : "Previous"}
+                ? tr("Bài / Câu trước", "Previous", "前の問題")
+                : tr("Câu trước", "Previous", "前の問題")}
             </button>
 
             <span className="text-xs font-semibold text-slate-500">
               {lang === "vi" ? (
                 <>Đã chọn <strong className="text-[#135E36]">{answeredCount}/{orderedQuestions.length}</strong> câu hỏi</>
+              ) : lang === "ja" ? (
+                <>解答済み <strong className="text-[#135E36]">{answeredCount}/{orderedQuestions.length}</strong> 問</>
               ) : (
                 <>Answered <strong className="text-[#135E36]">{answeredCount}/{orderedQuestions.length}</strong> items</>
               )}
@@ -1800,12 +1836,8 @@ export function TestTakeClient({
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#135E36] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#0f4a2a]"
               >
                 {dokkaiGroupQuestions.length > 1
-                  ? lang === "vi"
-                    ? "Bài / Câu tiếp theo"
-                    : "Next"
-                  : lang === "vi"
-                    ? "Câu tiếp theo"
-                    : "Next"}
+                  ? tr("Bài / Câu tiếp theo", "Next", "次の問題")
+                  : tr("Câu tiếp theo", "Next", "次の問題")}
                 <ChevronRight className="h-4 w-4" />
               </button>
             ) : (
@@ -1815,7 +1847,7 @@ export function TestTakeClient({
                 className="inline-flex items-center gap-2 rounded-xl bg-[#135E36] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-[#0f4a2a]"
               >
                 <Award className="h-4 w-4 text-[#6CC24A]" />
-                {lang === "vi" ? "Hoàn thành & Nộp bài" : "Finish & Submit"}
+                {tr("Hoàn thành & Nộp bài", "Finish & Submit", "完了して提出")}
               </button>
             )}
           </div>

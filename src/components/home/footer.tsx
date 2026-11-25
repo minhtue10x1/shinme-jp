@@ -6,7 +6,7 @@ import { ShinmeWordmark } from "@/components/brand/logo";
 import { useTranslation } from "@/lib/i18n/context";
 
 export function Footer() {
-  const { t, lang } = useTranslation();
+  const { t, tr } = useTranslation();
 
   return (
     <footer className="bg-shinme-primary-deep text-white">
@@ -19,14 +19,16 @@ export function Footer() {
             className="mt-4 text-lg font-bold leading-[2] text-shinme-accent"
           />
           <p className="mt-1 text-sm text-white/65">
-            {lang === "vi"
-              ? "Trung tâm Nhật ngữ Shinme — Mở ra tương lai bằng tiếng Nhật."
-              : "Shinme Japanese Language Center — Opening futures through Japanese."}
+            {tr(
+              "Trung tâm Nhật ngữ Shinme — Mở ra tương lai bằng tiếng Nhật.",
+              "Shinme Japanese Language Center — Opening futures through Japanese.",
+              "新芽日本語センター — 日本語で未来をひらく。"
+            )}
           </p>
         </div>
-        <nav aria-label="Explore / Khám phá">
+        <nav aria-label={tr("Khám phá", "Explore", "探索")}>
           <p className="text-sm font-extrabold text-white/60">
-            {lang === "vi" ? "Khám phá" : "Explore"}
+            {tr("Khám phá", "Explore", "探索")}
           </p>
           <ul className="mt-3 space-y-2 font-semibold">
             <li><a className="hover:text-shinme-accent" href="#lo-trinh">{t.nav.roadmap}</a></li>
@@ -37,7 +39,7 @@ export function Footer() {
         </nav>
         <div>
           <p className="text-sm font-extrabold text-white/60">
-            {lang === "vi" ? "Dành cho học viên & Sensei" : "For Learners & Senseis"}
+            {tr("Dành cho học viên & Sensei", "For Learners & Senseis", "受講生・講師向け")}
           </p>
           <ul className="mt-3 space-y-2 font-semibold">
             <li><Link className="hover:text-shinme-accent" href="/portal">{t.nav.portal}</Link></li>

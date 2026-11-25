@@ -7,17 +7,8 @@ import { Button } from "@/components/ui/button";
 import { saveLead } from "@/lib/leads";
 import { cn } from "@/lib/utils";
 import { useHome, type LeadPrefill } from "./home-context";
-import { useTranslation } from "@/lib/i18n/context";
-
-const LEVEL_OPTIONS = ["Mới bắt đầu", "N5", "N4", "N3", "N2", "N1"];
-const GOAL_OPTIONS = [
-  "Thi chứng chỉ JLPT",
-  "Du học Nhật Bản",
-  "Làm việc tại Nhật (kỹ sư, TTS, tokutei)",
-  "Làm việc ở công ty Nhật tại Việt Nam",
-  "Giao tiếp / Kaiwa",
-  "Sở thích, văn hóa Nhật",
-];
+import { useTranslation, pickLang } from "@/lib/i18n/context";
+import type { Language } from "@/lib/i18n/types";
 
 type Values = { fullName: string; phone: string; level: string; goal: string; note: string };
 type Errors = Partial<Record<keyof Values, string>>;
@@ -26,37 +17,48 @@ function normalizePhone(v: string) {
   return v.replace(/[\s.\-()]/g, "").replace(/^\+/, "");
 }
 
-function validate(v: Values): Errors {
+function validate(v: Values, lang: Language): Errors {
   const e: Errors = {};
   const name = v.fullName.trim();
-  if (!name) e.fullName = "Vui lòng nhập họ tên.";
-  else if (name.length < 2 || /\d/.test(name)) e.fullName = "Họ tên chưa hợp lệ — chỉ gồm chữ, tối thiểu 2 ký tự.";
+  if (!name) e.fullName = pickLang(lang, "Vui lòng nhập họ tên.", "Please enter your full name.", "お名前を入力してください。");
+  else if (name.length < 2 || /\d/.test(name))
+    e.fullName = pickLang(
+      lang,
+      "Họ tên chưa hợp lệ — chỉ gồm chữ, tối thiểu 2 ký tự.",
+      "Invalid name — letters only, minimum 2 characters.",
+      "お名前が正しくありません（2文字以上、数字不可）。"
+    );
   const phone = normalizePhone(v.phone);
-  if (!phone) e.phone = "Vui lòng nhập số điện thoại hoặc Zalo.";
+  if (!phone) e.phone = pickLang(lang, "Vui lòng nhập số điện thoại hoặc Zalo.", "Please enter your phone or Zalo number.", "電話番号またはZalo番号を入力してください。");
   else if (!/^(0|84)(3|5|7|8|9)\d{8}$/.test(phone))
-    e.phone = "Số điện thoại chưa đúng. Ví dụ: 0912 345 678 hoặc +84 912 345 678.";
-  if (!v.level) e.level = "Chọn trình độ hiện tại của bạn.";
-  if (!v.goal) e.goal = "Chọn mục tiêu học để Sensei tư vấn đúng lộ trình.";
-  if (v.note.length > 300) e.note = "Ghi chú tối đa 300 ký tự.";
+    e.phone = pickLang(
+      lang,
+      "Số điện thoại chưa đúng. Ví dụ: 0912 345 678 hoặc +84 912 345 678.",
+      "Invalid phone number. Example: 0912 345 678 or +84 912 345 678.",
+      "電話番号の形式が正しくありません（例：0912 345 678 または +84 912 345 678）。"
+    );
+  if (!v.level) e.level = pickLang(lang, "Chọn trình độ hiện tại của bạn.", "Please select your current level.", "現在のレベルを選択してください。");
+  if (!v.goal) e.goal = pickLang(lang, "Chọn mục tiêu học để Sensei tư vấn đúng lộ trình.", "Please select your learning goal.", "学習目標を選択してください。");
+  if (v.note.length > 300) e.note = pickLang(lang, "Ghi chú tối đa 300 ký tự.", "Notes cannot exceed 300 characters.", "備考は300文字以内で入力してください。");
   return e;
 }
 
 export function ConsultationSection() {
   const { leadPrefill } = useHome();
-  const { t, lang } = useTranslation();
+  const { t, tr } = useTranslation();
 
   const steps = [
     [
-      lang === "vi" ? "Shinme gọi lại qua SĐT / Zalo" : "Shinme contacts you via Phone / WhatsApp / Zalo",
-      lang === "vi" ? "Trong vòng 24 giờ làm việc kể từ khi bạn gửi." : "Within 24 working hours of submission."
+      tr("Shinme gọi lại qua SĐT / Zalo", "Shinme contacts you via Phone / WhatsApp / Zalo", "お電話・Zaloにて折り返しご連絡"),
+      tr("Trong vòng 24 giờ làm việc kể từ khi bạn gửi.", "Within 24 working hours of submission.", "お申し込みから24営業時間以内にご連絡します。")
     ],
     [
-      lang === "vi" ? "Test đầu vào 15 phút cùng Sensei" : "15-minute 1-on-1 placement check with Sensei",
-      lang === "vi" ? "Đánh giá cả 4 kỹ năng nghe – nói – đọc – viết." : "Comprehensive evaluation across reading, listening, and speaking."
+      tr("Test đầu vào 15 phút cùng Sensei", "15-minute 1-on-1 placement check with Sensei", "講師との15分間レベルチェック"),
+      tr("Đánh giá cả 4 kỹ năng nghe – nói – đọc – viết.", "Comprehensive evaluation across reading, listening, and speaking.", "読む・聞く・話す・書くの4技能を総合的に診断します。")
     ],
     [
-      lang === "vi" ? "Nhận lộ trình & xếp lớp" : "Receive tailored curriculum & class placement",
-      lang === "vi" ? "Lịch học, học phí và mục tiêu đầu ra rõ ràng." : "Clear timetable, tuition, and guaranteed milestones."
+      tr("Nhận lộ trình & xếp lớp", "Receive tailored curriculum & class placement", "学習プランのご提案・クラス分け"),
+      tr("Lịch học, học phí và mục tiêu đầu ra rõ ràng.", "Clear timetable, tuition, and guaranteed milestones.", "スケジュール・受講料・到達目標を明確にご案内します。")
     ]
   ];
 
@@ -92,7 +94,7 @@ export function ConsultationSection() {
 }
 
 function LeadForm({ prefill }: { prefill: LeadPrefill }) {
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
   const [values, setValues] = useState<Values>({
     fullName: "",
     phone: "",
@@ -108,27 +110,27 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const levelOptions = [
-    lang === "vi" ? "Mới bắt đầu" : "Beginner (Zero)",
+    tr("Mới bắt đầu", "Beginner (Zero)", "入門（ゼロから）"),
     "N5", "N4", "N3", "N2", "N1"
   ];
   const goalOptions = [
-    lang === "vi" ? "Thi chứng chỉ JLPT" : "Pass JLPT Certification",
-    lang === "vi" ? "Du học Nhật Bản" : "Study in Japan",
-    lang === "vi" ? "Làm việc tại Nhật (kỹ sư, TTS, tokutei)" : "Work in Japan (Engineer, Tokutei, Trainee)",
-    lang === "vi" ? "Làm việc ở công ty Nhật tại Việt Nam" : "Work for Japanese Firms in Vietnam",
-    lang === "vi" ? "Giao tiếp / Kaiwa" : "Conversational Japanese (Kaiwa)",
-    lang === "vi" ? "Sở thích, văn hóa Nhật" : "Personal Interest & Japanese Culture",
+    tr("Thi chứng chỉ JLPT", "Pass JLPT Certification", "JLPT資格取得"),
+    tr("Du học Nhật Bản", "Study in Japan", "日本留学"),
+    tr("Làm việc tại Nhật (kỹ sư, TTS, tokutei)", "Work in Japan (Engineer, Tokutei, Trainee)", "日本での就職（エンジニア・特定技能・実習生）"),
+    tr("Làm việc ở công ty Nhật tại Việt Nam", "Work for Japanese Firms in Vietnam", "ベトナムの日系企業での勤務"),
+    tr("Giao tiếp / Kaiwa", "Conversational Japanese (Kaiwa)", "日常・ビジネス会話（Kaiwa）"),
+    tr("Sở thích, văn hóa Nhật", "Personal Interest & Japanese Culture", "趣味・日本文化"),
   ];
 
   const set = (key: keyof Values, value: string) => {
     const next = { ...values, [key]: value };
     setValues(next);
-    if (touched[key]) setErrors((prev) => ({ ...prev, [key]: validate(next)[key] }));
+    if (touched[key]) setErrors((prev) => ({ ...prev, [key]: validate(next, lang)[key] }));
   };
 
   const blur = (key: keyof Values) => {
     setTouched((t) => ({ ...t, [key]: true }));
-    setErrors((prev) => ({ ...prev, [key]: validate(values)[key] }));
+    setErrors((prev) => ({ ...prev, [key]: validate(values, lang)[key] }));
   };
 
   // Guard against IME (Japanese / Vietnamese Telex) Enter submitting mid-composition.
@@ -138,14 +140,14 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const errs = validate(values);
+    const errs = validate(values, lang);
     setErrors(errs);
     setTouched({ fullName: true, phone: true, level: true, goal: true, note: true });
     const firstInvalid = (Object.keys(errs) as (keyof Values)[])[0];
     if (firstInvalid) {
       formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
-      toast.error(lang === "vi" ? "Thông tin chưa đầy đủ" : "Incomplete Information", {
-        description: lang === "vi" ? "Vui lòng kiểm tra các ô được đánh dấu." : "Please review the highlighted fields."
+      toast.error(tr("Thông tin chưa đầy đủ", "Incomplete Information", "入力内容が不十分です"), {
+        description: tr("Vui lòng kiểm tra các ô được đánh dấu.", "Please review the highlighted fields.", "赤枠の項目をご確認ください。")
       });
       return;
     }
@@ -172,9 +174,11 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
       if (res.status === 429) {
         setSubmitting(false);
         toast.error(
-          lang === "vi"
-            ? "Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút."
-            : "Too many submissions. Please try again in a few minutes."
+          tr(
+            "Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút.",
+            "Too many submissions. Please try again in a few minutes.",
+            "送信回数が上限に達しました。しばらくしてからお試しください。"
+          )
         );
         return;
       }
@@ -199,14 +203,17 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
 
     setSubmitting(false);
     toast.success(
-      lang === "vi"
-        ? `Cảm ơn ${fullNameClean}! ありがとうございます`
-        : `Thank you, ${fullNameClean}! ありがとうございます`,
+      tr(
+        `Cảm ơn ${fullNameClean}! ありがとうございます`,
+        `Thank you, ${fullNameClean}! ありがとうございます`,
+        `${fullNameClean}様、ありがとうございます！`
+      ),
       {
-        description:
-          lang === "vi"
-            ? `Shinme sẽ liên hệ qua số ${values.phone.trim()} trong 24 giờ làm việc.`
-            : `Shinme will reach out via ${values.phone.trim()} within 24 working hours.`,
+        description: tr(
+          `Shinme sẽ liên hệ qua số ${values.phone.trim()} trong 24 giờ làm việc.`,
+          `Shinme will reach out via ${values.phone.trim()} within 24 working hours.`,
+          `24営業時間以内に ${values.phone.trim()} までご連絡いたします。`
+        ),
       }
     );
     setValues({ fullName: "", phone: "", level: "", goal: "", note: "" });
@@ -251,9 +258,11 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
       />
       {prefill.testScore !== undefined && (
         <p className="mb-5 rounded-xl bg-shinme-leaf px-4 py-3 text-sm font-bold text-shinme-primary">
-          {lang === "vi"
-            ? `Kết quả Thi thử Mini của bạn: ${prefill.testScore}/5 câu đúng — Sensei sẽ dùng kết quả này khi tư vấn.`
-            : `Your Placement Test result: ${prefill.testScore}/5 correct — Sensei will reference this during consultation.`}
+          {tr(
+            `Kết quả Thi thử Mini của bạn: ${prefill.testScore}/5 câu đúng — Sensei sẽ dùng kết quả này khi tư vấn.`,
+            `Your Placement Test result: ${prefill.testScore}/5 correct — Sensei will reference this during consultation.`,
+            `ミニテスト結果：5問中 ${prefill.testScore}問正解 — カウンセリング時の参考にいたします。`
+          )}
         </p>
       )}
 
@@ -300,7 +309,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
 
         <div>
           <label htmlFor="level" className="text-sm font-extrabold">
-            {lang === "vi" ? "Trình độ hiện tại" : "Current Level"} <span className="text-shinme-danger">*</span>
+            {tr("Trình độ hiện tại", "Current Level", "現在のレベル")} <span className="text-shinme-danger">*</span>
           </label>
           <select
             id="level"
@@ -313,7 +322,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
             className={cn(fieldCls("level"), "h-12 appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23135E36%22%20stroke-width%3D%222.5%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat pr-10", !values.level && "text-shinme-muted")}
           >
             <option value="" disabled>
-              {lang === "vi" ? "Chọn trình độ" : "Select Level"}
+              {tr("Chọn trình độ", "Select Level", "レベルを選択")}
             </option>
             {levelOptions.map((o) => (
               <option key={o} value={o}>
@@ -339,7 +348,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
             className={cn(fieldCls("goal"), "h-12 appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23135E36%22%20stroke-width%3D%222.5%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat pr-10", !values.goal && "text-shinme-muted")}
           >
             <option value="" disabled>
-              {lang === "vi" ? "Chọn mục tiêu" : "Select Goal"}
+              {tr("Chọn mục tiêu", "Select Goal", "目標を選択")}
             </option>
             {goalOptions.map((o) => (
               <option key={o} value={o}>
@@ -352,13 +361,13 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
 
         {course && (
           <div className="sm:col-span-2">
-            <p className="text-sm font-extrabold">{lang === "vi" ? "Khóa học quan tâm" : "Selected Course"}</p>
+            <p className="text-sm font-extrabold">{tr("Khóa học quan tâm", "Selected Course", "ご希望のコース")}</p>
             <span className="mt-1.5 inline-flex items-center gap-2 rounded-full bg-shinme-leaf py-1.5 pl-4 pr-1.5 text-sm font-bold text-shinme-primary">
               {course}
               <button
                 type="button"
                 onClick={() => setCourse("")}
-                aria-label={lang === "vi" ? `Bỏ chọn khóa ${course}` : `Deselect course ${course}`}
+                aria-label={tr(`Bỏ chọn khóa ${course}`, `Deselect course ${course}`, `コース ${course} の選択を解除`)}
                 className="grid size-6 place-items-center rounded-full hover:bg-shinme-accent-soft cursor-pointer"
               >
                 <X className="size-3.5" />
@@ -369,7 +378,7 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
 
         <div className="sm:col-span-2">
           <label htmlFor="note" className="text-sm font-extrabold">
-            {t.home.consultation.noteLabel} <span className="font-semibold text-shinme-muted">({lang === "vi" ? "không bắt buộc" : "optional"})</span>
+            {t.home.consultation.noteLabel} <span className="font-semibold text-shinme-muted">({tr("không bắt buộc", "optional", "任意")})</span>
           </label>
           <textarea
             id="note"
@@ -397,9 +406,11 @@ function LeadForm({ prefill }: { prefill: LeadPrefill }) {
         {submitting ? t.home.consultation.submittingBtn : t.home.consultation.submitBtn}
       </Button>
       <p className="mt-3 text-center text-xs text-shinme-muted">
-        {lang === "vi"
-          ? "Thông tin của bạn chỉ dùng để Shinme liên hệ tư vấn, không chia sẻ cho bên thứ ba."
-          : "Your information is strictly used for Shinme's academic advisory and never shared with third parties."}
+        {tr(
+          "Thông tin của bạn chỉ dùng để Shinme liên hệ tư vấn, không chia sẻ cho bên thứ ba.",
+          "Your information is strictly used for Shinme's academic advisory and never shared with third parties.",
+          "ご入力いただいた情報は学習相談のみに使用し、第三者に提供することはありません。"
+        )}
       </p>
     </form>
   );

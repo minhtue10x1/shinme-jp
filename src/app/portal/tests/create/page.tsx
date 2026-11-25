@@ -197,7 +197,7 @@ function SenseiTestCreateContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
   const isEditing = Boolean(editId);
-  const { lang, t } = useTranslation();
+  const { lang, tr } = useTranslation();
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [isLoadingEdit, setIsLoadingEdit] = useState(Boolean(editId));
 
@@ -247,9 +247,11 @@ function SenseiTestCreateContent() {
       prev.map((q) => (updates[q.id] !== undefined ? { ...q, correctIndex: updates[q.id] } : q))
     );
     toast.success(
-      lang === "vi"
-        ? `Đã áp dụng nhanh ${count} đáp án (1–4) thành công!`
-        : `Applied ${count} answer keys (1–4) successfully!`
+      tr(
+        `Đã áp dụng nhanh ${count} đáp án (1–4) thành công!`,
+        `Applied ${count} answer keys (1–4) successfully!`,
+        `正解（1〜4）を${count}問に一括適用しました！`
+      )
     );
   };
   // Idempotency key + synchronous lock: guarantees rapid multi-clicks NEVER create duplicate tests
@@ -273,7 +275,7 @@ function SenseiTestCreateContent() {
         ]);
         if (cancelled) return;
         if (!existingTest) {
-          toast.error(lang === "vi" ? "Không tìm thấy đề thi để chỉnh sửa." : "Exam not found for editing.");
+          toast.error(tr("Không tìm thấy đề thi để chỉnh sửa.", "Exam not found for editing.", "編集対象の試験が見つかりません。"));
           return;
         }
 
@@ -305,7 +307,7 @@ function SenseiTestCreateContent() {
         }
       } catch (err) {
         console.error("Failed to load exam for editing:", err);
-        toast.error(lang === "vi" ? "Lỗi khi tải đề thi để chỉnh sửa." : "Error loading exam for editing.");
+        toast.error(tr("Lỗi khi tải đề thi để chỉnh sửa.", "Error loading exam for editing.", "試験の読み込み中にエラーが発生しました。"));
       } finally {
         if (!cancelled) setIsLoadingEdit(false);
       }
@@ -315,7 +317,7 @@ function SenseiTestCreateContent() {
     return () => {
       cancelled = true;
     };
-  }, [editId, lang]);
+  }, [editId, tr]);
 
   const handleUploadPoster = async (questionId: string, groupId: string | undefined, file: File) => {
     try {
@@ -340,19 +342,17 @@ function SenseiTestCreateContent() {
       );
 
       toast.success(
-        lang === "vi"
-          ? "Đã đính kèm ảnh áp phích cho bài Tìm kiếm thông tin!"
-          : lang === "ja"
-            ? "情報検索ポスター画像を添付しました！"
-            : "Poster image attached!"
+        tr(
+          "Đã đính kèm ảnh áp phích cho bài Tìm kiếm thông tin!",
+          "Poster image attached!",
+          "情報検索ポスター画像を添付しました！"
+        )
       );
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
-          : lang === "vi"
-            ? "Không thể tải ảnh áp phích lên."
-            : "Failed to upload poster image."
+          : tr("Không thể tải ảnh áp phích lên.", "Failed to upload poster image.", "ポスター画像のアップロードに失敗しました。")
       );
     } finally {
       setUploadingPosterQid(null);
@@ -410,7 +410,13 @@ function SenseiTestCreateContent() {
             : "goi";
     newQ.section = defaultSection;
     setQuestions((prev) => [...prev, newQ]);
-    toast.success(lang === "vi" ? `Đã thêm câu hỏi ${MONDAI_META[type].shortLabel}` : `Added question ${MONDAI_META[type].shortLabel}`);
+    toast.success(
+      tr(
+        `Đã thêm câu hỏi ${MONDAI_META[type].shortLabel}`,
+        `Added question ${MONDAI_META[type].shortLabel}`,
+        `問題を追加しました: ${MONDAI_META[type].shortLabel}`
+      )
+    );
   };
 
   const handleUpdateQuestion = (id: string, patch: Partial<TestQuestion>) => {
@@ -440,25 +446,25 @@ function SenseiTestCreateContent() {
 
   const handleDeleteQuestion = (id: string) => {
     if (questions.length <= 1) {
-      toast.error(lang === "vi" ? "Đề thi cần ít nhất 1 câu hỏi." : "Exam must have at least 1 question.");
+      toast.error(tr("Đề thi cần ít nhất 1 câu hỏi.", "Exam must have at least 1 question.", "試験には少なくとも1問必要です。"));
       return;
     }
     setQuestions((prev) => prev.filter((q) => q.id !== id));
-    toast.info(lang === "vi" ? "Đã xóa câu hỏi khỏi đề thi." : "Removed question from exam.");
+    toast.info(tr("Đã xóa câu hỏi khỏi đề thi.", "Removed question from exam.", "試験から問題を削除しました。"));
   };
 
   const handleSaveTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSavingRef.current) return;
     if (!title.trim()) {
-      toast.error(lang === "vi" ? "Vui lòng nhập tên bài kiểm tra." : "Please enter the exam title.");
+      toast.error(tr("Vui lòng nhập tên bài kiểm tra.", "Please enter the exam title.", "試験タイトルを入力してください。"));
       return;
     }
     const targetClass =
       classes.find((c) => c.id === classId) ?? classes[0];
 
     if (!targetClass) {
-      toast.error(lang === "vi" ? "Vui lòng chọn lớp học hợp lệ." : "Please select a valid class.");
+      toast.error(tr("Vui lòng chọn lớp học hợp lệ.", "Please select a valid class.", "有効なクラスを選択してください。"));
       return;
     }
 
@@ -469,16 +475,17 @@ function SenseiTestCreateContent() {
     if (missingNums.length > 0) {
       setShowUnansweredOnly(true);
       toast.error(
-        lang === "vi"
-          ? `Còn ${missingNums.length} câu chưa chọn đáp án đúng!`
-          : lang === "ja"
-            ? `正解が未選択の問題が${missingNums.length}問あります！`
-            : `${missingNums.length} questions still need a correct answer!`,
+        tr(
+          `Còn ${missingNums.length} câu chưa chọn đáp án đúng!`,
+          `${missingNums.length} questions still need a correct answer!`,
+          `正解が未選択の問題が${missingNums.length}問あります！`
+        ),
         {
-          description:
-            lang === "vi"
-              ? `Vui lòng chọn đáp án A/B/C/D cho các câu: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`
-              : `Please select A/B/C/D for questions: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`,
+          description: tr(
+            `Vui lòng chọn đáp án A/B/C/D cho các câu: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`,
+            `Please select A/B/C/D for questions: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`,
+            `次の問題の正解（1〜4）を選択してください: ${missingNums.slice(0, 12).join(", ")}${missingNums.length > 12 ? "..." : ""}`
+          ),
         }
       );
       return;
@@ -508,15 +515,17 @@ function SenseiTestCreateContent() {
       setIsSaving(true);
       await saveTestDoc(newTest as any);
       saveTest(newTest);
-      toast.success(lang === "vi" ? "Đã xuất bản đề thi thành công!" : "Exam published successfully!", {
-        description: lang === "vi"
-          ? `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã được lưu vào ngân hàng đề cho lớp ${targetClass.shortName}.`
-          : `Exam "${newTest.title}" (${questions.length} questions · ${totalPoints} pts) saved to bank for class ${targetClass.shortName}.`,
+      toast.success(tr("Đã xuất bản đề thi thành công!", "Exam published successfully!", "試験を公開しました！"), {
+        description: tr(
+          `Đề "${newTest.title}" (${questions.length} câu · ${totalPoints} điểm) đã được lưu vào ngân hàng đề cho lớp ${targetClass.shortName}.`,
+          `Exam "${newTest.title}" (${questions.length} questions · ${totalPoints} pts) saved to bank for class ${targetClass.shortName}.`,
+          `試験「${newTest.title}」（${questions.length}問・${totalPoints}点）をクラス ${targetClass.shortName} 用に保存しました。`
+        ),
       });
       router.push("/portal/tests");
     } catch (err) {
       console.error("Save test error:", err);
-      toast.error(lang === "vi" ? "Lỗi khi lưu đề thi vào cơ sở dữ liệu." : "Error saving exam to database.");
+      toast.error(tr("Lỗi khi lưu đề thi vào cơ sở dữ liệu.", "Error saving exam to database.", "データベースへの保存中にエラーが発生しました。"));
       isSavingRef.current = false;
       setIsSaving(false);
     }
@@ -527,7 +536,11 @@ function SenseiTestCreateContent() {
       {isLoadingEdit && (
         <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-[#135E36]">
           <Loader2 className="h-4 w-4 animate-spin" />
-          {lang === "vi" ? "Đang tải nội dung & đáp án đề thi để chỉnh sửa..." : "Loading exam & answer keys for editing..."}
+          {tr(
+            "Đang tải nội dung & đáp án đề thi để chỉnh sửa...",
+            "Loading exam & answer keys for editing...",
+            "編集用の試験内容と正解を読み込んでいます..."
+          )}
         </div>
       )}
       {/* Top Bar */}
@@ -538,22 +551,30 @@ function SenseiTestCreateContent() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#135E36] hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            {lang === "vi" ? "Quay lại Trung tâm Khảo thí JLPT" : "Back to JLPT Exam Hub"}
+            {tr("Quay lại Trung tâm Khảo thí JLPT", "Back to JLPT Exam Hub", "JLPT試験センターに戻る")}
           </Link>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-              {lang === "vi"
-                ? "Sensei Test Builder — Soạn đề thi tiếng Nhật chuẩn JLPT"
-                : "Sensei Test Builder — Author Standard JLPT Exams"}
+              {tr(
+                "Sensei Test Builder — Soạn đề thi tiếng Nhật chuẩn JLPT",
+                "Sensei Test Builder — Author Standard JLPT Exams",
+                "先生用テスト作成 — JLPT準拠の日本語試験を作成"
+              )}
             </h1>
             <span className="rounded-full bg-[#6CC24A]/20 px-3 py-0.5 text-xs font-bold text-[#135E36]">
-              {lang === "vi" ? "Hỗ trợ Furigana 漢字[かんじ] trực tiếp" : "Direct Furigana 漢字[かんじ] supported"}
+              {tr(
+                "Hỗ trợ Furigana 漢字[かんじ] trực tiếp",
+                "Direct Furigana 漢字[かんじ] supported",
+                "ルビ記法 漢字[かんじ] に直接対応"
+              )}
             </span>
           </div>
           <p className="text-sm text-slate-600">
-            {lang === "vi"
-              ? "Cấu hình thông số bài thi, biên soạn 4 dạng Mondai đặc thù và viết giải thích ngữ pháp chi tiết cho học viên sau khi nộp bài."
-              : "Configure test parameters, author 4 distinct Mondai question types, and write in-depth grammar explanations."}
+            {tr(
+              "Cấu hình thông số bài thi, biên soạn 4 dạng Mondai đặc thù và viết giải thích ngữ pháp chi tiết cho học viên sau khi nộp bài.",
+              "Configure test parameters, author 4 distinct Mondai question types, and write in-depth grammar explanations.",
+              "試験設定の構成、4種類の問題形式の作成、提出後に表示される詳細な文法解説を記述できます。"
+            )}
           </p>
         </div>
 
@@ -564,17 +585,13 @@ function SenseiTestCreateContent() {
             className="inline-flex items-center gap-2 rounded-xl border border-[#135E36]/30 bg-[#FAF8F2] px-4 py-2.5 text-xs font-extrabold text-[#135E36] shadow-xs transition hover:border-[#135E36] hover:bg-emerald-50"
           >
             <FileUp className="h-4 w-4 text-[#135E36]" />
-            {lang === "vi"
-              ? "Nhập đề từ PDF (AI)"
-              : lang === "ja"
-                ? "PDFから取り込む (AI)"
-                : "Import from PDF (AI)"}
+            {tr("Nhập đề từ PDF (AI)", "Import from PDF (AI)", "PDFから取り込む (AI)")}
           </button>
           <Link
             href="/portal/tests/manage"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
           >
-            {lang === "vi" ? "Quản lý kho đề" : "Manage Question Bank"}
+            {tr("Quản lý kho đề", "Manage Question Bank", "試験バンク管理")}
           </Link>
           <button
             type="button"
@@ -588,10 +605,12 @@ function SenseiTestCreateContent() {
               <Save className="h-4 w-4 text-[#6CC24A]" />
             )}
             {isSaving
-              ? (lang === "vi" ? "Đang xuất bản..." : lang === "ja" ? "公開中..." : "Publishing...")
-              : lang === "vi"
-                ? `Xuất bản đề thi (${questions.length} câu · ${totalPoints}đ)`
-                : `Publish Exam (${questions.length} items · ${totalPoints}pts)`}
+              ? tr("Đang xuất bản...", "Publishing...", "公開中...")
+              : tr(
+                `Xuất bản đề thi (${questions.length} câu · ${totalPoints}đ)`,
+                `Publish Exam (${questions.length} items · ${totalPoints}pts)`,
+                `試験を公開 (${questions.length}問・${totalPoints}点)`
+              )}
           </button>
         </div>
       </div>
@@ -604,7 +623,7 @@ function SenseiTestCreateContent() {
           </div>
           <div>
             <p className="text-xs font-bold text-[#135E36]">
-              {lang === "vi" ? "Mẹo nhập Furigana trực tiếp (`Live Furigana Input`)" : "Live Furigana Input Tip"}
+              {tr("Mẹo nhập Furigana trực tiếp (`Live Furigana Input`)", "Live Furigana Input Tip", "ルビ（ふりがな）入力のヒント")}
             </p>
             <p className="text-xs text-slate-600">
               {lang === "vi" ? (
@@ -618,6 +637,18 @@ function SenseiTestCreateContent() {
                     <FuriganaText text="日本語[にほんご]で未来[みらい]をひらく" />
                   </span>{" "}
                   trên cả đề bài, đáp án và lời giải.
+                </>
+              ) : lang === "ja" ? (
+                <>
+                  漢字の後ろに角括弧で読み方を入力すると（例：{" "}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs font-bold text-[#135E36]">
+                    日本語[にほんご]で未来[みらい]をひらく
+                  </code>{" "}
+                  ）、問題・選択肢・解説のすべてに{" "}
+                  <span className="inline-block rounded bg-white px-2 py-0.5 font-jp text-slate-900">
+                    <FuriganaText text="日本語[にほんご]で未来[みらい]をひらく" />
+                  </span>{" "}
+                  のように自動表示されます。
                 </>
               ) : (
                 <>
@@ -643,62 +674,77 @@ function SenseiTestCreateContent() {
           <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
-                {lang === "vi" ? "1. Thông tin cấu hình bài kiểm tra (Test Metadata)" : "1. Test Metadata & Settings"}
+                {tr("1. Thông tin cấu hình bài kiểm tra (Test Metadata)", "1. Test Metadata & Settings", "1. 試験の基本設定")}
               </h2>
               <p className="text-xs text-slate-500">
-                {lang === "vi"
-                  ? "Thiết lập lớp áp dụng, thời gian đếm ngược, hạn nộp và quy tắc chấm đạt."
-                  : "Configure assigned class, timer, submission deadline, and pass criteria."}
+                {tr(
+                  "Thiết lập lớp áp dụng, thời gian đếm ngược, hạn nộp và quy tắc chấm đạt.",
+                  "Configure assigned class, timer, submission deadline, and pass criteria.",
+                  "対象クラス、制限時間、提出期限、合格基準を設定します。"
+                )}
               </p>
             </div>
             <span className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
-              {lang === "vi" ? "Tổng điểm tự động:" : "Calculated Points:"} <strong className="text-[#135E36]">{totalPoints} {lang === "vi" ? "điểm" : "pts"}</strong>
+              {tr("Tổng điểm tự động:", "Calculated Points:", "合計配点:")}{" "}
+              <strong className="text-[#135E36]">{totalPoints} {tr("điểm", "pts", "点")}</strong>
             </span>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="md:col-span-2">
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Tên bài kiểm tra (Tiếng Việt) *" : "Exam Title *"}
+                {tr("Tên bài kiểm tra *", "Exam Title *", "試験タイトル *")}
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={lang === "vi" ? "VD: Kiểm tra Định kỳ N3 Đợt 1 — Tổng hợp 4 Mondai" : "e.g., N3 Periodic Exam 1 — Comprehensive 4 Mondai"}
+                placeholder={tr(
+                  "VD: Kiểm tra Định kỳ N3 Đợt 1 — Tổng hợp 4 Mondai",
+                  "e.g., N3 Periodic Exam 1 — Comprehensive 4 Mondai",
+                  "例: N3 定期テスト 第1回 — 総合問題"
+                )}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:border-[#135E36] focus:outline-none"
               />
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Mã đề thi (Code)" : "Exam Code"}
+                {tr("Mã đề thi (Code)", "Exam Code", "試験コード")}
               </label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="VD: N3-MID-01"
+                placeholder={tr("VD: N3-MID-01", "e.g., N3-MID-01", "例: N3-MID-01")}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm font-bold text-slate-900 focus:border-[#135E36] focus:outline-none"
               />
             </div>
 
             <div className="md:col-span-2">
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Tiêu đề tiếng Nhật (Hỗ trợ Furigana 漢字[かんじ])" : "Japanese Title (Furigana supported)"}
+                {tr(
+                  "Tiêu đề tiếng Nhật (Hỗ trợ Furigana 漢字[かんじ])",
+                  "Japanese Title (Furigana supported)",
+                  "日本語タイトル（漢字[かんじ] ルビ対応）"
+                )}
               </label>
               <input
                 type="text"
                 value={titleJa}
                 onChange={(e) => setTitleJa(e.target.value)}
-                placeholder="VD: N3 第1回[だいいっかい] 実力[じつりょく]テスト"
+                placeholder={tr(
+                  "VD: N3 第1回[だいいっかい] 実力[じつりょく]テスト",
+                  "e.g., N3 第1回[だいいっかい] 実力[じつりょく]テスト",
+                  "例: N3 第1回[だいいっかい] 実力[じつりょく]テスト"
+                )}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-jp text-sm text-slate-900 focus:border-[#135E36] focus:outline-none"
               />
               {titleJa && (
                 <div className="mt-1.5 flex items-center gap-2 rounded-lg bg-[#FAF8F2] px-3 py-1.5 text-xs text-slate-600">
                   <Eye className="h-3.5 w-3.5 text-[#135E36]" />
-                  <span>{lang === "vi" ? "Xem trước:" : "Preview:"}</span>
+                  <span>{tr("Xem trước:", "Preview:", "プレビュー:")}</span>
                   <span className="font-jp text-sm font-bold text-[#135E36]">
                     <FuriganaText text={titleJa} />
                   </span>
@@ -708,7 +754,7 @@ function SenseiTestCreateContent() {
 
             <div>
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Lớp áp dụng *" : "Target Class *"}
+                {tr("Lớp áp dụng *", "Target Class *", "対象クラス *")}
               </label>
               <select
                 value={classId}
@@ -725,7 +771,7 @@ function SenseiTestCreateContent() {
 
             <div>
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Thời gian làm bài (Phút) *" : "Duration (Minutes) *"}
+                {tr("Thời gian làm bài (Phút) *", "Duration (Minutes) *", "制限時間（分） *")}
               </label>
               <input
                 type="number"
@@ -739,7 +785,7 @@ function SenseiTestCreateContent() {
 
             <div>
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Hạn chót nộp bài (Deadline) *" : "Submission Deadline *"}
+                {tr("Hạn chót nộp bài (Deadline) *", "Submission Deadline *", "提出期限 *")}
               </label>
               <input
                 type="datetime-local"
@@ -752,22 +798,22 @@ function SenseiTestCreateContent() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                  {lang === "vi" ? "Số lần làm tối đa" : "Max Attempts Allowed"}
+                  {tr("Số lần làm tối đa", "Max Attempts Allowed", "受験回数上限")}
                 </label>
                 <select
                   value={maxAttempts}
                   onChange={(e) => setMaxAttempts(Number(e.target.value))}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 focus:border-[#135E36] focus:outline-none"
                 >
-                  <option value={1}>{lang === "vi" ? "1 lần duy nhất" : "1 attempt only"}</option>
-                  <option value={2}>{lang === "vi" ? "Tối đa 2 lần" : "Up to 2 attempts"}</option>
-                  <option value={3}>{lang === "vi" ? "Tối đa 3 lần" : "Up to 3 attempts"}</option>
-                  <option value={0}>{lang === "vi" ? "Không giới hạn" : "Unlimited"}</option>
+                  <option value={1}>{tr("1 lần duy nhất", "1 attempt only", "1回のみ")}</option>
+                  <option value={2}>{tr("Tối đa 2 lần", "Up to 2 attempts", "最大2回")}</option>
+                  <option value={3}>{tr("Tối đa 3 lần", "Up to 3 attempts", "最大3回")}</option>
+                  <option value={0}>{tr("Không giới hạn", "Unlimited", "無制限")}</option>
                 </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                  {lang === "vi" ? "Điểm đạt (Pass)" : "Passing Score (Pass)"}
+                  {tr("Điểm đạt (Pass)", "Passing Score (Pass)", "合格点")}
                 </label>
                 <input
                   type="number"
@@ -789,12 +835,14 @@ function SenseiTestCreateContent() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-900">
-                  {lang === "vi" ? "Trộn câu hỏi ngẫu nhiên (Shuffle Questions)" : "Randomize Question Order (Shuffle)"}
+                  {tr("Trộn câu hỏi ngẫu nhiên (Shuffle Questions)", "Randomize Question Order (Shuffle)", "問題順をシャッフル")}
                 </p>
                 <p className="text-xs text-slate-600">
-                  {lang === "vi"
-                    ? "Tự động đảo thứ tự các câu hỏi độc lập mỗi khi học viên bắt đầu lượt thi mới (giữ nguyên nhóm câu hỏi đọc hiểu Dokkai)."
-                    : "Randomize independent questions on each student attempt (preserves grouped Dokkai reading passages)."}
+                  {tr(
+                    "Tự động đảo thứ tự các câu hỏi độc lập mỗi khi học viên bắt đầu lượt thi mới (giữ nguyên nhóm câu hỏi đọc hiểu Dokkai).",
+                    "Randomize independent questions on each student attempt (preserves grouped Dokkai reading passages).",
+                    "受験ごとに独立した問題の順序を自動で並べ替えます（読解グループは維持されます）。"
+                  )}
                 </p>
               </div>
             </div>
@@ -804,14 +852,12 @@ function SenseiTestCreateContent() {
               role="switch"
               aria-checked={shuffleQuestions}
               onClick={() => setShuffleQuestions((v) => !v)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                shuffleQuestions ? "bg-[#135E36]" : "bg-slate-300"
-              }`}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${shuffleQuestions ? "bg-[#135E36]" : "bg-slate-300"
+                }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                  shuffleQuestions ? "translate-x-5" : "translate-x-0"
-                }`}
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${shuffleQuestions ? "translate-x-5" : "translate-x-0"
+                  }`}
               />
             </button>
           </div>
@@ -822,15 +868,17 @@ function SenseiTestCreateContent() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-slate-900">
-                {lang === "vi" ? "2. Thêm câu hỏi theo 4 định dạng Mondai chuẩn JLPT" : "2. Add Questions (4 Standard JLPT Formats)"}
+                {tr("2. Thêm câu hỏi theo 4 định dạng Mondai chuẩn JLPT", "2. Add Questions (4 Standard JLPT Formats)", "2. JLPT標準4形式の問題を追加")}
               </h2>
               <p className="text-xs text-slate-500">
-                {lang === "vi" ? "Chọn loại câu hỏi bên dưới để chèn thêm vào cuối đề thi." : "Select question format below to append to this exam."}
+                {tr("Chọn loại câu hỏi bên dưới để chèn thêm vào cuối đề thi.", "Select question format below to append to this exam.", "下の形式を選んで試験の末尾に問題を追加します。")}
               </p>
             </div>
             <span className="text-xs font-semibold text-slate-500">
               {lang === "vi" ? (
                 <>Đang có <strong className="text-slate-900">{questions.length}</strong> câu hỏi</>
+              ) : lang === "ja" ? (
+                <>現在 <strong className="text-slate-900">{questions.length}</strong> 問</>
               ) : (
                 <>Currently <strong className="text-slate-900">{questions.length}</strong> questions</>
               )}
@@ -846,7 +894,7 @@ function SenseiTestCreateContent() {
               <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-[#135E36]" />
               <div>
                 <p className="text-xs font-extrabold text-[#135E36]">
-                  {lang === "vi" ? "+ Trắc nghiệm chuẩn" : "+ Standard Choice"}
+                  {tr("+ Trắc nghiệm chuẩn", "+ Standard Choice", "+ 標準選択問題")}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600">
                   Goi / Kanji / Bunpou (A, B, C, D)
@@ -862,10 +910,10 @@ function SenseiTestCreateContent() {
               <Star className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div>
                 <p className="text-xs font-extrabold text-amber-900">
-                  {lang === "vi" ? "+ Bài tập dấu sao ★" : "+ Star Exercise ★"}
+                  {tr("+ Bài tập dấu sao ★", "+ Star Exercise ★", "+ ★並び替え問題")}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600">
-                  {lang === "vi" ? "Sắp xếp 4 mảnh ghép ___ ___ ★ ___" : "Arrange 4 fragments ___ ___ ★ ___"}
+                  {tr("Sắp xếp 4 mảnh ghép ___ ___ ★ ___", "Arrange 4 fragments ___ ___ ★ ___", "4つの語句を並び替え ___ ___ ★ ___")}
                 </p>
               </div>
             </button>
@@ -878,10 +926,10 @@ function SenseiTestCreateContent() {
               <FileText className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
               <div>
                 <p className="text-xs font-extrabold text-sky-900">
-                  {lang === "vi" ? "+ Đọc hiểu (Dokkai)" : "+ Reading (Dokkai)"}
+                  {tr("+ Đọc hiểu (Dokkai)", "+ Reading (Dokkai)", "+ 読解問題")}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600">
-                  {lang === "vi" ? "Đoạn văn dài + nhóm câu hỏi con" : "Long passage + question group"}
+                  {tr("Đoạn văn dài + nhóm câu hỏi con", "Long passage + question group", "長文＋設問グループ")}
                 </p>
               </div>
             </button>
@@ -894,10 +942,10 @@ function SenseiTestCreateContent() {
               <Headphones className="mt-0.5 h-5 w-5 shrink-0 text-purple-700" />
               <div>
                 <p className="text-xs font-extrabold text-purple-900">
-                  {lang === "vi" ? "+ Nghe hiểu (Choukai)" : "+ Listening (Choukai)"}
+                  {tr("+ Nghe hiểu (Choukai)", "+ Listening (Choukai)", "+ 聴解問題")}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-600">
-                  {lang === "vi" ? "Đính kèm MP3 & giới hạn lượt nghe" : "MP3 audio & playback limits"}
+                  {tr("Đính kèm MP3 & giới hạn lượt nghe", "MP3 audio & playback limits", "MP3音声・再生回数制限")}
                 </p>
               </div>
             </button>
@@ -911,42 +959,33 @@ function SenseiTestCreateContent() {
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div>
                 <p className="text-xs font-extrabold text-amber-950">
-                  {lang === "vi"
-                    ? `Rà soát đáp án: Đã chọn ${answeredCount}/${questions.length} câu · Còn ${unansweredCount} câu chưa chọn đáp án đúng`
-                    : lang === "ja"
-                      ? `正解チェック：選択済み ${answeredCount}/${questions.length}問 · 未選択 ${unansweredCount}問`
-                      : `Answer Key Review: ${answeredCount}/${questions.length} selected · ${unansweredCount} remaining`}
+                  {tr(
+                    `Rà soát đáp án: Đã chọn ${answeredCount}/${questions.length} câu · Còn ${unansweredCount} câu chưa chọn đáp án đúng`,
+                    `Answer Key Review: ${answeredCount}/${questions.length} selected · ${unansweredCount} remaining`,
+                    `正解チェック：選択済み ${answeredCount}/${questions.length}問 · 未選択 ${unansweredCount}問`
+                  )}
                 </p>
                 <p className="mt-0.5 text-xs text-amber-800">
-                  {lang === "vi"
-                    ? "Hãy kiểm tra nhanh nội dung đề đã bóc và tích chọn đáp án 1/2/3/4 (hoặc dùng nút Nhập đáp án nhanh) cho tất cả các câu trước khi xuất bản."
-                    : lang === "ja"
-                      ? "公開前に各問題の内容を確認し、正解（1/2/3/4）を選択してください。"
-                      : "Review extracted questions and select the correct 1/2/3/4 answer for every question before publishing."}
+                  {tr(
+                    "Hãy kiểm tra nhanh nội dung đề đã bóc và tích chọn đáp án 1/2/3/4 (hoặc dùng nút Nhập đáp án nhanh) cho tất cả các câu trước khi xuất bản.",
+                    "Review extracted questions and select the correct 1/2/3/4 answer for every question before publishing.",
+                    "公開前に各問題の内容を確認し、正解（1/2/3/4）を選択してください。"
+                  )}
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setShowUnansweredOnly((prev) => !prev)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition ${
-                showUnansweredOnly
-                  ? "border-amber-600 bg-amber-600 text-white"
-                  : "border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
-              }`}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition ${showUnansweredOnly
+                ? "border-amber-600 bg-amber-600 text-white"
+                : "border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                }`}
             >
               <Filter className="h-3.5 w-3.5" />
               {showUnansweredOnly
-                ? lang === "vi"
-                  ? "Hiện tất cả câu hỏi"
-                  : lang === "ja"
-                    ? "すべての問題を表示"
-                    : "Show All Questions"
-                : lang === "vi"
-                  ? `Chỉ hiện câu chưa chọn (${unansweredCount})`
-                  : lang === "ja"
-                    ? `未選択のみ表示 (${unansweredCount})`
-                    : `Unanswered Only (${unansweredCount})`}
+                ? tr("Hiện tất cả câu hỏi", "Show All Questions", "すべての問題を表示")
+                : tr(`Chỉ hiện câu chưa chọn (${unansweredCount})`, `Unanswered Only (${unansweredCount})`, `未選択のみ表示 (${unansweredCount})`)}
             </button>
           </div>
         )}
@@ -961,7 +1000,7 @@ function SenseiTestCreateContent() {
                   : questions.filter((q) => inferQuestionSection(q) === tab).length;
               const label =
                 tab === "ALL"
-                  ? (lang === "vi" ? "Tất cả phần thi" : "All Sections")
+                  ? tr("Tất cả phần thi", "All Sections", "全パート")
                   : EXAM_SECTION_META[tab].shortLabel;
               const active = activeSectionTab === tab;
               return (
@@ -969,17 +1008,15 @@ function SenseiTestCreateContent() {
                   key={tab}
                   type="button"
                   onClick={() => setActiveSectionTab(tab)}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${
-                    active
-                      ? "border-[#135E36] bg-[#135E36] text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-emerald-50"
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-extrabold transition ${active
+                    ? "border-[#135E36] bg-[#135E36] text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-emerald-50"
+                    }`}
                 >
                   <span className="font-jp">{label}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 font-mono text-xs ${
-                      active ? "bg-white/20 text-white" : "bg-white text-slate-600"
-                    }`}
+                    className={`rounded-full px-2 py-0.5 font-mono text-xs ${active ? "bg-white/20 text-white" : "bg-white text-slate-600"
+                      }`}
                   >
                     {count}
                   </span>
@@ -1017,11 +1054,10 @@ function SenseiTestCreateContent() {
             return (
               <div
                 key={q.id}
-                className={`rounded-2xl border p-6 shadow-sm ${
-                  isMissingAnswer
-                    ? "border-amber-300 bg-amber-50/15"
-                    : "border-slate-200/90 bg-white"
-                }`}
+                className={`rounded-2xl border p-6 shadow-sm ${isMissingAnswer
+                  ? "border-amber-300 bg-amber-50/15"
+                  : "border-slate-200/90 bg-white"
+                  }`}
               >
                 {/* Question Card Header */}
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -1049,7 +1085,7 @@ function SenseiTestCreateContent() {
                     {isMissingAnswer && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
                         <AlertTriangle className="h-3 w-3" />
-                        {lang === "vi" ? "Chưa chọn đáp án" : lang === "ja" ? "正解未選択" : "Needs Answer"}
+                        {tr("Chưa chọn đáp án", "Needs Answer", "正解未選択")}
                       </span>
                     )}
 
@@ -1073,16 +1109,16 @@ function SenseiTestCreateContent() {
                       }}
                       className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700"
                     >
-                      <option value="standard">{lang === "vi" ? "Đổi sang: Trắc nghiệm chuẩn" : "Change to: Standard Choice"}</option>
-                      <option value="star">{lang === "vi" ? "Đổi sang: Bài tập dấu sao ★" : "Change to: Star Exercise ★"}</option>
-                      <option value="dokkai">{lang === "vi" ? "Đổi sang: Đọc hiểu (Dokkai)" : "Change to: Reading (Dokkai)"}</option>
-                      <option value="choukai">{lang === "vi" ? "Đổi sang: Nghe hiểu (Choukai)" : "Change to: Listening (Choukai)"}</option>
+                      <option value="standard">{tr("Đổi sang: Trắc nghiệm chuẩn", "Change to: Standard Choice", "変更: 標準選択問題")}</option>
+                      <option value="star">{tr("Đổi sang: Bài tập dấu sao ★", "Change to: Star Exercise ★", "変更: ★並び替え問題")}</option>
+                      <option value="dokkai">{tr("Đổi sang: Đọc hiểu (Dokkai)", "Change to: Reading (Dokkai)", "変更: 読解問題")}</option>
+                      <option value="choukai">{tr("Đổi sang: Nghe hiểu (Choukai)", "Change to: Listening (Choukai)", "変更: 聴解問題")}</option>
                     </select>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
-                      <label className="text-xs font-bold text-slate-500">{lang === "vi" ? "Điểm:" : "Points:"}</label>
+                      <label className="text-xs font-bold text-slate-500">{tr("Điểm:", "Points:", "配点:")}</label>
                       <input
                         type="number"
                         min={1}
@@ -1109,7 +1145,7 @@ function SenseiTestCreateContent() {
                         className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 hover:bg-sky-100"
                       >
                         <CopyPlus className="h-3.5 w-3.5" />
-                        {lang === "vi" ? "+ Thêm câu hỏi con cùng bài đọc" : "+ Add sub-question to passage"}
+                        {tr("+ Thêm câu hỏi con cùng bài đọc", "+ Add sub-question to passage", "+ 同じ長文に設問を追加")}
                       </button>
                     )}
 
@@ -1119,7 +1155,7 @@ function SenseiTestCreateContent() {
                       className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      {lang === "vi" ? "Xóa" : "Delete"}
+                      {tr("Xóa", "Delete", "削除")}
                     </button>
                   </div>
                 </div>
@@ -1128,7 +1164,7 @@ function SenseiTestCreateContent() {
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-bold text-slate-600">
-                      {lang === "vi" ? "Nhãn Mondai hiển thị" : "Display Mondai Header"}
+                      {tr("Nhãn Mondai hiển thị", "Display Mondai Header", "表示用問題見出し")}
                     </label>
                     <input
                       type="text"
@@ -1141,7 +1177,11 @@ function SenseiTestCreateContent() {
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-bold text-slate-600">
-                      {lang === "vi" ? "Chủ điểm Ngữ pháp / Kỹ năng (Dùng cho Thống kê câu hay sai)" : "Grammar Point / Skill Tag (For analytics)"}
+                      {tr(
+                        "Chủ điểm Ngữ pháp / Kỹ năng (Dùng cho Thống kê câu hay sai)",
+                        "Grammar Point / Skill Tag (For analytics)",
+                        "文法項目・スキルタグ（分析用）"
+                      )}
                     </label>
                     <input
                       type="text"
@@ -1149,7 +1189,11 @@ function SenseiTestCreateContent() {
                       onChange={(e) =>
                         handleUpdateQuestion(q.id, { grammarPoint: e.target.value })
                       }
-                      placeholder={lang === "vi" ? "VD: Ngữ pháp N3 ～わりに / Trường âm Hán tự" : "e.g. N3 grammar ～わりに / Long vowel Kanji"}
+                      placeholder={tr(
+                        "VD: Ngữ pháp N3 ～わりに / Trường âm Hán tự",
+                        "e.g. N3 grammar ～わりに / Long vowel Kanji",
+                        "例: N3文法 ～わりに / 漢字の長音"
+                      )}
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-[#135E36]"
                     />
                   </div>
@@ -1160,10 +1204,18 @@ function SenseiTestCreateContent() {
                   <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50/40 p-4">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-extrabold text-sky-900">
-                        {lang === "vi" ? "📖 Đoạn văn Đọc hiểu (Dokkai Passage — hiển thị cột bên trái khi thi)" : "📖 Reading Passage (Dokkai — shown in left column during exam)"}
+                        {tr(
+                          "📖 Đoạn văn Đọc hiểu (Dokkai Passage — hiển thị cột bên trái khi thi)",
+                          "📖 Reading Passage (Dokkai — shown in left column during exam)",
+                          "📖 読解本文（試験中は左カラムに表示）"
+                        )}
                       </span>
                       <span className="font-mono text-xs text-sky-700">
-                        {lang === "vi" ? `Mã nhóm bài đọc: ${q.passageGroupId || "passage-default"}` : `Passage Group ID: ${q.passageGroupId || "passage-default"}`}
+                        {tr(
+                          `Mã nhóm bài đọc: ${q.passageGroupId || "passage-default"}`,
+                          `Passage Group ID: ${q.passageGroupId || "passage-default"}`,
+                          `読解グループID: ${q.passageGroupId || "passage-default"}`
+                        )}
                       </span>
                     </div>
 
@@ -1171,7 +1223,11 @@ function SenseiTestCreateContent() {
                       <div className="space-y-3">
                         <div>
                           <label className="mb-1 block text-xs font-bold text-slate-700">
-                            {lang === "vi" ? "Tiêu đề bài đọc (Hỗ trợ 漢字[かんじ])" : "Passage Title (Kanji[reading] supported)"}
+                            {tr(
+                              "Tiêu đề bài đọc (Hỗ trợ 漢字[かんじ])",
+                              "Passage Title (Kanji[reading] supported)",
+                              "本文タイトル（漢字[かんじ] ルビ対応）"
+                            )}
                           </label>
                           <input
                             type="text"
@@ -1212,11 +1268,11 @@ function SenseiTestCreateContent() {
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-900">
                               <ImageIcon className="h-3.5 w-3.5 text-sky-700" />
-                              {lang === "vi"
-                                ? "Ảnh áp phích / Bảng biểu (情報検索 — chọn file, kéo thả hoặc bấm vào đây rồi Ctrl+V)"
-                                : lang === "ja"
-                                  ? "情報検索ポスター画像（ファイル選択・ドロップ・Ctrl+V対応）"
-                                  : "Poster / Schedule Image (click, drop, or focus & Ctrl+V)"}
+                              {tr(
+                                "Ảnh áp phích / Bảng biểu (情報検索 — chọn file, kéo thả hoặc bấm vào đây rồi Ctrl+V)",
+                                "Poster / Schedule Image (click, drop, or focus & Ctrl+V)",
+                                "情報検索ポスター画像（ファイル選択・ドロップ・Ctrl+V対応）"
+                              )}
                             </span>
                             <div className="flex items-center gap-2">
                               <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 hover:bg-sky-100">
@@ -1226,10 +1282,10 @@ function SenseiTestCreateContent() {
                                   <ImageIcon className="h-3.5 w-3.5" />
                                 )}
                                 {uploadingPosterQid === q.id
-                                  ? (lang === "vi" ? "Đang tải..." : "Uploading...")
+                                  ? tr("Đang tải...", "Uploading...", "アップロード中...")
                                   : q.passageImageUrl
-                                    ? (lang === "vi" ? "Đổi ảnh" : "Replace")
-                                    : (lang === "vi" ? "Chọn ảnh" : "Upload Image")}
+                                    ? tr("Đổi ảnh", "Replace", "画像を変更")
+                                    : tr("Chọn ảnh", "Upload Image", "画像を選択")}
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -1249,21 +1305,27 @@ function SenseiTestCreateContent() {
                                   className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
                                 >
                                   <X className="h-3.5 w-3.5" />
-                                  {lang === "vi" ? "Gỡ ảnh" : "Remove"}
+                                  {tr("Gỡ ảnh", "Remove", "削除")}
                                 </button>
                               )}
                             </div>
                           </div>
                           <p className="mt-1 text-xs text-slate-500">
-                            {lang === "vi"
-                              ? "Ảnh sẽ tự động đồng bộ cho mọi câu hỏi con dùng chung Mã nhóm bài đọc này."
-                              : "Automatically synced across all sub-questions sharing this Passage Group ID."}
+                            {tr(
+                              "Ảnh sẽ tự động đồng bộ cho mọi câu hỏi con dùng chung Mã nhóm bài đọc này.",
+                              "Automatically synced across all sub-questions sharing this Passage Group ID.",
+                              "同じ読解グループIDを持つすべての設問に自動で反映されます。"
+                            )}
                           </p>
                         </div>
 
                         <div>
                           <label className="mb-1 block text-xs font-bold text-slate-700">
-                            {lang === "vi" ? "Nội dung đoạn văn tiếng Nhật (Hỗ trợ 漢字[かんじ] — có thể để trống nếu chỉ dùng ảnh áp phích)" : "Japanese Passage Text (optional if poster image is attached)"}
+                            {tr(
+                              "Nội dung đoạn văn tiếng Nhật (Hỗ trợ 漢字[かんじ] — có thể để trống nếu chỉ dùng ảnh áp phích)",
+                              "Japanese Passage Text (optional if poster image is attached)",
+                              "日本語本文（ポスター画像のみの場合は空欄可）"
+                            )}
                           </label>
                           <textarea
                             rows={5}
@@ -1280,7 +1342,13 @@ function SenseiTestCreateContent() {
                       <div className="rounded-xl border border-sky-200/80 bg-[#FAF8F2] p-4">
                         <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#135E36]">
                           <Eye className="h-3.5 w-3.5" />
-                          {lang === "vi" ? <>Xem trước hiển thị bài đọc <FuriganaText text="読解[どっかい]" />:</> : <>Reading Passage Preview <FuriganaText text="読解[どっかい]" />:</>}
+                          {lang === "vi" ? (
+                            <>Xem trước hiển thị bài đọc <FuriganaText text="読解[どっかい]" />:</>
+                          ) : lang === "ja" ? (
+                            <>読解本文プレビュー <FuriganaText text="読解[どっかい]" />:</>
+                          ) : (
+                            <>Reading Passage Preview <FuriganaText text="読解[どっかい]" />:</>
+                          )}
                         </div>
                         {q.passageTitle && (
                           <p className="mb-2 border-b border-slate-200 pb-1.5 font-jp text-sm font-bold text-slate-900">
@@ -1312,13 +1380,13 @@ function SenseiTestCreateContent() {
                   <div className="mb-5 rounded-2xl border border-purple-200 bg-purple-50/40 p-4">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-extrabold text-purple-900">
-                        {lang === "vi" ? "🎧 Cấu hình File Nghe Choukai (MP3 & Giới hạn lượt phát)" : "🎧 Listening Audio Setup (MP3 & Playback Limits)"}
+                        {tr("🎧 Cấu hình File Nghe Choukai (MP3 & Giới hạn lượt phát)", "🎧 Listening Audio Setup (MP3 & Playback Limits)", "🎧 聴解音声設定（MP3・再生回数制限）")}
                       </span>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div className="sm:col-span-2">
                         <label className="mb-1 block text-xs font-bold text-slate-700">
-                          {lang === "vi" ? "Tên file MP3 hoặc tiêu đề băng nghe" : "MP3 audio filename or track title"}
+                          {tr("Tên file MP3 hoặc tiêu đề băng nghe", "MP3 audio filename or track title", "MP3ファイル名または音声タイトル")}
                         </label>
                         <input
                           type="text"
@@ -1326,14 +1394,14 @@ function SenseiTestCreateContent() {
                           onChange={(e) =>
                             handleUpdateQuestion(q.id, { audioTitle: e.target.value })
                           }
-                          placeholder={lang === "vi" ? "VD: Choukai_N3_Mondai1_Track04.mp3" : "e.g. Choukai_N3_Mondai1_Track04.mp3"}
+                          placeholder={tr("VD: Choukai_N3_Mondai1_Track04.mp3", "e.g. Choukai_N3_Mondai1_Track04.mp3", "例: Choukai_N3_Mondai1_Track04.mp3")}
                           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900"
                         />
                       </div>
 
                       <div>
                         <label className="mb-1 block text-xs font-bold text-purple-900">
-                          {lang === "vi" ? "Giới hạn số lần nghe *" : "Playback Limits *"}
+                          {tr("Giới hạn số lần nghe *", "Playback Limits *", "再生回数制限 *")}
                         </label>
                         <select
                           value={q.audioPlayLimit ?? 2}
@@ -1344,9 +1412,9 @@ function SenseiTestCreateContent() {
                           }
                           className="w-full rounded-xl border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-900"
                         >
-                          <option value={1}>{lang === "vi" ? "Nghe 1 lần duy nhất (Chuẩn thi JLPT)" : "Play once only (JLPT standard)"}</option>
-                          <option value={2}>{lang === "vi" ? "Giới hạn nghe 2 lần" : "Play up to 2 times"}</option>
-                          <option value={0}>{lang === "vi" ? "Không giới hạn số lần nghe" : "Unlimited playback"}</option>
+                          <option value={1}>{tr("Nghe 1 lần duy nhất (Chuẩn thi JLPT)", "Play once only (JLPT standard)", "1回のみ再生（JLPT準拠）")}</option>
+                          <option value={2}>{tr("Giới hạn nghe 2 lần", "Play up to 2 times", "最大2回再生")}</option>
+                          <option value={0}>{tr("Không giới hạn số lần nghe", "Unlimited playback", "再生回数無制限")}</option>
                         </select>
                       </div>
                     </div>
@@ -1357,7 +1425,7 @@ function SenseiTestCreateContent() {
                 <div className="mb-4 grid gap-4 lg:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-bold text-slate-700">
-                      {lang === "vi" ? "Câu hỏi / Đề bài (Hỗ trợ cú pháp 漢字[かんじ]) *" : "Question / Prompt (Furigana supported) *"}
+                      {tr("Câu hỏi / Đề bài (Hỗ trợ cú pháp 漢字[かんじ]) *", "Question / Prompt (Furigana supported) *", "問題文（漢字[かんじ] ルビ対応） *")}
                     </label>
                     <textarea
                       rows={2}
@@ -1371,10 +1439,10 @@ function SenseiTestCreateContent() {
                   <div className="flex flex-col justify-center rounded-xl border border-slate-200/80 bg-[#FAF8F2] p-3.5">
                     <span className="mb-1 flex items-center gap-1.5 text-xs font-bold text-[#135E36]">
                       <Eye className="h-3.5 w-3.5" />
-                      {lang === "vi" ? "Xem trước Furigana câu hỏi:" : "Question Furigana Preview:"}
+                      {tr("Xem trước Furigana câu hỏi:", "Question Furigana Preview:", "問題文ルビプレビュー:")}
                     </span>
                     <div className="font-jp text-base font-bold leading-relaxed text-slate-900">
-                      <FuriganaText text={q.prompt || (lang === "vi" ? "（Chưa nhập nội dung）" : "（No content entered）")} />
+                      <FuriganaText text={q.prompt || tr("（Chưa nhập nội dung）", "（No content entered）", "（未入力）")} />
                     </div>
                   </div>
                 </div>
@@ -1383,12 +1451,12 @@ function SenseiTestCreateContent() {
                 {q.type === "star" && (
                   <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
                     <p className="mb-3 text-xs font-extrabold text-amber-900">
-                      {lang === "vi" ? "★ Cấu hình khung câu 4 chỗ trống ___ ___ ★ ___" : "★ Configure 4-slot sentence frame ___ ___ ★ ___"}
+                      {tr("★ Cấu hình khung câu 4 chỗ trống ___ ___ ★ ___", "★ Configure 4-slot sentence frame ___ ___ ★ ___", "★ 4空欄の文構成 ___ ___ ★ ___")}
                     </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div>
                         <label className="mb-1 block text-xs font-bold text-slate-700">
-                          {lang === "vi" ? "Vế đầu câu (Trước 4 ô trống)" : "Prefix clause (Before 4 blanks)"}
+                          {tr("Vế đầu câu (Trước 4 ô trống)", "Prefix clause (Before 4 blanks)", "前半文（4空欄の前）")}
                         </label>
                         <input
                           type="text"
@@ -1396,13 +1464,13 @@ function SenseiTestCreateContent() {
                           onChange={(e) =>
                             handleUpdateQuestion(q.id, { starPrefix: e.target.value })
                           }
-                          placeholder="VD: この 薬[くすり]を"
+                          placeholder={tr("VD: この 薬[くすり]を", "e.g. この 薬[くすり]を", "例: この 薬[くすり]を")}
                           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-jp text-xs text-slate-900"
                         />
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-bold text-slate-700">
-                          {lang === "vi" ? "Vị trí dấu sao ★ (Ô thứ mấy?)" : "Star Position ★"}
+                          {tr("Vị trí dấu sao ★ (Ô thứ mấy?)", "Star Position ★", "★の位置")}
                         </label>
                         <select
                           value={q.starSlotIndex ?? 2}
@@ -1413,15 +1481,15 @@ function SenseiTestCreateContent() {
                           }
                           className="w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900"
                         >
-                          <option value={0}>{lang === "vi" ? "Ô số 1: ★ ___ ___ ___" : "Slot 1: ★ ___ ___ ___"}</option>
-                          <option value={1}>{lang === "vi" ? "Ô số 2: ___ ★ ___ ___" : "Slot 2: ___ ★ ___ ___"}</option>
-                          <option value={2}>{lang === "vi" ? "Ô số 3: ___ ___ ★ ___ (Chuẩn JLPT)" : "Slot 3: ___ ___ ★ ___ (JLPT standard)"}</option>
-                          <option value={3}>{lang === "vi" ? "Ô số 4: ___ ___ ___ ★" : "Slot 4: ___ ___ ___ ★"}</option>
+                          <option value={0}>{tr("Ô số 1: ★ ___ ___ ___", "Slot 1: ★ ___ ___ ___", "1番目: ★ ___ ___ ___")}</option>
+                          <option value={1}>{tr("Ô số 2: ___ ★ ___ ___", "Slot 2: ___ ★ ___ ___", "2番目: ___ ★ ___ ___")}</option>
+                          <option value={2}>{tr("Ô số 3: ___ ___ ★ ___ (Chuẩn JLPT)", "Slot 3: ___ ___ ★ ___ (JLPT standard)", "3番目: ___ ___ ★ ___（JLPT標準）")}</option>
+                          <option value={3}>{tr("Ô số 4: ___ ___ ___ ★", "Slot 4: ___ ___ ___ ★", "4番目: ___ ___ ___ ★")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-bold text-slate-700">
-                          {lang === "vi" ? "Vế cuối câu (Sau 4 ô trống)" : "Suffix clause (After 4 blanks)"}
+                          {tr("Vế cuối câu (Sau 4 ô trống)", "Suffix clause (After 4 blanks)", "後半文（4空欄の後）")}
                         </label>
                         <input
                           type="text"
@@ -1429,7 +1497,7 @@ function SenseiTestCreateContent() {
                           onChange={(e) =>
                             handleUpdateQuestion(q.id, { starSuffix: e.target.value })
                           }
-                          placeholder="VD: なりました。"
+                          placeholder={tr("VD: なりました。", "e.g. なりました。", "例: なりました。")}
                           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-jp text-xs text-slate-900"
                         />
                       </div>
@@ -1437,20 +1505,19 @@ function SenseiTestCreateContent() {
 
                     {/* Live Preview of the 4 Star Slots */}
                     <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-white p-3 font-jp text-sm text-slate-900 shadow-2xs">
-                      <span className="text-xs font-bold text-amber-800">{lang === "vi" ? "Xem trước khung câu:" : "Sentence frame preview:"}</span>
+                      <span className="text-xs font-bold text-amber-800">{tr("Xem trước khung câu:", "Sentence frame preview:", "文枠プレビュー:")}</span>
                       <FuriganaText text={q.starPrefix || ""} />
                       {[0, 1, 2, 3].map((slotIdx) => {
                         const isStar = (q.starSlotIndex ?? 2) === slotIdx;
                         return (
                           <span
                             key={slotIdx}
-                            className={`inline-flex min-w-16 items-center justify-center rounded-lg border-2 px-3 py-1 text-xs font-bold ${
-                              isStar
-                                ? "border-amber-500 bg-amber-100 text-amber-900"
-                                : "border-dashed border-slate-300 bg-slate-50 text-slate-400"
-                            }`}
+                            className={`inline-flex min-w-16 items-center justify-center rounded-lg border-2 px-3 py-1 text-xs font-bold ${isStar
+                              ? "border-amber-500 bg-amber-100 text-amber-900"
+                              : "border-dashed border-slate-300 bg-slate-50 text-slate-400"
+                              }`}
                           >
-                            {isStar ? "★" : (lang === "vi" ? `Ô ${slotIdx + 1}` : `Slot ${slotIdx + 1}`)}
+                            {isStar ? "★" : tr(`Ô ${slotIdx + 1}`, `Slot ${slotIdx + 1}`, `枠${slotIdx + 1}`)}
                           </span>
                         );
                       })}
@@ -1463,12 +1530,16 @@ function SenseiTestCreateContent() {
                 <div className="mb-4">
                   <label className="mb-2 block text-xs font-bold text-slate-700">
                     {q.type === "star"
-                      ? (lang === "vi"
-                          ? "4 mảnh ghép từ vựng (Chọn radio ở mảnh ghép nằm đúng vào vị trí ★):"
-                          : "4 word fragments (Select radio for the item placed at ★):")
-                      : (lang === "vi"
-                          ? "4 phương án lựa chọn A, B, C, D (Chọn radio ở đáp án đúng):"
-                          : "4 choices A, B, C, D (Select radio for correct answer):")}
+                      ? tr(
+                        "4 mảnh ghép từ vựng (Chọn radio ở mảnh ghép nằm đúng vào vị trí ★):",
+                        "4 word fragments (Select radio for the item placed at ★):",
+                        "4つの語句（★に入る正解を選択）："
+                      )
+                      : tr(
+                        "4 phương án lựa chọn A, B, C, D (Chọn radio ở đáp án đúng):",
+                        "4 choices A, B, C, D (Select radio for correct answer):",
+                        "4つの選択肢（正解のラジオボタンを選択）："
+                      )}
                   </label>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {q.options.map((opt, optIdx) => {
@@ -1476,11 +1547,10 @@ function SenseiTestCreateContent() {
                       return (
                         <div
                           key={optIdx}
-                          className={`rounded-xl border p-3 transition ${
-                            isCorrect
-                              ? "border-[#135E36] bg-emerald-50/40"
-                              : "border-slate-200 bg-white"
-                          }`}
+                          className={`rounded-xl border p-3 transition ${isCorrect
+                            ? "border-[#135E36] bg-emerald-50/40"
+                            : "border-slate-200 bg-white"
+                            }`}
                         >
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <label className="inline-flex cursor-pointer items-center gap-2">
@@ -1494,15 +1564,15 @@ function SenseiTestCreateContent() {
                                 className="h-4 w-4 accent-[#135E36]"
                               />
                               <span className="text-xs font-extrabold text-slate-800">
-                                {lang === "vi" ? `Phương án ${optionLetters[optIdx]}` : `Option ${optionLetters[optIdx]}`}
+                                {tr(`Phương án ${optionLetters[optIdx]}`, `Option ${optionLetters[optIdx]}`, `選択肢 ${optionLetters[optIdx]}`)}
                               </span>
                             </label>
                             {isCorrect && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-[#135E36] px-2 py-0.5 text-xs font-bold text-white">
                                 <CheckCircle2 className="h-3 w-3 text-[#6CC24A]" />
                                 {q.type === "star"
-                                  ? (lang === "vi" ? "Đáp án tại ★" : "Word at ★")
-                                  : (lang === "vi" ? "Đáp án đúng" : "Correct Answer")}
+                                  ? tr("Đáp án tại ★", "Word at ★", "★の正解")
+                                  : tr("Đáp án đúng", "Correct Answer", "正解")}
                               </span>
                             )}
                           </div>
@@ -1513,12 +1583,16 @@ function SenseiTestCreateContent() {
                             onChange={(e) =>
                               handleUpdateOption(q.id, optIdx, e.target.value)
                             }
-                            placeholder={lang === "vi" ? `Nhập phương án ${optionLetters[optIdx]} (hỗ trợ 漢字[かんじ])` : `Enter option ${optionLetters[optIdx]} (Kanji[reading] supported)`}
+                            placeholder={tr(
+                              `Nhập phương án ${optionLetters[optIdx]} (hỗ trợ 漢字[かんじ])`,
+                              `Enter option ${optionLetters[optIdx]} (Kanji[reading] supported)`,
+                              `選択肢 ${optionLetters[optIdx]} を入力（漢字[かんじ] ルビ対応）`
+                            )}
                             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-jp text-xs text-slate-900"
                           />
 
                           <div className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-600">
-                            <span className="font-semibold text-slate-400">{lang === "vi" ? "Hiển thị:" : "Display:"}</span>
+                            <span className="font-semibold text-slate-400">{tr("Hiển thị:", "Display:", "表示:")}</span>
                             <span className="font-jp text-xs font-bold text-slate-900">
                               <FuriganaText text={opt || "—"} />
                             </span>
@@ -1533,9 +1607,11 @@ function SenseiTestCreateContent() {
                 <div className="rounded-xl border border-slate-200/80 bg-[#FAF8F2] p-3.5">
                   <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[#135E36]">
                     <HelpCircle className="h-3.5 w-3.5" />
-                    {lang === "vi"
-                      ? "Giải thích đáp án chi tiết (chỉ hiển thị sau khi học viên nộp bài)"
-                      : "Detailed Explanation (only shown after student submits)"}
+                    {tr(
+                      "Giải thích đáp án chi tiết (chỉ hiển thị sau khi học viên nộp bài)",
+                      "Detailed Explanation (only shown after student submits)",
+                      "詳細な解説（受講生の提出後にのみ表示）"
+                    )}
                   </label>
                   <textarea
                     rows={2}
@@ -1543,12 +1619,16 @@ function SenseiTestCreateContent() {
                     onChange={(e) =>
                       handleUpdateQuestion(q.id, { explanation: e.target.value })
                     }
-                    placeholder={lang === "vi" ? "Giải thích cấu trúc ngữ pháp, từ vựng và lý do chọn đáp án đúng (hỗ trợ 漢字[かんじ])..." : "Explain grammar structure, vocabulary, and why this is the correct answer (Kanji[reading] supported)..."}
+                    placeholder={tr(
+                      "Giải thích cấu trúc ngữ pháp, từ vựng và lý do chọn đáp án đúng (hỗ trợ 漢字[かんじ])...",
+                      "Explain grammar structure, vocabulary, and why this is the correct answer (Kanji[reading] supported)...",
+                      "文法構造、語彙、正解の理由などを入力（漢字[かんじ] ルビ対応）..."
+                    )}
                     className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-800"
                   />
                   {q.explanation && (
                     <div className="mt-2 text-xs text-slate-700">
-                      <span className="font-bold text-[#135E36]">{lang === "vi" ? "Xem trước lời giải: " : "Explanation preview: "}</span>
+                      <span className="font-bold text-[#135E36]">{tr("Xem trước lời giải: ", "Explanation preview: ", "解説プレビュー: ")}</span>
                       <FuriganaText text={q.explanation} />
                     </div>
                   )}
@@ -1562,11 +1642,13 @@ function SenseiTestCreateContent() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#135E36]/20 bg-white p-5 shadow-md">
           <div>
             <p className="text-sm font-extrabold text-slate-900">
-              {lang === "vi" ? "Sẵn sàng xuất bản đề thi cho học viên?" : "Ready to publish exam for students?"}
+              {tr("Sẵn sàng xuất bản đề thi cho học viên?", "Ready to publish exam for students?", "受講生向けに試験を公開する準備はできましたか？")}
             </p>
             <p className="text-xs text-slate-600">
               {lang === "vi" ? (
                 <>Tổng cộng <strong>{questions.length} câu hỏi</strong> · <strong>{totalPoints} điểm</strong> · Điểm đạt: <strong>{passScore} điểm</strong></>
+              ) : lang === "ja" ? (
+                <>合計 <strong>{questions.length}問</strong> · <strong>{totalPoints}点</strong> · 合格点: <strong>{passScore}点</strong></>
               ) : (
                 <>Total <strong>{questions.length} questions</strong> · <strong>{totalPoints} points</strong> · Pass score: <strong>{passScore} points</strong></>
               )}
@@ -1577,7 +1659,7 @@ function SenseiTestCreateContent() {
               href="/portal/tests"
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
             >
-              {lang === "vi" ? "Hủy" : "Cancel"}
+              {tr("Hủy", "Cancel", "キャンセル")}
             </Link>
             <button
               type="submit"
@@ -1590,10 +1672,8 @@ function SenseiTestCreateContent() {
                 <Save className="h-4 w-4 text-[#6CC24A]" />
               )}
               {isSaving
-                ? (lang === "vi" ? "Đang lưu đề..." : lang === "ja" ? "保存中..." : "Saving...")
-                : lang === "vi"
-                  ? "Lưu & Xuất bản Đề thi"
-                  : "Save & Publish Exam"}
+                ? tr("Đang lưu đề...", "Saving...", "保存中...")
+                : tr("Lưu & Xuất bản Đề thi", "Save & Publish Exam", "保存して試験を公開")}
             </button>
           </div>
         </div>
@@ -1623,7 +1703,7 @@ export default function SenseiTestCreatePage() {
     <Suspense
       fallback={
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm font-semibold text-slate-600">
-          Đang tải trình soạn đề thi JLPT...
+          Loading JLPT Exam Builder...
         </div>
       }
     >

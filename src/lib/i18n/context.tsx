@@ -12,6 +12,13 @@ interface LanguageContextType {
   toggleLang: () => void;
   t: I18nDictionary;
   interpolate: (text: string, vars?: Record<string, string | number>) => string;
+  tr: (vi: string, en: string, ja: string) => string;
+}
+
+export function pickLang(lang: Language, vi: string, en: string, ja: string): string {
+  if (lang === "en") return en;
+  if (lang === "ja") return ja;
+  return vi;
 }
 
 const dictionaries: Record<Language, I18nDictionary> = { vi, en, ja };
@@ -67,6 +74,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     toggleLang,
     t: dictionaries[lang],
     interpolate,
+    tr: (viText: string, enText: string, jaText: string) => pickLang(lang, viText, enText, jaText),
   }), [lang]);
 
   return (

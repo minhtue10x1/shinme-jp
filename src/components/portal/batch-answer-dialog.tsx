@@ -88,7 +88,7 @@ export function BatchAnswerDialog({
   showSections = true,
   onApply,
 }: BatchAnswerDialogProps) {
-  const { lang } = useTranslation();
+  const { tr } = useTranslation();
   const [scope, setScope] = useState<BatchScope>(defaultScope);
   const [rawInput, setRawInput] = useState("");
 
@@ -147,16 +147,14 @@ export function BatchAnswerDialog({
               </div>
               <div>
                 <DialogTitle className="text-base font-black text-slate-900">
-                  {lang === "vi"
-                    ? "Nhập đáp án hàng loạt (Batch 1–4)"
-                    : lang === "ja"
-                      ? "正解を一括入力 (1〜4)"
-                      : "Batch Answer Key Input (1–4)"}
+                  {tr("Nhập đáp án hàng loạt (Batch 1–4)", "Batch Answer Key Input (1–4)", "正解を一括入力 (1〜4)")}
                 </DialogTitle>
                 <DialogDescription className="mt-0.5 text-xs text-slate-600">
-                  {lang === "vi"
-                    ? 'Nhập hoặc dán chuỗi đáp án từ 1 đến 4 (VD: "1 2 1 4 3 2 ..." hoặc "121432..."). Hệ thống sẽ tự động gán theo thứ tự từng câu.'
-                    : 'Paste or type answers 1–4 (e.g. "1 2 1 4 3 2 ..."). Answers are mapped in order.'}
+                  {tr(
+                    'Nhập hoặc dán chuỗi đáp án từ 1 đến 4 (VD: "1 2 1 4 3 2 ..." hoặc "121432..."). Hệ thống sẽ tự động gán theo thứ tự từng câu.',
+                    'Paste or type answers 1–4 (e.g. "1 2 1 4 3 2 ..."). Answers are mapped in order.',
+                    '1〜4の解答を貼り付けまたは入力してください（例："1 2 1 4 3 2 ..."）。順番に自動割り当てされます。'
+                  )}
                 </DialogDescription>
               </div>
             </div>
@@ -174,7 +172,7 @@ export function BatchAnswerDialog({
           {showSections && (
             <div>
               <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                {lang === "vi" ? "Phạm vi áp dụng đáp án:" : "Apply to section:"}
+                {tr("Phạm vi áp dụng đáp án:", "Apply to section:", "適用範囲：")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {(["ALL", "goi", "bunpou_dokkai", "choukai"] as const).map((tab) => {
@@ -186,9 +184,7 @@ export function BatchAnswerDialog({
                   const active = scope === tab;
                   const label =
                     tab === "ALL"
-                      ? lang === "vi"
-                        ? "Toàn bộ đề"
-                        : "All Questions"
+                      ? tr("Toàn bộ đề", "All Questions", "全問題")
                       : EXAM_SECTION_META[tab].shortLabel;
                   return (
                     <button
@@ -220,9 +216,11 @@ export function BatchAnswerDialog({
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <label className="text-xs font-bold text-slate-700">
-                {lang === "vi"
-                  ? `Chuỗi đáp án (${parsed.length} / ${targetQuestions.length} câu):`
-                  : `Answer sequence (${parsed.length} / ${targetQuestions.length} items):`}
+                {tr(
+                  `Chuỗi đáp án (${parsed.length} / ${targetQuestions.length} câu):`,
+                  `Answer sequence (${parsed.length} / ${targetQuestions.length} items):`,
+                  `解答シーケンス (${parsed.length} / ${targetQuestions.length}問)：`
+                )}
               </label>
               {rawInput && (
                 <button
@@ -230,7 +228,7 @@ export function BatchAnswerDialog({
                   onClick={() => setRawInput("")}
                   className="text-xs font-bold text-slate-500 hover:text-rose-600"
                 >
-                  {lang === "vi" ? "Xóa trắng" : "Clear"}
+                  {tr("Xóa trắng", "Clear", "クリア")}
                 </button>
               )}
             </div>
@@ -238,11 +236,11 @@ export function BatchAnswerDialog({
               rows={4}
               value={rawInput}
               onChange={(e) => setRawInput(e.target.value)}
-              placeholder={
-                lang === "vi"
-                  ? "VD: 1 2 1 4 3 2 4 1 3 2 ... (cách nhau bằng dấu cách, phẩy, xuống dòng hoặc viết liền 121432)"
-                  : "e.g. 1 2 1 4 3 2 4 1 3 2 ..."
-              }
+              placeholder={tr(
+                "VD: 1 2 1 4 3 2 4 1 3 2 ... (cách nhau bằng dấu cách, phẩy, xuống dòng hoặc viết liền 121432)",
+                "e.g. 1 2 1 4 3 2 4 1 3 2 ...",
+                "例：1 2 1 4 3 2 4 1 3 2 ...（スペース・カンマ・改行・連続入力に対応）"
+              )}
               className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-sm font-bold tracking-wide text-slate-900 focus:border-[#135E36] focus:outline-none"
             />
           </div>
@@ -253,9 +251,11 @@ export function BatchAnswerDialog({
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <div>
                 <p className="font-extrabold">
-                  {lang === "vi"
-                    ? `Phát hiện ${invalidTokens.length} đáp án không hợp lệ (chỉ chấp nhận số 1, 2, 3, 4):`
-                    : `Found ${invalidTokens.length} invalid values (only 1–4 allowed):`}
+                  {tr(
+                    `Phát hiện ${invalidTokens.length} đáp án không hợp lệ (chỉ chấp nhận số 1, 2, 3, 4):`,
+                    `Found ${invalidTokens.length} invalid values (only 1–4 allowed):`,
+                    `無効な値が ${invalidTokens.length} 件あります（1〜4のみ有効）：`
+                  )}
                 </p>
                 <p className="mt-0.5 font-mono text-xs">
                   {invalidTokens
@@ -272,9 +272,11 @@ export function BatchAnswerDialog({
             <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-900">
               <AlertTriangle className="size-4 shrink-0 text-amber-600" />
               <span>
-                {lang === "vi"
-                  ? `Bạn đã nhập ${parsed.length} đáp án nhưng phạm vi này chỉ có ${targetQuestions.length} câu. Các đáp án dư phía sau sẽ được bỏ qua.`
-                  : `You entered ${parsed.length} answers for ${targetQuestions.length} questions. Extra answers will be ignored.`}
+                {tr(
+                  `Bạn đã nhập ${parsed.length} đáp án nhưng phạm vi này chỉ có ${targetQuestions.length} câu. Các đáp án dư phía sau sẽ được bỏ qua.`,
+                  `You entered ${parsed.length} answers for ${targetQuestions.length} questions. Extra answers will be ignored.`,
+                  `${targetQuestions.length}問に対して ${parsed.length}個の解答が入力されています。余分な解答は無視されます。`
+                )}
               </span>
             </div>
           )}
@@ -283,7 +285,7 @@ export function BatchAnswerDialog({
           {parsed.length > 0 && targetQuestions.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs font-bold text-slate-600">
-                {lang === "vi" ? "Xem trước khớp đáp án:" : "Live mapping preview:"}
+                {tr("Xem trước khớp đáp án:", "Live mapping preview:", "割り当てプレビュー：")}
               </p>
               <div className="grid max-h-44 grid-cols-4 gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-[#FAF8F2] p-2.5 sm:grid-cols-6">
                 {parsed.slice(0, targetQuestions.length).map((token, idx) => {
@@ -318,7 +320,7 @@ export function BatchAnswerDialog({
               onClick={() => onOpenChange(false)}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
             >
-              {lang === "vi" ? "Hủy" : "Cancel"}
+              {tr("Hủy", "Cancel", "キャンセル")}
             </button>
             <button
               type="button"
@@ -331,9 +333,11 @@ export function BatchAnswerDialog({
               ) : (
                 <Sparkles className="size-4 text-[#6CC24A]" />
               )}
-              {lang === "vi"
-                ? `Áp dụng ${validApplicableCount} đáp án`
-                : `Apply ${validApplicableCount} Answers`}
+              {tr(
+                `Áp dụng ${validApplicableCount} đáp án`,
+                `Apply ${validApplicableCount} Answers`,
+                `${validApplicableCount}問の解答を適用`
+              )}
             </button>
           </div>
         </div>

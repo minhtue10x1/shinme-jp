@@ -45,7 +45,7 @@ function formatDurationMMSS(seconds: number): string {
 
 export default function GradebookPage() {
   const { role, user, firebaseUser } = useRole();
-  const { lang, t } = useTranslation();
+  const { lang, tr } = useTranslation();
 
   const [tests, setTests] = useState<JLPTTestDoc[]>([]);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
@@ -77,7 +77,7 @@ export default function GradebookPage() {
       }
     } catch (err) {
       console.error("Load gradebook error:", err);
-      toast.error(lang === "vi" ? "Không thể tải dữ liệu bảng điểm." : "Failed to load gradebook data.");
+      toast.error(tr("Không thể tải dữ liệu bảng điểm.", "Failed to load gradebook data.", "成績表データを読み込めませんでした。"));
     } finally {
       setIsLoading(false);
     }
@@ -205,21 +205,21 @@ export default function GradebookPage() {
   // Export Gradebook to CSV
   const handleExportCSV = () => {
     if (!activeTest || gradebookRows.length === 0) {
-      toast.error(lang === "vi" ? "Chưa có dữ liệu bảng điểm để xuất file." : "No gradebook data to export.");
+      toast.error(tr("Chưa có dữ liệu bảng điểm để xuất file.", "No gradebook data to export.", "出力する成績データがありません。"));
       return;
     }
 
     const headers = [
-      lang === "vi" ? "Mã Học Viên" : "Student ID",
-      lang === "vi" ? "Họ và Tên" : "Full Name",
-      lang === "vi" ? "Lớp" : "Class",
-      lang === "vi" ? "Mã Đề Thi" : "Exam Code",
-      lang === "vi" ? "Điểm Số" : "Score",
-      lang === "vi" ? "Tổng Điểm" : "Total Points",
-      lang === "vi" ? "Thời Gian Làm Bài (MM:SS)" : "Duration (MM:SS)",
-      lang === "vi" ? "Số Lần Làm" : "Attempts",
-      lang === "vi" ? "Trạng Thái" : "Status",
-      lang === "vi" ? "Thời Gian Nộp" : "Submitted At",
+      tr("Mã Học Viên", "Student ID", "受講生ID"),
+      tr("Họ và Tên", "Full Name", "氏名"),
+      tr("Lớp", "Class", "クラス"),
+      tr("Mã Đề Thi", "Exam Code", "試験コード"),
+      tr("Điểm Số", "Score", "得点"),
+      tr("Tổng Điểm", "Total Points", "満点"),
+      tr("Thời Gian Làm Bài (MM:SS)", "Duration (MM:SS)", "所要時間 (MM:SS)"),
+      tr("Số Lần Làm", "Attempts", "受験回数"),
+      tr("Trạng Thái", "Status", "判定"),
+      tr("Thời Gian Nộp", "Submitted At", "提出日時"),
     ];
 
     const csvRows = gradebookRows.map((row) => [
@@ -227,14 +227,14 @@ export default function GradebookPage() {
       `"${row.studentName}"`,
       `"${activeTest.className}"`,
       activeTest.code,
-      row.score !== null ? String(row.score) : (lang === "vi" ? "Chưa nộp" : "Not submitted"),
+      row.score !== null ? String(row.score) : tr("Chưa nộp", "Not submitted", "未提出"),
       String(row.totalPoints),
       row.durationSeconds !== null
         ? formatDurationMMSS(row.durationSeconds)
         : "--:--",
       String(row.attemptsCount),
-      row.status === "Đạt" ? (lang === "vi" ? "Đạt" : "Pass") : row.status === "Chưa đạt" ? (lang === "vi" ? "Chưa đạt" : "Fail") : (lang === "vi" ? "Chưa làm" : "Pending"),
-      row.submittedAt ? new Date(row.submittedAt).toLocaleString(lang === "vi" ? "vi-VN" : "en-US") : "--",
+      row.status === "Đạt" ? tr("Đạt", "Pass", "合格") : row.status === "Chưa đạt" ? tr("Chưa đạt", "Fail", "不合格") : tr("Chưa làm", "Pending", "未受験"),
+      row.submittedAt ? new Date(row.submittedAt).toLocaleString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US") : "--",
     ]);
 
     const csvString =
@@ -252,9 +252,11 @@ export default function GradebookPage() {
     URL.revokeObjectURL(url);
 
     toast.success(
-      lang === "vi"
-        ? `Đã xuất file CSV bảng điểm (${gradebookRows.length} học viên)!`
-        : `Exported gradebook CSV (${gradebookRows.length} students)!`
+      tr(
+        `Đã xuất file CSV bảng điểm (${gradebookRows.length} học viên)!`,
+        `Exported gradebook CSV (${gradebookRows.length} students)!`,
+        `成績CSVを出力しました（${gradebookRows.length}名）！`
+      )
     );
   };
 
@@ -268,36 +270,40 @@ export default function GradebookPage() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline"
           >
             <ArrowLeft className="size-3.5" />
-            {lang === "vi" ? "Quay lại Trung tâm Khảo thí JLPT" : "Back to JLPT Exam Center"}
+            {tr("Quay lại Trung tâm Khảo thí JLPT", "Back to JLPT Exam Center", "JLPT試験センターへ戻る")}
           </Link>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-black text-shinme-ink">
               {role === "student"
-                ? (lang === "vi" ? "Bảng Điểm Cá Nhân & Lịch Sử Thi" : "Personal Gradebook & Exam History")
-                : (lang === "vi" ? "Bảng Điểm Bài Kiểm Tra (Sensei Gradebook)" : "Exam Gradebook (Sensei Gradebook)")}
+                ? tr("Bảng Điểm Cá Nhân & Lịch Sử Thi", "Personal Gradebook & Exam History", "個人成績表・受験履歴")
+                : tr("Bảng Điểm Bài Kiểm Tra (Sensei Gradebook)", "Exam Gradebook (Sensei Gradebook)", "試験成績表（講師用）")}
             </h1>
-            <Badge tone="leaf">{lang === "vi" ? "Kết quả chính thức" : "Official Results"}</Badge>
+            <Badge tone="leaf">{tr("Kết quả chính thức", "Official Results", "公式結果")}</Badge>
           </div>
           <p className="text-sm font-semibold text-shinme-muted">
             {role === "student"
-              ? (lang === "vi"
-                  ? "Theo dõi toàn bộ lịch sử điểm số, kết quả đạt chuẩn và thời gian làm bài của bạn"
-                  : "Track your scores, passing status, and test duration history")
-              : (lang === "vi"
-                  ? "Theo dõi kết quả làm bài, điểm thi và sĩ số hoàn thành của từng học viên theo lớp"
-                  : "Monitor student test scores, pass rates, and class completion metrics")}
+              ? tr(
+                  "Theo dõi toàn bộ lịch sử điểm số, kết quả đạt chuẩn và thời gian làm bài của bạn",
+                  "Track your scores, passing status, and test duration history",
+                  "過去の得点・合否判定・所要時間の履歴を確認できます"
+                )
+              : tr(
+                  "Theo dõi kết quả làm bài, điểm thi và sĩ số hoàn thành của từng học viên theo lớp",
+                  "Monitor student test scores, pass rates, and class completion metrics",
+                  "クラスごとの受講生の成績・合格率・受験状況を確認できます"
+                )}
           </p>
         </div>
 
         {role !== "student" && (
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleExportCSV}>
-              <Download className="size-3.5" /> {lang === "vi" ? "Xuất file CSV" : "Export CSV"}
+              <Download className="size-3.5" /> {tr("Xuất file CSV", "Export CSV", "CSV出力")}
             </Button>
             {activeTest && (
               <Button asChild size="sm">
                 <Link href={`/portal/tests/${activeTest.id}/take`}>
-                  <Play className="size-3.5" /> {lang === "vi" ? "Xem đề thi" : "View Exam"}
+                  <Play className="size-3.5" /> {tr("Xem đề thi", "View Exam", "試験を見る")}
                 </Link>
               </Button>
             )}
@@ -319,24 +325,28 @@ export default function GradebookPage() {
           <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-6 shadow-[var(--shadow-card)]">
             <h2 className="text-lg font-black text-shinme-ink flex items-center gap-2">
               <GraduationCap className="size-5 text-shinme-primary" />
-              {lang === "vi"
-                ? `Lịch sử ${studentHistory.length} bài thi đã hoàn thành`
-                : `Exam History (${studentHistory.length} completed)`}
+              {tr(
+                `Lịch sử ${studentHistory.length} bài thi đã hoàn thành`,
+                `Exam History (${studentHistory.length} completed)`,
+                `受験履歴（完了 ${studentHistory.length}件）`
+              )}
             </h2>
             <p className="text-xs text-shinme-muted mt-1">
-              {lang === "vi"
-                ? "Điểm số được lưu trữ tự động sau mỗi lần nộp bài kiểm tra"
-                : "Scores are automatically recorded upon each test submission"}
+              {tr(
+                "Điểm số được lưu trữ tự động sau mỗi lần nộp bài kiểm tra",
+                "Scores are automatically recorded upon each test submission",
+                "テスト提出後、得点は自動的に記録されます"
+              )}
             </p>
 
             {studentHistory.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-shinme-border p-8 text-center mt-4">
                 <p className="text-sm font-bold text-shinme-muted">
-                  {lang === "vi" ? "Bạn chưa làm bài kiểm tra nào." : "You have not taken any exams yet."}
+                  {tr("Bạn chưa làm bài kiểm tra nào.", "You have not taken any exams yet.", "まだ受験した試験はありません。")}
                 </p>
                 <Button asChild size="sm" className="mt-3">
                   <Link href="/portal/tests">
-                    {lang === "vi" ? "Vào phòng thi ngay" : "Enter Exam Room"}
+                    {tr("Vào phòng thi ngay", "Enter Exam Room", "試験室へ入る")}
                   </Link>
                 </Button>
               </div>
@@ -345,11 +355,11 @@ export default function GradebookPage() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-shinme-line text-shinme-muted">
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Mã đề thi" : "Exam Code"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Điểm đạt được" : "Score"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Thời gian làm bài" : "Duration"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Thời gian nộp" : "Submitted At"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Kết quả" : "Result"}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Mã đề thi", "Exam Code", "試験コード")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Điểm đạt được", "Score", "得点")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Thời gian làm bài", "Duration", "所要時間")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Thời gian nộp", "Submitted At", "提出日時")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Kết quả", "Result", "判定")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-shinme-line">
@@ -362,17 +372,17 @@ export default function GradebookPage() {
                           <span className="font-mono text-sm font-black text-shinme-ink">
                             {sub.score}/{sub.totalPoints}
                           </span>{" "}
-                          {lang === "vi" ? "điểm" : "pts"}
+                          {tr("điểm", "pts", "点")}
                         </td>
                         <td className="py-3 px-3 font-mono text-shinme-muted">
                           {formatDurationMMSS(sub.durationSeconds)}
                         </td>
                         <td className="py-3 px-3 text-shinme-muted">
-                          {new Date(sub.submittedAt).toLocaleString(lang === "vi" ? "vi-VN" : "en-US")}
+                          {new Date(sub.submittedAt).toLocaleString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US")}
                         </td>
                         <td className="py-3 px-3">
                           <Badge tone={sub.passed ? "leaf" : "warn"}>
-                            {sub.passed ? (lang === "vi" ? "Đạt (Goukaku)" : "Pass (Goukaku)") : (lang === "vi" ? "Chưa đạt" : "Failed")}
+                            {sub.passed ? tr("Đạt (Goukaku)", "Pass (Goukaku)", "合格") : tr("Chưa đạt", "Failed", "不合格")}
                           </Badge>
                         </td>
                       </tr>
@@ -393,7 +403,7 @@ export default function GradebookPage() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-shinme-ink">
-                  {lang === "vi" ? "Chọn đề thi:" : "Select exam:"}
+                  {tr("Chọn đề thi:", "Select exam:", "試験を選択：")}
                 </span>
                 <select
                   value={selectedTestId}
@@ -410,9 +420,11 @@ export default function GradebookPage() {
 
               {activeTest && (
                 <span className="rounded-full bg-shinme-bg px-3 py-1 font-mono text-xs font-bold text-shinme-primary border border-shinme-line">
-                  {lang === "vi"
-                    ? `Chuẩn đạt: ${activeTest.passScore}/${activeTest.totalPoints} điểm`
-                    : `Passing score: ${activeTest.passScore}/${activeTest.totalPoints} pts`}
+                  {tr(
+                    `Chuẩn đạt: ${activeTest.passScore}/${activeTest.totalPoints} điểm`,
+                    `Passing score: ${activeTest.passScore}/${activeTest.totalPoints} pts`,
+                    `合格基準：${activeTest.passScore}/${activeTest.totalPoints}点`
+                  )}
                 </span>
               )}
             </div>
@@ -423,7 +435,7 @@ export default function GradebookPage() {
                 type="text"
                 value={searchStudent}
                 onChange={(e) => setSearchStudent(e.target.value)}
-                placeholder={lang === "vi" ? "Tìm học viên theo tên, mã..." : "Search student by name, ID..."}
+                placeholder={tr("Tìm học viên theo tên, mã...", "Search student by name, ID...", "氏名・IDで検索...")}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
               />
             </div>
@@ -434,53 +446,53 @@ export default function GradebookPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-bold text-shinme-muted">
-                  {lang === "vi" ? "Điểm TB lớp" : "Class Average"}
+                  {tr("Điểm TB lớp", "Class Average", "クラス平均")}
                 </p>
                 <p className="mt-1 font-mono text-2xl font-black text-shinme-primary">
                   {classAvgScore}
                   <span className="text-xs font-normal text-shinme-muted">
-                    /{activeTest.totalPoints}đ
+                    /{activeTest.totalPoints}{tr("đ", " pts", "点")}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi" ? `Chuẩn: ${activeTest.passScore}đ` : `Pass: ${activeTest.passScore} pts`}
+                  {tr(`Chuẩn: ${activeTest.passScore}đ`, `Pass: ${activeTest.passScore} pts`, `合格点：${activeTest.passScore}点`)}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-bold text-emerald-800">
-                  {lang === "vi" ? "Đạt (Goukaku)" : "Pass (Goukaku)"}
+                  {tr("Đạt (Goukaku)", "Pass (Goukaku)", "合格")}
                 </p>
                 <p className="mt-1 font-mono text-2xl font-black text-emerald-600">
-                  {passCount} <span className="font-sans text-xs font-semibold">{lang === "vi" ? "HV" : "std"}</span>
+                  {passCount} <span className="font-sans text-xs font-semibold">{tr("HV", "std", "名")}</span>
                 </p>
                 <p className="mt-1 text-xs text-emerald-700">
-                  {lang === "vi" ? "Tỷ lệ: " : "Rate: "}
+                  {tr("Tỷ lệ: ", "Rate: ", "合格率：")}
                   {completedRows.length > 0 ? Math.round((passCount / completedRows.length) * 100) : 0}%
                 </p>
               </div>
 
               <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-bold text-rose-800">
-                  {lang === "vi" ? "Chưa đạt" : "Failed"}
+                  {tr("Chưa đạt", "Failed", "不合格")}
                 </p>
                 <p className="mt-1 font-mono text-2xl font-black text-rose-600">
-                  {failCount} <span className="font-sans text-xs font-semibold">{lang === "vi" ? "HV" : "std"}</span>
+                  {failCount} <span className="font-sans text-xs font-semibold">{tr("HV", "std", "名")}</span>
                 </p>
                 <p className="mt-1 text-xs text-rose-600">
-                  {lang === "vi" ? "Cần phụ đạo thêm" : "Needs extra tutoring"}
+                  {tr("Cần phụ đạo thêm", "Needs extra tutoring", "補講が必要")}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-bold text-amber-900">
-                  {lang === "vi" ? "Chưa làm bài" : "Not Attempted"}
+                  {tr("Chưa làm bài", "Not Attempted", "未受験")}
                 </p>
                 <p className="mt-1 font-mono text-2xl font-black text-amber-700">
-                  {notTakenCount} <span className="font-sans text-xs font-semibold">{lang === "vi" ? "HV" : "std"}</span>
+                  {notTakenCount} <span className="font-sans text-xs font-semibold">{tr("HV", "std", "名")}</span>
                 </p>
                 <p className="mt-1 text-xs text-amber-800">
-                  {lang === "vi" ? `Trên ${gradebookRows.length} học viên` : `Out of ${gradebookRows.length} students`}
+                  {tr(`Trên ${gradebookRows.length} học viên`, `Out of ${gradebookRows.length} students`, `全${gradebookRows.length}名中`)}
                 </p>
               </div>
             </div>
@@ -491,35 +503,39 @@ export default function GradebookPage() {
             <div className="mb-4 flex items-center justify-between border-b border-shinme-line pb-3">
               <div>
                 <h2 className="text-base font-black text-shinme-ink">
-                  {lang === "vi"
-                    ? `Danh sách điểm học viên (${gradebookRows.length})`
-                    : `Student Grade List (${gradebookRows.length})`}
+                  {tr(
+                    `Danh sách điểm học viên (${gradebookRows.length})`,
+                    `Student Grade List (${gradebookRows.length})`,
+                    `受講生成績一覧（${gradebookRows.length}名）`
+                  )}
                 </h2>
                 <p className="text-xs text-shinme-muted">
-                  {lang === "vi"
-                    ? "Hiển thị điểm cao nhất và thời gian nộp bài của học viên"
-                    : "Showing highest score and test submission duration per student"}
+                  {tr(
+                    "Hiển thị điểm cao nhất và thời gian nộp bài của học viên",
+                    "Showing highest score and test submission duration per student",
+                    "各受講生の最高得点と提出時間を表示しています"
+                  )}
                 </p>
               </div>
             </div>
 
             {gradebookRows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-shinme-border p-8 text-center text-xs text-shinme-muted">
-                {lang === "vi" ? "Không tìm thấy học viên nào phù hợp." : "No matching students found."}
+                {tr("Không tìm thấy học viên nào phù hợp.", "No matching students found.", "該当する受講生が見つかりません。")}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-shinme-line text-shinme-muted">
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Mã HV" : "ID"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Họ và tên" : "Full Name"}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Mã HV", "ID", "ID")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Họ và tên", "Full Name", "氏名")}</th>
                       <th className="py-2.5 px-3 font-bold">Email</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Điểm số" : "Score"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Lượt nộp" : "Attempts"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Thời gian làm" : "Duration"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Thời gian nộp" : "Submitted At"}</th>
-                      <th className="py-2.5 px-3 font-bold">{lang === "vi" ? "Trạng thái" : "Status"}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Điểm số", "Score", "得点")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Lượt nộp", "Attempts", "回数")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Thời gian làm", "Duration", "所要時間")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Thời gian nộp", "Submitted At", "提出日時")}</th>
+                      <th className="py-2.5 px-3 font-bold">{tr("Trạng thái", "Status", "判定")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-shinme-line">
@@ -537,10 +553,10 @@ export default function GradebookPage() {
                         <td className="py-3 px-3">
                           {row.score !== null ? (
                             <span className="font-mono text-sm font-black text-shinme-primary">
-                              {row.score}/{row.totalPoints}đ
+                              {row.score}/{row.totalPoints}{tr("đ", " pts", "点")}
                             </span>
                           ) : (
-                            <span className="text-slate-400 font-mono">--/{row.totalPoints}đ</span>
+                            <span className="text-slate-400 font-mono">--/{row.totalPoints}{tr("đ", " pts", "点")}</span>
                           )}
                         </td>
                         <td className="py-3 px-3 font-mono text-shinme-muted">
@@ -553,7 +569,7 @@ export default function GradebookPage() {
                         </td>
                         <td className="py-3 px-3 text-shinme-muted">
                           {row.submittedAt
-                            ? new Date(row.submittedAt).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-US", {
+                            ? new Date(row.submittedAt).toLocaleDateString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US", {
                                 day: "2-digit",
                                 month: "2-digit",
                                 hour: "2-digit",
@@ -564,14 +580,14 @@ export default function GradebookPage() {
                         <td className="py-3 px-3">
                           {row.status === "Đạt" ? (
                             <Badge tone="leaf">
-                              <CheckCircle2 className="size-3" /> {lang === "vi" ? "Đạt" : "Pass"}
+                              <CheckCircle2 className="size-3" /> {tr("Đạt", "Pass", "合格")}
                             </Badge>
                           ) : row.status === "Chưa đạt" ? (
                             <Badge tone="warn">
-                              <XCircle className="size-3" /> {lang === "vi" ? "Chưa đạt" : "Fail"}
+                              <XCircle className="size-3" /> {tr("Chưa đạt", "Fail", "不合格")}
                             </Badge>
                           ) : (
-                            <Badge tone="neutral">{lang === "vi" ? "Chưa làm" : "Pending"}</Badge>
+                            <Badge tone="neutral">{tr("Chưa làm", "Pending", "未受験")}</Badge>
                           )}
                         </td>
                       </tr>

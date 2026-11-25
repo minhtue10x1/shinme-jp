@@ -43,7 +43,7 @@ import type { UserProfileDoc, ClassDoc } from "@/lib/db/schema";
 
 export default function UsersManagementPage() {
   const { role, user: currentUser } = useRole();
-  const { lang, t } = useTranslation();
+  const { tr } = useTranslation();
 
   const [users, setUsers] = useState<UserProfileDoc[]>([]);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
@@ -82,7 +82,7 @@ export default function UsersManagementPage() {
       }
     } catch (err) {
       console.error("Error loading users:", err);
-      toast.error(lang === "vi" ? "Không thể tải danh sách người dùng." : "Failed to load user list.");
+      toast.error(tr("Không thể tải danh sách người dùng.", "Failed to load user list.", "ユーザー一覧を読み込めませんでした。"));
     } finally {
       setIsLoading(false);
     }
@@ -137,15 +137,17 @@ export default function UsersManagementPage() {
           <ShieldAlert className="size-6" />
         </div>
         <h2 className="text-xl font-bold text-shinme-ink">
-          {lang === "vi" ? "Quyền truy cập hạn chế" : "Restricted Access"}
+          {tr("Quyền truy cập hạn chế", "Restricted Access", "アクセス制限")}
         </h2>
         <p className="text-sm text-shinme-muted max-w-md mx-auto">
-          {lang === "vi"
-            ? "Chức năng Quản lý Người dùng & Phân lớp chỉ dành cho vai trò Quản trị viên (Admin)."
-            : "User Management & Class Placement is reserved for Administrator (Admin) roles."}
+          {tr(
+            "Chức năng Quản lý Người dùng & Phân lớp chỉ dành cho vai trò Quản trị viên (Admin).",
+            "User Management & Class Placement is reserved for Administrator (Admin) roles.",
+            "ユーザー管理・クラス配属は管理者（Admin）専用機能です。"
+          )}
         </p>
         <Button asChild size="sm">
-          <Link href="/portal">{lang === "vi" ? "Quay về Tổng quan" : "Back to Overview"}</Link>
+          <Link href="/portal">{tr("Quay về Tổng quan", "Back to Overview", "ダッシュボードへ戻る")}</Link>
         </Button>
       </div>
     );
@@ -188,20 +190,22 @@ export default function UsersManagementPage() {
       );
 
       toast.success(
-        lang === "vi"
-          ? `Đã xếp ${assignUser.fullName} vào lớp ${targetCls.name}!`
-          : `Assigned ${assignUser.fullName} to class ${targetCls.name}!`,
+        tr(
+          `Đã xếp ${assignUser.fullName} vào lớp ${targetCls.name}!`,
+          `Assigned ${assignUser.fullName} to class ${targetCls.name}!`,
+          `${assignUser.fullName} をクラス ${targetCls.name} に配属しました！`
+        ),
         {
           description:
             autoPromoteToStudent && assignUser.role === "guest"
-              ? (lang === "vi" ? "Vai trò đã được nâng cấp thành Học viên chính thức." : "Role upgraded to Official Student.")
+              ? tr("Vai trò đã được nâng cấp thành Học viên chính thức.", "Role upgraded to Official Student.", "正規受講生にアップグレードされました。")
               : undefined,
         }
       );
       setAssignUser(null);
     } catch (err) {
       console.error(err);
-      toast.error(lang === "vi" ? "Không thể cập nhật lớp học cho người dùng này." : "Failed to update class assignment.");
+      toast.error(tr("Không thể cập nhật lớp học cho người dùng này.", "Failed to update class assignment.", "クラス配属を更新できませんでした。"));
     } finally {
       setIsAssigning(false);
     }
@@ -226,7 +230,7 @@ export default function UsersManagementPage() {
   const handleSaveTeacherAssignment = async () => {
     if (!teacherUser) return;
     if (teacherSelectedClassIds.length === 0) {
-      toast.error(lang === "vi" ? "Vui lòng chọn ít nhất 1 lớp học để phân công cho Sensei!" : "Please select at least 1 class for Sensei!");
+      toast.error(tr("Vui lòng chọn ít nhất 1 lớp học để phân công cho Sensei!", "Please select at least 1 class for Sensei!", "講師に割り当てるクラスを1つ以上選択してください！"));
       return;
     }
 
@@ -252,7 +256,11 @@ export default function UsersManagementPage() {
                 role: "sensei",
                 code: newCode,
                 classId: teacherSelectedClassIds[0],
-                className: lang === "vi" ? `Phụ trách ${teacherSelectedClassIds.length} lớp học` : `In charge of ${teacherSelectedClassIds.length} classes`,
+                className: tr(
+                  `Phụ trách ${teacherSelectedClassIds.length} lớp học`,
+                  `In charge of ${teacherSelectedClassIds.length} classes`,
+                  `担当 ${teacherSelectedClassIds.length}クラス`
+                ),
               }
             : u
         )
@@ -268,20 +276,23 @@ export default function UsersManagementPage() {
       );
 
       toast.success(
-        lang === "vi"
-          ? `Đã bổ nhiệm ${teacherUser.fullName} làm Giáo viên (Sensei)!`
-          : `Appointed ${teacherUser.fullName} as Instructor (Sensei)!`,
+        tr(
+          `Đã bổ nhiệm ${teacherUser.fullName} làm Giáo viên (Sensei)!`,
+          `Appointed ${teacherUser.fullName} as Instructor (Sensei)!`,
+          `${teacherUser.fullName} を講師（Sensei）に任命しました！`
+        ),
         {
-          description:
-            lang === "vi"
-              ? `Phân công phụ trách ${teacherSelectedClassIds.length} lớp học thành công.`
-              : `Assigned ${teacherSelectedClassIds.length} classes successfully.`,
+          description: tr(
+            `Phân công phụ trách ${teacherSelectedClassIds.length} lớp học thành công.`,
+            `Assigned ${teacherSelectedClassIds.length} classes successfully.`,
+            `${teacherSelectedClassIds.length}クラスの担当割り当てが完了しました。`
+          ),
         }
       );
       setTeacherUser(null);
     } catch (err) {
       console.error(err);
-      toast.error(lang === "vi" ? "Không thể hoàn tất bổ nhiệm giáo viên." : "Failed to appoint teacher.");
+      toast.error(tr("Không thể hoàn tất bổ nhiệm giáo viên.", "Failed to appoint teacher.", "講師の任命を完了できませんでした。"));
     } finally {
       setIsAssigningTeacher(false);
     }
@@ -308,14 +319,16 @@ export default function UsersManagementPage() {
       );
 
       toast.success(
-        lang === "vi"
-          ? `Đã đổi vai trò của ${roleChangeUser.fullName} thành ${newTargetRole.toUpperCase()}!`
-          : `Changed role of ${roleChangeUser.fullName} to ${newTargetRole.toUpperCase()}!`
+        tr(
+          `Đã đổi vai trò của ${roleChangeUser.fullName} thành ${newTargetRole.toUpperCase()}!`,
+          `Changed role of ${roleChangeUser.fullName} to ${newTargetRole.toUpperCase()}!`,
+          `${roleChangeUser.fullName} の権限を ${newTargetRole.toUpperCase()} に変更しました！`
+        )
       );
       setRoleChangeUser(null);
     } catch (err) {
       console.error(err);
-      toast.error(lang === "vi" ? "Không thể thay đổi vai trò người dùng." : "Failed to change user role.");
+      toast.error(tr("Không thể thay đổi vai trò người dùng.", "Failed to change user role.", "ユーザー権限を変更できませんでした。"));
     } finally {
       setIsChangingRole(false);
     }
@@ -327,16 +340,18 @@ export default function UsersManagementPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            {lang === "vi" ? "Quản trị Người dùng & Phân lớp" : "User Management & Class Assignment"}
+            {tr("Quản trị Người dùng & Phân lớp", "User Management & Class Assignment", "ユーザー管理・クラス配属")}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            {lang === "vi"
-              ? "Tìm kiếm thành viên, xếp lớp cho học viên mới và bổ nhiệm / phân công giảng dạy cho Giáo viên (Sensei)"
-              : "Search members, assign classes to new students, and appoint/assign teaching responsibilities to Sensei"}
+            {tr(
+              "Tìm kiếm thành viên, xếp lớp cho học viên mới và bổ nhiệm / phân công giảng dạy cho Giáo viên (Sensei)",
+              "Search members, assign classes to new students, and appoint/assign teaching responsibilities to Sensei",
+              "メンバー検索・新規受講生のクラス配属・講師の任命および担当クラス割り当て"
+            )}
           </p>
         </div>
         <Badge tone="warn">
-          {lang === "vi" ? "Chế độ Quản trị viên" : "Administrator Mode"}
+          {tr("Chế độ Quản trị viên", "Administrator Mode", "管理者モード")}
         </Badge>
       </div>
 
@@ -344,41 +359,41 @@ export default function UsersManagementPage() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
-            {lang === "vi" ? "Tổng số tài khoản" : "Total Accounts"}
+            {tr("Tổng số tài khoản", "Total Accounts", "総アカウント数")}
           </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-ink">{users.length}</p>
           <p className="mt-0.5 text-xs text-shinme-muted">
-            {lang === "vi" ? "Đã đăng ký hệ thống" : "Registered in system"}
+            {tr("Đã đăng ký hệ thống", "Registered in system", "システム登録済み")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
-            {lang === "vi" ? "Khách chưa xếp lớp" : "Unassigned Guests"}
+            {tr("Khách chưa xếp lớp", "Unassigned Guests", "未配属ゲスト")}
           </p>
           <p className="tabular mt-1 text-2xl font-black text-amber-700">{guestCount}</p>
           <p className="mt-0.5 text-xs text-amber-600 font-semibold">
-            {lang === "vi" ? "Cần Admin xếp lớp học" : "Requires Admin class placement"}
+            {tr("Cần Admin xếp lớp học", "Requires Admin class placement", "管理者による配属待ち")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
-            {lang === "vi" ? "Học viên chính thức" : "Enrolled Students"}
+            {tr("Học viên chính thức", "Enrolled Students", "正規受講生")}
           </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-primary">{studentCount}</p>
           <p className="mt-0.5 text-xs text-shinme-muted">
-            {lang === "vi" ? "Đang theo học tại các lớp" : "Currently studying in classes"}
+            {tr("Đang theo học tại các lớp", "Currently studying in classes", "各クラスで受講中")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
           <p className="text-xs font-bold uppercase tracking-wider text-shinme-muted">
-            {lang === "vi" ? "Giáo viên (Sensei)" : "Instructors (Sensei)"}
+            {tr("Giáo viên (Sensei)", "Instructors (Sensei)", "講師（Sensei）")}
           </p>
           <p className="tabular mt-1 text-2xl font-black text-shinme-primary">{senseiCount}</p>
           <p className="mt-0.5 text-xs text-shinme-muted">
-            {lang === "vi" ? "Phụ trách giảng dạy" : "In charge of teaching"}
+            {tr("Phụ trách giảng dạy", "In charge of teaching", "授業担当")}
           </p>
         </div>
       </div>
@@ -387,11 +402,11 @@ export default function UsersManagementPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: "ALL", label: lang === "vi" ? `Tất cả (${users.length})` : `All (${users.length})` },
-            { id: "guest", label: lang === "vi" ? `Khách (${guestCount})` : `Guests (${guestCount})` },
-            { id: "student", label: lang === "vi" ? `Học viên (${studentCount})` : `Students (${studentCount})` },
-            { id: "sensei", label: lang === "vi" ? `Giáo viên (${senseiCount})` : `Sensei (${senseiCount})` },
-            { id: "admin", label: lang === "vi" ? `Admin (${adminCount})` : `Admin (${adminCount})` },
+            { id: "ALL", label: tr(`Tất cả (${users.length})`, `All (${users.length})`, `すべて (${users.length})`) },
+            { id: "guest", label: tr(`Khách (${guestCount})`, `Guests (${guestCount})`, `ゲスト (${guestCount})`) },
+            { id: "student", label: tr(`Học viên (${studentCount})`, `Students (${studentCount})`, `受講生 (${studentCount})`) },
+            { id: "sensei", label: tr(`Giáo viên (${senseiCount})`, `Sensei (${senseiCount})`, `講師 (${senseiCount})`) },
+            { id: "admin", label: `Admin (${adminCount})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -414,8 +429,8 @@ export default function UsersManagementPage() {
             onChange={(e) => setClassFilter(e.target.value)}
             className="h-9 rounded-full border border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
           >
-            <option value="ALL">{lang === "vi" ? "Tất cả lớp học" : "All Classes"}</option>
-            <option value="UNASSIGNED">{lang === "vi" ? "Chưa vào lớp nào" : "Unassigned (No Class)"}</option>
+            <option value="ALL">{tr("Tất cả lớp học", "All Classes", "すべてのクラス")}</option>
+            <option value="UNASSIGNED">{tr("Chưa vào lớp nào", "Unassigned (No Class)", "クラス未配属")}</option>
             {classes.map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {cls.code} — {cls.shortName || cls.name}
@@ -428,7 +443,7 @@ export default function UsersManagementPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-shinme-muted" />
             <input
               type="text"
-              placeholder={lang === "vi" ? "Tìm theo tên, email, mã HV..." : "Search by name, email, code..."}
+              placeholder={tr("Tìm theo tên, email, mã HV...", "Search by name, email, code...", "氏名・メール・IDで検索...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 w-full rounded-full border border-shinme-border bg-shinme-surface pl-9 pr-4 text-xs font-medium text-shinme-ink placeholder:text-shinme-muted focus:border-shinme-primary focus:outline-none"
@@ -442,19 +457,21 @@ export default function UsersManagementPage() {
         <div className="flex flex-col items-center justify-center py-16 text-shinme-muted space-y-3">
           <Loader2 className="size-8 animate-spin text-shinme-primary" />
           <p className="text-sm font-semibold">
-            {lang === "vi" ? "Đang tải danh sách người dùng..." : "Loading user directory..."}
+            {tr("Đang tải danh sách người dùng...", "Loading user directory...", "ユーザー一覧を読み込み中...")}
           </p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shinme-border bg-shinme-surface p-12 text-center">
           <Users className="mx-auto size-12 text-shinme-muted/60" />
           <h3 className="mt-3 text-base font-bold text-shinme-ink">
-            {lang === "vi" ? "Không tìm thấy người dùng phù hợp" : "No matching users found"}
+            {tr("Không tìm thấy người dùng phù hợp", "No matching users found", "該当するユーザーが見つかりません")}
           </h3>
           <p className="mt-1 text-xs text-shinme-muted">
-            {lang === "vi"
-              ? "Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc vai trò khác."
-              : "Try adjusting your search keywords or selecting a different role filter."}
+            {tr(
+              "Thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc vai trò khác.",
+              "Try adjusting your search keywords or selecting a different role filter.",
+              "検索キーワードや権限フィルターを変更してお試しください。"
+            )}
           </p>
         </div>
       ) : (
@@ -463,11 +480,11 @@ export default function UsersManagementPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-shinme-line bg-shinme-bg/60 text-shinme-muted font-black uppercase tracking-wider">
-                  <th className="py-3 px-4">{lang === "vi" ? "Thành viên" : "Member"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Vai trò" : "Role"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Lớp học hiện tại" : "Current Class"}</th>
-                  <th className="py-3 px-4">{lang === "vi" ? "Mục tiêu JLPT" : "JLPT Target"}</th>
-                  <th className="py-3 px-4 text-right">{lang === "vi" ? "Thao tác Admin" : "Admin Actions"}</th>
+                  <th className="py-3 px-4">{tr("Thành viên", "Member", "メンバー")}</th>
+                  <th className="py-3 px-4">{tr("Vai trò", "Role", "権限")}</th>
+                  <th className="py-3 px-4">{tr("Lớp học hiện tại", "Current Class", "現在のクラス")}</th>
+                  <th className="py-3 px-4">{tr("Mục tiêu JLPT", "JLPT Target", "目標JLPT")}</th>
+                  <th className="py-3 px-4 text-right">{tr("Thao tác Admin", "Admin Actions", "管理者操作")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-shinme-line">
@@ -507,22 +524,22 @@ export default function UsersManagementPage() {
                       <td className="py-3.5 px-4">
                         {isGuest && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-1 text-xs font-black text-amber-800">
-                            {lang === "vi" ? "Khách (Chưa xếp lớp)" : "Guest (Unassigned)"}
+                            {tr("Khách (Chưa xếp lớp)", "Guest (Unassigned)", "ゲスト（未配属）")}
                           </span>
                         )}
                         {isStudent && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-bg border border-shinme-border px-2.5 py-1 text-xs font-black text-shinme-ink">
-                            {lang === "vi" ? "Học viên" : "Student"}
+                            {tr("Học viên", "Student", "受講生")}
                           </span>
                         )}
                         {isSensei && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-leaf border border-shinme-primary/20 px-2.5 py-1 text-xs font-black text-shinme-primary">
-                            {lang === "vi" ? "Giáo viên (Sensei)" : "Teacher (Sensei)"}
+                            {tr("Giáo viên (Sensei)", "Teacher (Sensei)", "講師（Sensei）")}
                           </span>
                         )}
                         {isAdmin && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-shinme-warn-soft border border-[#8a5a12]/20 px-2.5 py-1 text-xs font-black text-[#8a5a12]">
-                            {lang === "vi" ? "Quản trị viên" : "Administrator"}
+                            {tr("Quản trị viên", "Administrator", "管理者")}
                           </span>
                         )}
                       </td>
@@ -536,7 +553,7 @@ export default function UsersManagementPage() {
                           </div>
                         ) : (
                           <span className="italic text-xs text-shinme-muted font-medium">
-                            {lang === "vi" ? "— Chưa vào lớp —" : "— Unassigned —"}
+                            {tr("— Chưa vào lớp —", "— Unassigned —", "— 未配属 —")}
                           </span>
                         )}
                       </td>
@@ -547,7 +564,7 @@ export default function UsersManagementPage() {
                           <Badge tone="leaf">{u.targetJLPT}</Badge>
                         ) : (
                           <span className="text-xs text-shinme-muted">
-                            {lang === "vi" ? "Tự do" : "None / Free"}
+                            {tr("Tự do", "None / Free", "未設定")}
                           </span>
                         )}
                         {u.phone && <p className="text-xs text-shinme-muted mt-1">{u.phone}</p>}
@@ -565,8 +582,8 @@ export default function UsersManagementPage() {
                           >
                             <GraduationCap className="size-3.5" />
                             {isGuest
-                              ? (lang === "vi" ? "Xếp vào lớp" : "Assign Class")
-                              : (lang === "vi" ? "Chuyển lớp" : "Transfer Class")}
+                              ? tr("Xếp vào lớp", "Assign Class", "クラス配属")
+                              : tr("Chuyển lớp", "Transfer Class", "クラス変更")}
                           </Button>
 
                           {/* Assign Teacher Button */}
@@ -576,12 +593,12 @@ export default function UsersManagementPage() {
                               variant="outline"
                               onClick={() => handleOpenAssignTeacher(u)}
                               className="text-xs font-bold text-shinme-primary hover:bg-shinme-leaf"
-                              title={lang === "vi" ? "Bổ nhiệm làm Giáo viên và phân lớp phụ trách" : "Appoint as Sensei and assign teaching classes"}
+                              title={tr("Bổ nhiệm làm Giáo viên và phân lớp phụ trách", "Appoint as Sensei and assign teaching classes", "講師に任命して担当クラスを割り当て")}
                             >
                               <UserCheck className="size-3.5" />
                               {isSensei
-                                ? (lang === "vi" ? "Phân lớp dạy" : "Assign Classes")
-                                : (lang === "vi" ? "Gán làm Giáo viên" : "Appoint Sensei")}
+                                ? tr("Phân lớp dạy", "Assign Classes", "担当クラス")
+                                : tr("Gán làm Giáo viên", "Appoint Sensei", "講師に任命")}
                             </Button>
                           )}
 
@@ -591,7 +608,7 @@ export default function UsersManagementPage() {
                             variant="ghost"
                             onClick={() => handleOpenRoleChange(u)}
                             className="text-xs font-medium text-shinme-muted hover:text-shinme-ink"
-                            title={lang === "vi" ? "Thay đổi vai trò" : "Change User Role"}
+                            title={tr("Thay đổi vai trò", "Change User Role", "権限を変更")}
                           >
                             <UserCog className="size-3.5" />
                           </Button>
@@ -614,28 +631,28 @@ export default function UsersManagementPage() {
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
                   <GraduationCap className="size-5 text-shinme-primary" />
-                  {lang === "vi" ? "Xếp lớp cho người dùng" : "Assign User to Class"}
+                  {tr("Xếp lớp cho người dùng", "Assign User to Class", "ユーザーのクラス配属")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi" ? "Thành viên:" : "Member:"}{" "}
+                  {tr("Thành viên:", "Member:", "メンバー：")}{" "}
                   <strong className="text-shinme-ink font-bold">{assignUser.fullName}</strong> ({assignUser.email})
                 </DialogDescription>
               </div>
 
               <div className="rounded-xl bg-shinme-bg p-3.5 border border-shinme-line text-xs space-y-1">
                 <p>
-                  {lang === "vi" ? "Vai trò hiện tại:" : "Current Role:"}{" "}
+                  {tr("Vai trò hiện tại:", "Current Role:", "現在の権限：")}{" "}
                   <strong className="uppercase text-shinme-primary">{assignUser.role}</strong>
                 </p>
                 <p>
-                  {lang === "vi" ? "Lớp hiện tại:" : "Current Class:"}{" "}
-                  <strong>{assignUser.className || (lang === "vi" ? "Chưa vào lớp" : "Unassigned")}</strong>
+                  {tr("Lớp hiện tại:", "Current Class:", "現在のクラス：")}{" "}
+                  <strong>{assignUser.className || tr("Chưa vào lớp", "Unassigned", "未配属")}</strong>
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Chọn lớp học tiếp nhận:" : "Select target class:"}
+                  {tr("Chọn lớp học tiếp nhận:", "Select target class:", "配属先クラスを選択：")}
                 </label>
                 <select
                   value={selectedClassId}
@@ -659,10 +676,10 @@ export default function UsersManagementPage() {
                     className="mt-0.5 rounded border-shinme-border text-shinme-primary focus:ring-shinme-primary"
                   />
                   <span className="text-xs text-shinme-ink font-medium leading-relaxed">
-                    {lang === "vi" ? (
-                      <>Tự động nâng cấp vai trò từ <strong>Khách</strong> thành <strong>Học viên chính thức</strong> (cấp mã HV-...)</>
-                    ) : (
-                      <>Automatically promote role from <strong>Guest</strong> to <strong>Enrolled Student</strong> (assign HV-... student code)</>
+                    {tr(
+                      "Tự động nâng cấp vai trò từ Khách thành Học viên chính thức (cấp mã HV-...)",
+                      "Automatically promote role from Guest to Enrolled Student (assign HV-... student code)",
+                      "ゲストから正規受講生へ自動的に権限を昇格し、受講生ID（HV-...）を付与する"
                     )}
                   </span>
                 </label>
@@ -670,16 +687,16 @@ export default function UsersManagementPage() {
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setAssignUser(null)}>
-                  {lang === "vi" ? "Hủy" : "Cancel"}
+                  {tr("Hủy", "Cancel", "キャンセル")}
                 </Button>
                 <Button size="sm" onClick={handleSaveClassAssignment} disabled={isAssigning}>
                   {isAssigning ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang xếp lớp..." : "Assigning..."}
+                      <Loader2 className="size-4 animate-spin" /> {tr("Đang xếp lớp...", "Assigning...", "配属中...")}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Xác nhận xếp lớp" : "Confirm Assignment"}
+                      <CheckCircle2 className="size-4" /> {tr("Xác nhận xếp lớp", "Confirm Assignment", "配属を確定")}
                     </>
                   )}
                 </Button>
@@ -697,25 +714,25 @@ export default function UsersManagementPage() {
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
                   <UserCheck className="size-5 text-shinme-primary" />
-                  {lang === "vi" ? "Bổ nhiệm Giáo viên (Sensei) & Phân lớp" : "Appoint Teacher (Sensei) & Assign Classes"}
+                  {tr("Bổ nhiệm Giáo viên (Sensei) & Phân lớp", "Appoint Teacher (Sensei) & Assign Classes", "講師（Sensei）任命・担当クラス割り当て")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi" ? "Giáo viên:" : "Instructor:"}{" "}
+                  {tr("Giáo viên:", "Instructor:", "講師：")}{" "}
                   <strong className="text-shinme-ink font-bold">{teacherUser.fullName}</strong> ({teacherUser.email})
                 </DialogDescription>
               </div>
 
               <div className="rounded-xl bg-shinme-leaf-faint p-3 border border-shinme-accent-soft/40 text-xs text-shinme-ink-soft leading-relaxed">
-                {lang === "vi" ? (
-                  <>Khi xác nhận, người dùng này sẽ nhận vai trò <strong>Giáo viên (Sensei)</strong>, cấp mã định danh Sensei (<code>SS-...</code>), và hệ thống sẽ cập nhật tên giáo viên phụ trách vào các lớp học được tích chọn bên dưới.</>
-                ) : (
-                  <>Upon confirmation, this user will receive the <strong>Teacher (Sensei)</strong> role, be assigned a Sensei identifier (<code>SS-...</code>), and the system will update the assigned instructor for all selected classes below.</>
+                {tr(
+                  "Khi xác nhận, người dùng này sẽ nhận vai trò Giáo viên (Sensei), cấp mã định danh Sensei (SS-...), và hệ thống sẽ cập nhật tên giáo viên phụ trách vào các lớp học được tích chọn bên dưới.",
+                  "Upon confirmation, this user will receive the Teacher (Sensei) role, be assigned a Sensei identifier (SS-...), and the system will update the assigned instructor for all selected classes below.",
+                  "確定するとこのユーザーに講師（Sensei）権限と講師ID（SS-...）が付与され、選択したクラスの担当講師が更新されます。"
                 )}
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Chọn các lớp học phân công cho Sensei giảng dạy:" : "Select classes assigned to Sensei for teaching:"}
+                  {tr("Chọn các lớp học phân công cho Sensei giảng dạy:", "Select classes assigned to Sensei for teaching:", "担当するクラスを選択：")}
                 </label>
                 <div className="space-y-2 max-h-56 overflow-y-auto p-1 border border-shinme-border rounded-xl">
                   {classes.map((cls) => {
@@ -739,7 +756,7 @@ export default function UsersManagementPage() {
                           <div>
                             <span className="font-black">{cls.code}</span> — {cls.shortName || cls.name}
                             <p className="text-xs opacity-75 font-medium">
-                              {lang === "vi" ? `Lịch học: ${cls.schedule} (${cls.time})` : `Schedule: ${cls.schedule} (${cls.time})`}
+                              {tr(`Lịch học: ${cls.schedule} (${cls.time})`, `Schedule: ${cls.schedule} (${cls.time})`, `授業日程：${cls.schedule}（${cls.time}）`)}
                             </p>
                           </div>
                         </div>
@@ -752,16 +769,16 @@ export default function UsersManagementPage() {
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setTeacherUser(null)}>
-                  {lang === "vi" ? "Hủy" : "Cancel"}
+                  {tr("Hủy", "Cancel", "キャンセル")}
                 </Button>
                 <Button size="sm" onClick={handleSaveTeacherAssignment} disabled={isAssigningTeacher}>
                   {isAssigningTeacher ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang xử lý..." : "Processing..."}
+                      <Loader2 className="size-4 animate-spin" /> {tr("Đang xử lý...", "Processing...", "処理中...")}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Bổ nhiệm & Lưu phân công" : "Appoint & Save Assignments"}
+                      <CheckCircle2 className="size-4" /> {tr("Bổ nhiệm & Lưu phân công", "Appoint & Save Assignments", "任命して保存")}
                     </>
                   )}
                 </Button>
@@ -779,42 +796,42 @@ export default function UsersManagementPage() {
               <div>
                 <DialogTitle className="text-lg font-black text-shinme-ink flex items-center gap-2">
                   <UserCog className="size-5 text-shinme-primary" />
-                  {lang === "vi" ? "Thay đổi vai trò người dùng" : "Change User Role"}
+                  {tr("Thay đổi vai trò người dùng", "Change User Role", "ユーザー権限を変更")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-shinme-muted">
-                  {lang === "vi" ? "Thành viên:" : "Member:"}{" "}
+                  {tr("Thành viên:", "Member:", "メンバー：")}{" "}
                   <strong className="text-shinme-ink font-bold">{roleChangeUser.fullName}</strong> ({roleChangeUser.email})
                 </DialogDescription>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black uppercase text-shinme-ink">
-                  {lang === "vi" ? "Chọn vai trò mới:" : "Select new role:"}
+                  {tr("Chọn vai trò mới:", "Select new role:", "新しい権限を選択：")}
                 </label>
                 <select
                   value={newTargetRole}
                   onChange={(e) => setNewTargetRole(e.target.value as RoleId)}
                   className="h-10 w-full rounded-xl border border-shinme-border bg-shinme-surface px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
                 >
-                  <option value="guest">{lang === "vi" ? "Khách (Chưa xếp lớp)" : "Guest (Unassigned)"}</option>
-                  <option value="student">{lang === "vi" ? "Học viên chính thức" : "Enrolled Student"}</option>
-                  <option value="sensei">{lang === "vi" ? "Giáo viên (Sensei)" : "Teacher (Sensei)"}</option>
-                  <option value="admin">{lang === "vi" ? "Quản trị viên (Admin)" : "Administrator (Admin)"}</option>
+                  <option value="guest">{tr("Khách (Chưa xếp lớp)", "Guest (Unassigned)", "ゲスト（未配属）")}</option>
+                  <option value="student">{tr("Học viên chính thức", "Enrolled Student", "正規受講生")}</option>
+                  <option value="sensei">{tr("Giáo viên (Sensei)", "Teacher (Sensei)", "講師（Sensei）")}</option>
+                  <option value="admin">{tr("Quản trị viên (Admin)", "Administrator (Admin)", "管理者（Admin）")}</option>
                 </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-shinme-line">
                 <Button variant="ghost" size="sm" onClick={() => setRoleChangeUser(null)}>
-                  {lang === "vi" ? "Hủy" : "Cancel"}
+                  {tr("Hủy", "Cancel", "キャンセル")}
                 </Button>
                 <Button size="sm" onClick={handleSaveRoleChange} disabled={isChangingRole}>
                   {isChangingRole ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" /> {lang === "vi" ? "Đang cập nhật..." : "Updating..."}
+                      <Loader2 className="size-4 animate-spin" /> {tr("Đang cập nhật...", "Updating...", "更新中...")}
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="size-4" /> {lang === "vi" ? "Lưu vai trò" : "Save Role"}
+                      <CheckCircle2 className="size-4" /> {tr("Lưu vai trò", "Save Role", "権限を保存")}
                     </>
                   )}
                 </Button>

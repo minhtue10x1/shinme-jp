@@ -23,7 +23,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 export default function LoginPage() {
   const router = useRouter();
   const { setUserProfile } = useRole();
-  const { t, lang } = useTranslation();
+  const { t, tr } = useTranslation();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -49,16 +49,27 @@ export default function LoginPage() {
       if (result.status === "EXISTING_USER") {
         // Đã có tài khoản -> Vào thẳng LMS
         setUserProfile(result.profile);
-        toast.success(`Chào mừng trở lại, ${result.profile.fullName}!`, {
-          description: `Đăng nhập thành công bằng tài khoản Google.`,
-        });
+        toast.success(
+          tr(
+            `Chào mừng trở lại, ${result.profile.fullName}!`,
+            `Welcome back, ${result.profile.fullName}!`,
+            `おかえりなさい、${result.profile.fullName}さん！`
+          ),
+          {
+            description: tr(
+              "Đăng nhập thành công bằng tài khoản Google.",
+              "Signed in successfully with Google.",
+              "Googleアカウントでログインしました。"
+            ),
+          }
+        );
         router.push("/portal");
       } else {
         // Gmail này chưa có tài khoản -> Mở Modal hỏi xác nhận
         setNewGoogleUser({
           user: result.user,
           email: result.email,
-          displayName: result.displayName || "Học viên Shinme",
+          displayName: result.displayName || tr("Học viên Shinme", "Shinme Learner", "Shinme受講生"),
           targetJLPT: "N3",
         });
       }
@@ -68,22 +79,40 @@ export default function LoginPage() {
       const code = firebaseError?.code || "";
 
       if (code === "auth/popup-closed-by-user") {
-        toast.info("Đã đóng cửa sổ đăng nhập Google.");
+        toast.info(tr("Đã đóng cửa sổ đăng nhập Google.", "Google sign-in popup closed.", "Googleログインウィンドウを閉じました。"));
       } else if (code === "auth/popup-blocked") {
-        toast.error("Trình duyệt đã chặn cửa sổ Popup", {
-          description: "Vui lòng kiểm tra thanh địa chỉ (URL) và cấp quyền hiển thị popup cho trang web.",
+        toast.error(tr("Trình duyệt đã chặn cửa sổ Popup", "Browser blocked the popup window", "ポップアップがブロックされました"), {
+          description: tr(
+            "Vui lòng kiểm tra thanh địa chỉ (URL) và cấp quyền hiển thị popup cho trang web.",
+            "Please allow popups for this site in your browser address bar.",
+            "ブラウザのアドレスバーからポップアップを許可してください。"
+          ),
         });
       } else if (code === "auth/unauthorized-domain") {
-        toast.error("Tên miền chưa được cấp phép", {
-          description: "Domain này chưa nằm trong danh sách Authorized Domains của Firebase Auth.",
+        toast.error(tr("Tên miền chưa được cấp phép", "Unauthorized domain", "未許可のドメインです"), {
+          description: tr(
+            "Domain này chưa nằm trong danh sách Authorized Domains của Firebase Auth.",
+            "This domain is not in Firebase Auth Authorized Domains.",
+            "このドメインはFirebase Authの承認済みドメインに含まれていません。"
+          ),
         });
       } else if (code === "auth/operation-not-allowed") {
-        toast.error("Chưa kích hoạt Google Login", {
-          description: "Phương thức đăng nhập Google chưa được kích hoạt trong Firebase Console.",
+        toast.error(tr("Chưa kích hoạt Google Login", "Google Login is not enabled", "Googleログインが無効です"), {
+          description: tr(
+            "Phương thức đăng nhập Google chưa được kích hoạt trong Firebase Console.",
+            "Google Sign-In is not enabled in Firebase Console.",
+            "Firebase ConsoleでGoogleログインが有効になっていません。"
+          ),
         });
       } else {
-        toast.error("Không thể đăng nhập bằng Google", {
-          description: firebaseError?.message || "Vui lòng thử lại hoặc đảm bảo kết nối mạng ổn định.",
+        toast.error(tr("Không thể đăng nhập bằng Google", "Could not sign in with Google", "Googleでログインできませんでした"), {
+          description:
+            firebaseError?.message ||
+            tr(
+              "Vui lòng thử lại hoặc đảm bảo kết nối mạng ổn định.",
+              "Please try again or check your network connection.",
+              "もう一度お試しいただくか、ネットワーク接続をご確認ください。"
+            ),
         });
       }
     } finally {
@@ -103,13 +132,17 @@ export default function LoginPage() {
       );
       setUserProfile(profile);
       setNewGoogleUser(null);
-      toast.success("Tạo tài khoản học viên mới thành công!", {
-        description: `Chào mừng bạn đến với Shinme. Tài khoản liên kết với ${profile.email}.`,
+      toast.success(tr("Tạo tài khoản học viên mới thành công!", "New learner account created!", "新規アカウントを作成しました！"), {
+        description: tr(
+          `Chào mừng bạn đến với Shinme. Tài khoản liên kết với ${profile.email}.`,
+          `Welcome to Shinme. Account linked to ${profile.email}.`,
+          `Shinmeへようこそ。${profile.email} と連携されました。`
+        ),
       });
       router.push("/portal");
     } catch (err) {
       console.error(err);
-      toast.error("Không thể hoàn tất tạo tài khoản. Vui lòng thử lại.");
+      toast.error(tr("Không thể hoàn tất tạo tài khoản. Vui lòng thử lại.", "Could not complete registration. Please try again.", "アカウント作成を完了できませんでした。もう一度お試しください。"));
     } finally {
       setIsLoading(false);
     }
@@ -119,14 +152,14 @@ export default function LoginPage() {
   const handleCancelGoogleRegistration = async () => {
     await cancelGoogleRegistration();
     setNewGoogleUser(null);
-    toast.info("Đã hủy quá trình đăng ký tài khoản mới.");
+    toast.info(tr("Đã hủy quá trình đăng ký tài khoản mới.", "Cancelled new account registration.", "新規登録をキャンセルしました。"));
   };
 
   // 2. Đăng nhập / Đăng ký bằng Email & Mật khẩu
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error("Vui lòng điền đầy đủ email và mật khẩu.");
+      toast.error(tr("Vui lòng điền đầy đủ email và mật khẩu.", "Please enter both email and password.", "メールアドレスとパスワードを入力してください。"));
       return;
     }
 
@@ -135,25 +168,29 @@ export default function LoginPage() {
       if (mode === "login") {
         const { profile } = await loginWithEmail(email, password);
         setUserProfile(profile);
-        toast.success(`Đăng nhập thành công!`, {
-          description: `Xin chào ${profile.fullName}.`,
+        toast.success(tr("Đăng nhập thành công!", "Signed in successfully!", "ログインしました！"), {
+          description: tr(`Xin chào ${profile.fullName}.`, `Hello, ${profile.fullName}.`, `こんにちは、${profile.fullName}さん。`),
         });
       } else {
         if (!fullName.trim()) {
-          toast.error("Vui lòng nhập họ và tên của bạn.");
+          toast.error(tr("Vui lòng nhập họ và tên của bạn.", "Please enter your full name.", "お名前を入力してください。"));
           return;
         }
         const { profile } = await registerWithEmail(email, password, fullName);
         setUserProfile(profile);
-        toast.success("Tạo tài khoản thành công!", {
-          description: "Tài khoản của bạn đã được tạo ở trạng thái Khách. Admin sẽ sớm phân lớp học cho bạn.",
+        toast.success(tr("Tạo tài khoản thành công!", "Account created successfully!", "アカウントを作成しました！"), {
+          description: tr(
+            "Tài khoản của bạn đã được tạo ở trạng thái Khách. Admin sẽ sớm phân lớp học cho bạn.",
+            "Your account was created as Guest. Admin will assign your class shortly.",
+            "ゲストアカウントとして作成されました。管理者がまもなくクラスを割り当てます。"
+          ),
         });
       }
       router.push("/portal");
     } catch (err: unknown) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : "Đã có lỗi xảy ra.";
-      toast.error("Thao tác không thành công", { description: msg });
+      const msg = err instanceof Error ? err.message : tr("Đã có lỗi xảy ra.", "An error occurred.", "エラーが発生しました。");
+      toast.error(tr("Thao tác không thành công", "Operation failed", "操作に失敗しました"), { description: msg });
     } finally {
       setIsLoading(false);
     }
@@ -298,7 +335,7 @@ export default function LoginPage() {
           <div className="mt-5 text-center text-xs text-slate-600">
             {mode === "login" ? (
               <p>
-                {lang === "vi" ? "Chưa có tài khoản học viên? " : "Don't have an account yet? "}
+                {tr("Chưa có tài khoản học viên? ", "Don't have an account yet? ", "まだアカウントをお持ちでないですか？ ")}
                 <button
                   type="button"
                   onClick={() => setMode("register")}
@@ -309,7 +346,7 @@ export default function LoginPage() {
               </p>
             ) : (
               <p>
-                {lang === "vi" ? "Đã có tài khoản? " : "Already have an account? "}
+                {tr("Đã có tài khoản? ", "Already have an account? ", "すでにアカウントをお持ちですか？ ")}
                 <button
                   type="button"
                   onClick={() => setMode("login")}

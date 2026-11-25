@@ -82,7 +82,7 @@ const SAMPLE_TRANSCRIPT: AudioTranscriptLine[] = [
 ];
 
 export function ChokaiAudioPlayer() {
-  const { lang } = useTranslation();
+  const { lang, tr } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState<number>(1.0);
@@ -130,15 +130,19 @@ export function ChokaiAudioPlayer() {
                 Chokai Player
               </span>
               <h2 className="text-base font-black text-shinme-ink">
-                {lang === "vi"
-                  ? "Luyện nghe: Bài 24 — Hội thoại tại ga tàu (駅での会話)"
-                  : "Listening: Lesson 24 — Train Station Dialogue (駅での会話)"}
+                {tr(
+                  "Luyện nghe: Bài 24 — Hội thoại tại ga tàu (駅での会話)",
+                  "Listening: Lesson 24 — Train Station Dialogue (駅での会話)",
+                  "聴解練習：第24課 — 駅での会話"
+                )}
               </h2>
             </div>
             <p className="text-xs text-shinme-muted mt-0.5">
-              {lang === "vi"
-                ? "Tốc độ nghe điều chỉnh được · Kèm transcript Furigana & dịch nghĩa"
-                : "Adjustable speed · Includes Furigana transcript & translations"}
+              {tr(
+                "Tốc độ nghe điều chỉnh được · Kèm transcript Furigana & dịch nghĩa",
+                "Adjustable speed · Includes Furigana transcript & translations",
+                "再生速度調整可能 · ふりがな付きスクリプト＆対訳付き"
+              )}
             </p>
           </div>
         </div>
@@ -152,8 +156,8 @@ export function ChokaiAudioPlayer() {
           >
             {showVi ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {showVi
-              ? (lang === "vi" ? "Ẩn dịch nghĩa" : "Hide Translation")
-              : (lang === "vi" ? "Hiện dịch nghĩa" : "Show Translation")}
+              ? tr("Ẩn dịch nghĩa", "Hide Translation", "翻訳を隠す")
+              : tr("Hiện dịch nghĩa", "Show Translation", "翻訳を表示")}
           </Button>
         </div>
       </div>
@@ -181,7 +185,7 @@ export function ChokaiAudioPlayer() {
               type="button"
               onClick={() => setCurrentTime((t) => Math.max(0, t - 5))}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary transition-colors border border-shinme-border text-xs font-bold"
-              title={lang === "vi" ? "Lùi 5 giây" : "Rewind 5s"}
+              title={tr("Lùi 5 giây", "Rewind 5s", "5秒戻る")}
             >
               -5s
             </button>
@@ -198,7 +202,7 @@ export function ChokaiAudioPlayer() {
               type="button"
               onClick={() => setCurrentTime((t) => Math.min(totalDuration, t + 5))}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-ink-soft hover:bg-shinme-leaf hover:text-shinme-primary transition-colors border border-shinme-border text-xs font-bold"
-              title={lang === "vi" ? "Tua 5 giây" : "Forward 5s"}
+              title={tr("Tua 5 giây", "Forward 5s", "5秒進む")}
             >
               +5s
             </button>
@@ -210,7 +214,7 @@ export function ChokaiAudioPlayer() {
                 setCurrentTime(0);
               }}
               className="grid size-9 place-items-center rounded-full bg-shinme-surface text-shinme-muted hover:text-shinme-ink transition-colors border border-shinme-border"
-              title={lang === "vi" ? "Phát lại từ đầu" : "Replay from start"}
+              title={tr("Phát lại từ đầu", "Replay from start", "最初から再生")}
             >
               <RotateCcw className="size-4" />
             </button>
@@ -219,7 +223,7 @@ export function ChokaiAudioPlayer() {
           {/* Speed Selector */}
           <div className="flex items-center gap-1.5 rounded-full bg-shinme-surface p-1 border border-shinme-border">
             <span className="px-2 text-xs font-black text-shinme-muted">
-              {lang === "vi" ? "Tốc độ:" : "Speed:"}
+              {tr("Tốc độ:", "Speed:", "再生速度：")}
             </span>
             {[0.8, 1.0, 1.2].map((s) => (
               <button
@@ -243,7 +247,7 @@ export function ChokaiAudioPlayer() {
       {/* Script Transcript */}
       <div className="mt-5 space-y-3">
         <h3 className="text-xs font-black uppercase text-shinme-muted tracking-wider">
-          {lang === "vi" ? "Lời thoại (Transcript & Furigana)" : "Dialogue (Transcript & Furigana)"}
+          {tr("Lời thoại (Transcript & Furigana)", "Dialogue (Transcript & Furigana)", "会話スクリプト（ふりがな付き）")}
         </h3>
 
         <div className="divide-y divide-shinme-line rounded-2xl border border-shinme-border bg-shinme-surface">
@@ -252,13 +256,14 @@ export function ChokaiAudioPlayer() {
               <div className="flex items-baseline gap-2">
                 <span className="font-mono text-xs font-bold text-shinme-accent tabular">{line.time}</span>
                 <span className="text-xs font-black text-shinme-primary">
-                  {lang === "vi" ? line.speakerVi : line.speakerEn} (<FuriganaText text={line.speakerJa} />)
+                  {lang === "vi" ? line.speakerVi : lang === "ja" ? <FuriganaText text={line.speakerJa} /> : line.speakerEn}
+                  {lang !== "ja" && <> (<FuriganaText text={line.speakerJa} />)</>}
                 </span>
               </div>
               <p className="mt-1 text-base font-bold text-shinme-ink leading-relaxed">
                 <FuriganaText text={line.textJa} />
               </p>
-              {showVi && (
+              {showVi && lang !== "ja" && (
                 <p className="mt-1 text-xs font-medium text-shinme-muted">
                   {lang === "vi" ? line.textVi : line.textEn}
                 </p>

@@ -2,11 +2,11 @@
 
 import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
-import { SENSEIS } from "@/data/senseis";
+import { SENSEIS, localizeSensei } from "@/data/senseis";
 import { useTranslation } from "@/lib/i18n/context";
 
 export function SenseiTeam() {
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
 
   return (
     <section id="sensei" aria-labelledby="sensei-title" className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -21,10 +21,7 @@ export function SenseiTeam() {
 
       <ul className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         {SENSEIS.map((s, i) => {
-          const originLabel =
-            s.origin === "Nhật Bản"
-              ? (lang === "vi" ? "Nhật Bản" : "Japan")
-              : (lang === "vi" ? "Việt Nam" : "Vietnam");
+          const loc = localizeSensei(s, lang);
           return (
             <li key={s.id} className="group">
               <div
@@ -46,11 +43,11 @@ export function SenseiTeam() {
               <div className="mt-4">
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <h3 className="text-xl font-extrabold text-shinme-ink">{s.name} Sensei</h3>
-                  <span className="text-sm font-semibold text-shinme-muted">· {originLabel}</span>
+                  <span className="text-sm font-semibold text-shinme-muted">· {loc.origin}</span>
                 </div>
                 <FuriganaText text={s.nameJa} className="mt-0.5 block text-sm font-bold text-shinme-primary" />
-                <p className="mt-2 text-sm font-bold text-shinme-ink-soft">{s.role}</p>
-                <p className="mt-1 text-sm leading-relaxed text-shinme-muted">{s.focus}</p>
+                <p className="mt-2 text-sm font-bold text-shinme-ink-soft">{loc.role}</p>
+                <p className="mt-1 text-sm leading-relaxed text-shinme-muted">{loc.focus}</p>
                 <FuriganaText
                   as="p"
                   text={`「${s.quote}」`}
@@ -62,9 +59,11 @@ export function SenseiTeam() {
         })}
       </ul>
       <p className="mt-10 text-sm text-shinme-muted">
-        {lang === "vi"
-          ? "Hồ sơ Sensei là dữ liệu minh họa cho bản demo."
-          : "Sensei profiles are illustrative data for this demo."}
+        {tr(
+          "Hồ sơ Sensei là dữ liệu minh họa cho bản demo.",
+          "Sensei profiles are illustrative data for this demo.",
+          "講師プロフィールはデモ用のサンプルデータです。"
+        )}
       </p>
     </section>
   );

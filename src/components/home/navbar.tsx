@@ -13,7 +13,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 export function Navbar() {
   const { firebaseUser, user, isLoadingAuth } = useRole();
-  const { t } = useTranslation();
+  const { t, tr } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -47,10 +47,10 @@ export function Navbar() {
       )}
     >
       <nav
-        aria-label="Điều hướng chính"
+        aria-label={tr("Điều hướng chính", "Main navigation", "メインナビゲーション")}
         className="mx-auto flex h-[var(--navbar-h)] max-w-7xl items-center gap-6 px-5 lg:px-8"
       >
-        <Link href="/" aria-label="Shinme — Trang chủ" className="shrink-0 rounded-lg">
+        <Link href="/" aria-label={tr("Shinme — Trang chủ", "Shinme — Home", "Shinme — ホーム")} className="shrink-0 rounded-lg">
           <ShinmeLogo priority />
         </Link>
 
@@ -119,7 +119,7 @@ export function Navbar() {
             className="grid size-11 place-items-center rounded-full text-shinme-primary hover:bg-shinme-leaf"
             aria-expanded={open}
             aria-controls="mobile-nav"
-            aria-label={open ? "Đóng menu" : "Mở menu"}
+            aria-label={open ? tr("Đóng menu", "Close menu", "メニューを閉じる") : tr("Mở menu", "Open menu", "メニューを開く")}
             onClick={() => setOpen((v) => !v)}
           >
             {open ? <X className="size-6" /> : <Menu className="size-6" />}

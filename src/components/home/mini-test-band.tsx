@@ -9,7 +9,7 @@ import { useTranslation } from "@/lib/i18n/context";
 
 export function MiniTestBand() {
   const { openTest } = useHome();
-  const { t, lang } = useTranslation();
+  const { t, tr } = useTranslation();
 
   return (
     <section id="thi-thu" aria-labelledby="mini-test-title" className="px-5 lg:px-8">
@@ -29,17 +29,19 @@ export function MiniTestBand() {
             {t.home.miniTest.title}
           </h2>
           <p className="mt-2 max-w-[56ch] text-lg leading-relaxed text-shinme-ink-soft">
-            {lang === "vi"
-              ? "5 câu Mondai từ N5 đến N2, chấm điểm ngay sau mỗi câu và gợi ý lớp phù hợp. Không cần đăng nhập."
-              : "5 quick Mondai questions from N5 to N2, instant feedback and class recommendations. No login required."}
+            {tr(
+              "5 câu Mondai từ N5 đến N2, chấm điểm ngay sau mỗi câu và gợi ý lớp phù hợp. Không cần đăng nhập.",
+              "5 quick Mondai questions from N5 to N2, instant feedback and class recommendations. No login required.",
+              "N5からN2までの5問を約3分でチェック。即時採点と最適なクラス提案がログイン不要で受けられます。"
+            )}
           </p>
-          <ol className="mt-4 flex flex-wrap gap-2" aria-label="Cấu trúc bài thi">
+          <ol className="mt-4 flex flex-wrap gap-2" aria-label={tr("Cấu trúc bài thi", "Test Structure", "テスト構成")}>
             {PLACEMENT_TEST.map((q, i) => (
               <li
                 key={q.id}
                 className="rounded-full bg-shinme-surface px-3 py-1 text-sm font-bold text-shinme-ink-soft"
               >
-                {lang === "vi" ? `Câu ${i + 1}` : `Q ${i + 1}`} · <span className="text-shinme-primary">{q.level}</span>
+                {tr(`Câu ${i + 1}`, `Q ${i + 1}`, `第${i + 1}問`)} · <span className="text-shinme-primary">{q.level}</span>
               </li>
             ))}
           </ol>
@@ -51,7 +53,7 @@ export function MiniTestBand() {
             {t.home.miniTest.ctaButton}
           </Button>
           <span className="flex items-center gap-1.5 text-sm font-semibold text-shinme-ink-soft">
-            <Timer className="size-4" /> {lang === "vi" ? "Khoảng 3 phút" : "~3 minutes"}
+            <Timer className="size-4" /> {tr("Khoảng 3 phút", "~3 minutes", "約3分")}
           </span>
         </div>
       </div>

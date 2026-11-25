@@ -11,7 +11,11 @@ import { useHome } from "./home-context";
 import { useTranslation } from "@/lib/i18n/context";
 
 const TOTAL = PLACEMENT_TEST.length;
-const CURRENT_LEVEL_BY_SCORE = ["Mới bắt đầu", "Mới bắt đầu", "N5", "N4", "N3", "N2"];
+
+function getLevelByScore(score: number, lang: "vi" | "en" | "ja"): string {
+  if (score <= 1) return lang === "en" ? "Beginner" : lang === "ja" ? "入門" : "Mới bắt đầu";
+  return ["", "", "N5", "N4", "N3", "N2"][score] ?? "N2";
+}
 
 export function PlacementTestDialog() {
   const { testOpen, closeTest } = useHome();
@@ -26,7 +30,7 @@ export function PlacementTestDialog() {
 
 function Quiz() {
   const { firstAnswer, goToCourses, goToConsultation } = useHome();
-  const { t, lang } = useTranslation();
+  const { t, lang, tr } = useTranslation();
   const [answers, setAnswers] = useState<(number | null)[]>(() =>
     PLACEMENT_TEST.map((_, i) => (i === 0 ? firstAnswer : null)),
   );
@@ -55,7 +59,7 @@ function Quiz() {
   };
 
   if (done) {
-    const rec = recommendByScore(score);
+    const rec = recommendByScore(score, lang);
     return (
       <div className="p-6 sm:p-8">
         <DialogTitle className="pr-10 text-2xl font-extrabold text-shinme-ink">
@@ -64,12 +68,14 @@ function Quiz() {
         <DialogDescription className="mt-1 text-shinme-muted">
           {lang === "vi" ? (
             <>Bạn trả lời đúng <strong className="text-shinme-primary">{score}/{TOTAL}</strong> câu.</>
+          ) : lang === "ja" ? (
+            <><strong className="text-shinme-primary">{TOTAL}問中 {score}問</strong> 正解しました。</>
           ) : (
             <>You answered <strong className="text-shinme-primary">{score}/{TOTAL}</strong> questions correctly.</>
           )}
         </DialogDescription>
 
-        <ol className="mt-5 flex gap-2" aria-label="Đáp án từng câu">
+        <ol className="mt-5 flex gap-2" aria-label={tr("Đáp án từng câu", "Answers per question", "各問題の解答")}>
           {PLACEMENT_TEST.map((item, i) => {
             const ok = answers[i] === item.answer;
             return (
@@ -82,7 +88,7 @@ function Quiz() {
               >
                 {ok ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
                 <span>
-                  {lang === "vi" ? `Câu ${i + 1}` : `Q ${i + 1}`} · {item.level}
+                  {tr(`Câu ${i + 1}`, `Q ${i + 1}`, `問${i + 1}`)} · {item.level}
                 </span>
               </li>
             );
@@ -91,7 +97,7 @@ function Quiz() {
 
         <div className="mt-6 rounded-2xl bg-shinme-primary p-6 text-white">
           <p className="flex items-center gap-2 text-sm font-bold text-shinme-accent">
-            <Sprout className="size-4" /> {lang === "vi" ? "Shinme gợi ý cho bạn" : "Shinme Recommendation"}
+            <Sprout className="size-4" /> {tr("Shinme gợi ý cho bạn", "Shinme Recommendation", "Shinmeからのおすすめ")}
           </p>
           <p className="mt-2 text-2xl font-black">{rec.title}</p>
           <p className="mt-2 leading-relaxed text-white/80">{rec.message}</p>
@@ -100,45 +106,51 @@ function Quiz() {
               variant="onDark"
               onClick={() =>
                 goToConsultation({
-                  level: CURRENT_LEVEL_BY_SCORE[score],
+                  level: getLevelByScore(score, lang),
                   course: rec.title,
                   testScore: score,
                 })
               }
             >
-              {lang === "vi" ? "Nhận lộ trình chi tiết" : "Get Detailed Roadmap"}
+              {tr("Nhận lộ trình chi tiết", "Get Detailed Roadmap", "詳しい学習プランを受け取る")}
               <ArrowRight />
             </Button>
             <Button variant="onDarkOutline" onClick={() => goToCourses(rec.level)}>
-              {lang === "vi" ? `Xem lịch khóa ${rec.level}` : `View ${rec.level} Schedule`}
+              {tr(`Xem lịch khóa ${rec.level}`, `View ${rec.level} Schedule`, `${rec.level}の開講日程を見る`)}
             </Button>
           </div>
         </div>
 
         <p className="mt-4 text-sm text-shinme-muted">
-          {lang === "vi"
-            ? "Bài thi thử chỉ mang tính tham khảo. Sensei sẽ kiểm tra thêm kỹ năng nghe – nói khi bạn đến tư vấn."
-            : "Placement test is for guidance only. Senseis will further assess your speaking and listening skills during consultation."}
+          {tr(
+            "Bài thi thử chỉ mang tính tham khảo. Sensei sẽ kiểm tra thêm kỹ năng nghe – nói khi bạn đến tư vấn.",
+            "Placement test is for guidance only. Senseis will further assess your speaking and listening skills during consultation.",
+            "このミニテストは目安です。無料相談時に講師が会話・聴解力も詳しく確認します。"
+          )}
         </p>
         <Button variant="ghost" size="sm" className="mt-3 cursor-pointer" onClick={restart}>
-          <RotateCcw /> {lang === "vi" ? "Làm lại từ đầu" : "Retake Test"}
+          <RotateCcw /> {tr("Làm lại từ đầu", "Retake Test", "最初からやり直す")}
         </Button>
       </div>
     );
   }
 
   const correct = picked === q.answer;
+  const localizedHint = lang === "en" ? q.hintEn : lang === "ja" ? q.hintJa : q.hint;
+  const localizedExplain = lang === "en" ? q.explainEn : lang === "ja" ? q.explainJa : q.explain;
 
   return (
     <div className="p-6 sm:p-8">
       <div className="pr-10">
         <DialogTitle className="text-lg font-extrabold text-shinme-ink">
-          {lang === "vi" ? "Thi thử Mini — 5 câu, ~3 phút" : "Mini Mock Test — 5 Questions, ~3 min"}
+          {tr("Thi thử Mini — 5 câu, ~3 phút", "Mini Mock Test — 5 Questions, ~3 min", "ミニ模擬試験 — 全5問・約3分")}
         </DialogTitle>
         <DialogDescription className="sr-only">
-          {lang === "vi"
-            ? "Bài kiểm tra nhanh 5 câu từ N5 đến N2, chấm điểm ngay và gợi ý khóa học phù hợp."
-            : "Quick 5-question test from N5 to N2, instant scoring and course recommendation."}
+          {tr(
+            "Bài kiểm tra nhanh 5 câu từ N5 đến N2, chấm điểm ngay và gợi ý khóa học phù hợp.",
+            "Quick 5-question test from N5 to N2, instant scoring and course recommendation.",
+            "N5からN2までの5問を即時採点し、最適なコースを提案するクイックテストです。"
+          )}
         </DialogDescription>
       </div>
 
@@ -146,7 +158,7 @@ function Quiz() {
         <div
           className="h-2 flex-1 overflow-hidden rounded-full bg-shinme-bg-deep"
           role="progressbar"
-          aria-label={lang === "vi" ? "Tiến độ bài thi" : "Test Progress"}
+          aria-label={tr("Tiến độ bài thi", "Test Progress", "テストの進捗")}
           aria-valuemin={0}
           aria-valuemax={TOTAL}
           aria-valuenow={index + (answered ? 1 : 0)}
@@ -166,7 +178,7 @@ function Quiz() {
           <span className="rounded-full bg-shinme-leaf px-2 py-0.5 text-xs font-extrabold text-shinme-primary">
             Mondai · {q.level}
           </span>
-          {q.hint}
+          {localizedHint}
         </p>
         <FuriganaText
           as="p"
@@ -174,7 +186,7 @@ function Quiz() {
           className="mt-3 text-2xl font-bold leading-[2] text-shinme-ink sm:text-[1.7rem]"
         />
 
-        <div role="group" aria-label="Các lựa chọn" className="mt-4 grid gap-2.5 sm:grid-cols-2">
+        <div role="group" aria-label={tr("Các lựa chọn", "Options", "選択肢")} className="mt-4 grid gap-2.5 sm:grid-cols-2">
           {q.options.map((opt, i) => {
             const isPicked = picked === i;
             const isAnswer = q.answer === i;
@@ -229,10 +241,10 @@ function Quiz() {
               <div>
                 <p className={cn("font-extrabold", correct ? "text-shinme-primary" : "text-shinme-danger")}>
                   {correct
-                    ? (lang === "vi" ? "Chính xác! すごい！" : "Correct! Sugoi (Great)! 🎉")
-                    : (lang === "vi" ? `Chưa đúng — đáp án là ${q.answer + 1}` : `Incorrect — correct answer is ${q.answer + 1}`)}
+                    ? tr("Chính xác! すごい！", "Correct! Sugoi (Great)! 🎉", "正解！すごい！🎉")
+                    : tr(`Chưa đúng — đáp án là ${q.answer + 1}`, `Incorrect — correct answer is ${q.answer + 1}`, `不正解 — 正解は ${q.answer + 1} 番です`)}
                 </p>
-                <FuriganaText as="p" lang="vi" text={q.explain} className="mt-0.5 text-sm leading-[1.9] text-shinme-ink-soft" />
+                <FuriganaText as="p" lang={lang} text={localizedExplain} className="mt-0.5 text-sm leading-[1.9] text-shinme-ink-soft" />
               </div>
             </div>
           )}
