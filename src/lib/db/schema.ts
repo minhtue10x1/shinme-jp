@@ -145,6 +145,7 @@ export type MaterialDoc = {
   category: "Giáo trình chính" | "Kanji & Từ vựng" | "Nghe hiểu Chokai" | "Ngữ pháp & Đề thi" | "Tài liệu bổ trợ";
   lesson: string;
   fileUrl: string;
+  storagePath?: string; // Đường dẫn private trên Firebase Storage (dùng tạo Signed URL ngắn hạn)
   fileName: string;
   size?: string;
   uploadedBy: string;

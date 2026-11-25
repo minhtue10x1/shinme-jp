@@ -405,12 +405,19 @@ export async function saveMaterialDoc(material: MaterialDoc): Promise<void> {
   await setDoc(ref, cleanData, { merge: true });
 }
 
-export async function deleteMaterialDoc(materialId: string, fileUrl?: string): Promise<void> {
+export async function deleteMaterialDoc(
+  materialId: string,
+  fileUrl?: string,
+  storagePath?: string
+): Promise<void> {
   const ref = doc(db, "materials", materialId);
   await deleteDoc(ref);
-  if (fileUrl && fileUrl.includes("firebasestorage.googleapis.com")) {
+  const target =
+    storagePath ||
+    (fileUrl && fileUrl.includes("firebasestorage.googleapis.com") ? fileUrl : "");
+  if (target) {
     try {
-      const storageFileRef = storageRef(storage, fileUrl);
+      const storageFileRef = storageRef(storage, target);
       await deleteObject(storageFileRef);
     } catch {
       /* ignore file deletion errors if file was already removed */
@@ -422,7 +429,7 @@ export async function uploadMaterialFile(
   file: File,
   folder = "materials",
   onProgress?: (percent: number) => void
-): Promise<{ url: string; sizeFormatted: string }> {
+): Promise<{ url: string; storagePath: string; sizeFormatted: string }> {
   const sizeKb = file.size / 1024;
   const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${Math.round(sizeKb)} KB`;
 
@@ -445,9 +452,10 @@ export async function uploadMaterialFile(
       (error) => {
         reject(error);
       },
-      async () => {
-        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-        resolve({ url: downloadUrl, sizeFormatted });
+      () => {
+        // Không gọi getDownloadURL() để không sinh token công khai vĩnh viễn.
+        // File chỉ được mở thông qua API /api/materials/[id]/download cấp Signed URL 10 phút.
+        resolve({ url: "", storagePath: path, sizeFormatted });
       }
     );
   });

@@ -12,6 +12,7 @@ import {
   Trash2,
   ExternalLink,
   BookOpen,
+  Loader2,
   X,
 } from "lucide-react";
 import { FuriganaText } from "@/components/furigana-text";
@@ -43,7 +44,7 @@ const CATEGORIES_VI = [
 ] as const;
 
 export default function MaterialsPage() {
-  const { role, user } = useRole();
+  const { role, user, firebaseUser } = useRole();
   const { tr } = useTranslation();
 
   const categoryLabel = (cat: string) => {
@@ -68,6 +69,7 @@ export default function MaterialsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState(0);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -190,6 +192,7 @@ export default function MaterialsPage() {
       setUploadPercent(10);
 
       let fileUrl = formData.externalUrl.trim();
+      let storagePath: string | undefined;
       const fileName = selectedFile ? selectedFile.name : tr("Tài liệu trực tuyến", "Online Resource", "オンライン教材");
       let sizeFormatted = "Google Drive / Link";
 
@@ -201,6 +204,7 @@ export default function MaterialsPage() {
           (percent) => setUploadPercent(percent)
         );
         fileUrl = res.url;
+        storagePath = res.storagePath;
         sizeFormatted = res.sizeFormatted;
       }
 
@@ -221,6 +225,7 @@ export default function MaterialsPage() {
         category: formData.category,
         lesson: formData.lesson.trim(),
         fileUrl,
+        ...(storagePath ? { storagePath } : {}),
         fileName,
         size: sizeFormatted,
         uploadedBy: user.name || "Sensei Shinme",
@@ -257,12 +262,84 @@ export default function MaterialsPage() {
   const handleDeleteMaterial = async (m: MaterialDoc) => {
     if (!confirm(tr(`Bạn có chắc chắn muốn xóa tài liệu "${m.title}"?`, `Are you sure you want to delete "${m.title}"?`, `教材「${m.title}」を削除してもよろしいですか？`))) return;
     try {
-      await deleteMaterialDoc(m.id, m.fileUrl);
+      await deleteMaterialDoc(m.id, m.fileUrl, m.storagePath);
       toast.success(tr(`Đã xóa tài liệu ${m.title}`, `Deleted material ${m.title}`, `教材 ${m.title} を削除しました`));
       await loadData();
     } catch (err) {
       console.error("Delete material error:", err);
       toast.error(tr("Không thể xóa tài liệu.", "Failed to delete material.", "教材を削除できませんでした。"));
+    }
+  };
+
+  const handleOpenMaterial = async (m: MaterialDoc) => {
+    const isPrivateStorageFile =
+      Boolean(m.storagePath) ||
+      Boolean(m.fileUrl && m.fileUrl.includes("firebasestorage.googleapis.com"));
+
+    // External URL (Google Drive / OneDrive / YouTube)
+    if (!isPrivateStorageFile) {
+      if (!isSafeHttpUrl(m.fileUrl)) {
+        toast.error(tr("Đường dẫn tài liệu không hợp lệ.", "Invalid material URL.", "教材のURLが無効です。"));
+        return;
+      }
+      window.open(m.fileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (!firebaseUser) {
+      // Fallback for legacy tokenized URL in Demo mode
+      if (isSafeHttpUrl(m.fileUrl)) {
+        window.open(m.fileUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      toast.error(
+        tr(
+          "Vui lòng đăng nhập tài khoản thật để mở tài liệu bảo mật.",
+          "Please sign in with a real account to open protected materials.",
+          "保護された教材を開くには正規アカウントでログインしてください。"
+        )
+      );
+      return;
+    }
+
+    // Open blank tab synchronously to avoid browser popup blockers after await
+    const popup = window.open("", "_blank");
+    try {
+      setOpeningId(m.id);
+      const idToken = await firebaseUser.getIdToken();
+      const res = await fetch(`/api/materials/${encodeURIComponent(m.id)}/download`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.url) {
+        popup?.close();
+        // Fallback to legacy URL if server Admin SDK is not configured locally
+        if (res.status === 503 && isSafeHttpUrl(m.fileUrl)) {
+          window.open(m.fileUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+        toast.error(
+          data?.error ||
+            tr(
+              "Không thể tạo liên kết tải tạm thời cho tài liệu này.",
+              "Could not generate temporary download link.",
+              "一時ダウンロードリンクを生成できませんでした。"
+            )
+        );
+        return;
+      }
+      if (popup) {
+        popup.opener = null;
+        popup.location.href = data.url;
+      } else {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      popup?.close();
+      console.error("Open material error:", err);
+      toast.error(tr("Lỗi khi mở tài liệu. Vui lòng thử lại!", "Error opening material. Please try again!", "教材を開けませんでした。もう一度お試しください！"));
+    } finally {
+      setOpeningId(null);
     }
   };
 
@@ -411,22 +488,22 @@ export default function MaterialsPage() {
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-shinme-line pt-3">
-                <a
-                  href={isSafeHttpUrl(m.fileUrl) ? m.fileUrl : "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (!isSafeHttpUrl(m.fileUrl)) {
-                      e.preventDefault();
-                      toast.error(tr("Đường dẫn tài liệu không hợp lệ.", "Invalid material URL.", "教材のURLが無効です。"));
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline"
+                <button
+                  type="button"
+                  disabled={openingId === m.id}
+                  onClick={() => handleOpenMaterial(m)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-bold text-shinme-primary hover:underline disabled:cursor-wait disabled:opacity-60"
                 >
-                  <Download className="size-3.5" />
-                  {tr("Mở / Tải về máy", "Open / Download", "開く / ダウンロード")}
+                  {openingId === m.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Download className="size-3.5" />
+                  )}
+                  {openingId === m.id
+                    ? tr("Đang tạo liên kết an toàn...", "Preparing secure link...", "安全なリンクを生成中...")
+                    : tr("Mở / Tải về máy", "Open / Download", "開く / ダウンロード")}
                   <ExternalLink className="size-3 opacity-70" />
-                </a>
+                </button>
 
                 {role !== "student" && (
                   <button

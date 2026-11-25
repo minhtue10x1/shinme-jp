@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage, type Storage } from "firebase-admin/storage";
 
 let adminApp: App | null = null;
 let lastInitError: string | null = null;
@@ -64,6 +65,17 @@ export function getAdminInitError(): string | null {
   return lastInitError;
 }
 
+export function getAdminStorageBucketName(): string | null {
+  const configured = (
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    ""
+  ).trim();
+  if (configured) return configured;
+  const sa = resolveServiceAccount();
+  return sa?.projectId ? `${sa.projectId}.firebasestorage.app` : null;
+}
+
 function getAdminApp(): App | null {
   if (adminApp) return adminApp;
   const existing = getApps();
@@ -78,8 +90,10 @@ function getAdminApp(): App | null {
   }
 
   try {
+    const storageBucket = getAdminStorageBucketName() || undefined;
     adminApp = initializeApp({
       credential: cert(serviceAccount),
+      ...(storageBucket ? { storageBucket } : {}),
     });
     lastInitError = null;
     return adminApp;
@@ -98,4 +112,9 @@ export function getAdminAuth(): Auth | null {
 export function getAdminDb(): Firestore | null {
   const app = getAdminApp();
   return app ? getFirestore(app) : null;
+}
+
+export function getAdminStorage(): Storage | null {
+  const app = getAdminApp();
+  return app ? getStorage(app) : null;
 }
