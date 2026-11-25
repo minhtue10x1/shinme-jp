@@ -31,6 +31,8 @@ import {
 import type { ClassDoc, MaterialDoc } from "@/lib/db/schema";
 import { toast } from "sonner";
 
+const MAX_MATERIAL_FILE_BYTES = 25 * 1024 * 1024; // Must match storage.rules (25MB)
+
 const CATEGORIES_VI = [
   "Tất cả danh mục",
   "Giáo trình chính",
@@ -160,6 +162,17 @@ export default function MaterialsPage() {
 
     if (!selectedFile && !formData.externalUrl.trim()) {
       toast.error(tr("Vui lòng chọn 1 file để tải lên hoặc dán link tài liệu trực tiếp!", "Please choose a file or paste a direct link!", "ファイルを選択するか、直接リンクを貼り付けてください！"));
+      return;
+    }
+
+    if (selectedFile && selectedFile.size > MAX_MATERIAL_FILE_BYTES) {
+      toast.error(
+        tr(
+          "Dung lượng file vượt quá giới hạn 25MB. Với file nặng hơn, vui lòng tải lên Google Drive rồi dán link.",
+          "File exceeds the 25MB limit. For larger files, please upload to Google Drive and paste the link.",
+          "ファイルサイズが上限（25MB）を超えています。大容量ファイルはGoogle Driveのリンクを貼り付けてください。"
+        )
+      );
       return;
     }
 
@@ -558,9 +571,20 @@ export default function MaterialsPage() {
                   id="material-file-input"
                   disabled={isUploading}
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedFile(e.target.files[0]);
+                    const picked = e.target.files?.[0];
+                    if (!picked) return;
+                    if (picked.size > MAX_MATERIAL_FILE_BYTES) {
+                      e.target.value = "";
+                      toast.error(
+                        tr(
+                          `File "${picked.name}" (${(picked.size / (1024 * 1024)).toFixed(1)} MB) vượt quá giới hạn tối đa 25MB.`,
+                          `File "${picked.name}" (${(picked.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 25MB maximum limit.`,
+                          `ファイル「${picked.name}」（${(picked.size / (1024 * 1024)).toFixed(1)} MB）は上限の25MBを超えています。`
+                        )
+                      );
+                      return;
                     }
+                    setSelectedFile(picked);
                   }}
                   className="hidden"
                   accept=".pdf,.mp3,.wav,.m4a,.ppt,.pptx,.doc,.docx,.xlsx,.png,.jpg,.jpeg,.webp"
