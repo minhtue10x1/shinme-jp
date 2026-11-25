@@ -62,8 +62,12 @@ export default function GradebookPage() {
       setIsLoading(true);
       const uid = firebaseUser?.uid || user.id;
       const [testList, classList, userList, subList] = await Promise.all([
-        role === "student" && user.classId ? getTestsByClass(user.classId) : getAllTests(),
-        getClasses(),
+        role === "student"
+          ? user.classId
+            ? getTestsByClass(user.classId)
+            : Promise.resolve([])
+          : getAllTests(),
+        role === "student" ? Promise.resolve([]) : getClasses(),
         role === "student" ? Promise.resolve([]) : getAllUsers(),
         role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),
       ]);
@@ -124,8 +128,8 @@ export default function GradebookPage() {
       const status: "Đạt" | "Chưa đạt" | "Chưa làm" = !bestSub
         ? "Chưa làm"
         : bestSub.passed
-        ? "Đạt"
-        : "Chưa đạt";
+          ? "Đạt"
+          : "Chưa đạt";
 
       return {
         studentId: st.uid,
@@ -183,9 +187,9 @@ export default function GradebookPage() {
   const classAvgScore =
     completedRows.length > 0
       ? Math.round(
-          completedRows.reduce((sum, r) => sum + (r.score ?? 0), 0) /
-            completedRows.length
-        )
+        completedRows.reduce((sum, r) => sum + (r.score ?? 0), 0) /
+        completedRows.length
+      )
       : 0;
   const passCount = gradebookRows.filter((r) => r.status === "Đạt").length;
   const failCount = gradebookRows.filter((r) => r.status === "Chưa đạt").length;
@@ -283,15 +287,15 @@ export default function GradebookPage() {
           <p className="text-sm font-semibold text-shinme-muted">
             {role === "student"
               ? tr(
-                  "Theo dõi toàn bộ lịch sử điểm số, kết quả đạt chuẩn và thời gian làm bài của bạn",
-                  "Track your scores, passing status, and test duration history",
-                  "過去の得点・合否判定・所要時間の履歴を確認できます"
-                )
+                "Theo dõi toàn bộ lịch sử điểm số, kết quả đạt chuẩn và thời gian làm bài của bạn",
+                "Track your scores, passing status, and test duration history",
+                "過去の得点・合否判定・所要時間の履歴を確認できます"
+              )
               : tr(
-                  "Theo dõi kết quả làm bài, điểm thi và sĩ số hoàn thành của từng học viên theo lớp",
-                  "Monitor student test scores, pass rates, and class completion metrics",
-                  "クラスごとの受講生の成績・合格率・受験状況を確認できます"
-                )}
+                "Theo dõi kết quả làm bài, điểm thi và sĩ số hoàn thành của từng học viên theo lớp",
+                "Monitor student test scores, pass rates, and class completion metrics",
+                "クラスごとの受講生の成績・合格率・受験状況を確認できます"
+              )}
           </p>
         </div>
 
@@ -570,11 +574,11 @@ export default function GradebookPage() {
                         <td className="py-3 px-3 text-shinme-muted">
                           {row.submittedAt
                             ? new Date(row.submittedAt).toLocaleDateString(lang === "vi" ? "vi-VN" : lang === "ja" ? "ja-JP" : "en-US", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
                             : "--"}
                         </td>
                         <td className="py-3 px-3">

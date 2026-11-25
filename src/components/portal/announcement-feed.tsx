@@ -60,7 +60,7 @@ export function AnnouncementFeed() {
       setIsLoading(true);
       const [annList, classList] = await Promise.all([
         getAnnouncements(role === "student" ? user.classId : undefined),
-        getClasses(),
+        role === "student" ? Promise.resolve([]) : getClasses(),
       ]);
       setAnnouncements(annList);
       setClasses(classList);
@@ -82,9 +82,9 @@ export function AnnouncementFeed() {
   // Filter announcements:
   // If student: only show announcements for their assigned class (user.classId) or ALL
   // If sensei/admin: show announcements for the currently selected class or ALL
-  const relevantClassId = role === "student" ? (user.classId || "cls-n3-246") : activeClassId;
+  const relevantClassId = role === "student" ? (user.classId || "") : activeClassId;
   const filtered = announcements.filter(
-    (a) => a.classId === relevantClassId || a.classId === "ALL"
+    (a) => a.classId === "ALL" || (!!relevantClassId && a.classId === relevantClassId)
   );
 
   // Sort pinned first, then newest
@@ -235,10 +235,10 @@ export function AnnouncementFeed() {
                     {item.category === "BTVN & Luyện thi"
                       ? tr("BTVN & Luyện thi", "Homework & Prep", "宿題・試験対策")
                       : item.category === "Lịch học & Phòng học"
-                      ? tr("Lịch học & Phòng học", "Schedule & Room", "授業日程・教室")
-                      : item.category === "Tài liệu học tập"
-                      ? tr("Tài liệu học tập", "Learning Materials", "教材資料")
-                      : tr("Thông báo chung", "General Notice", "一般お知らせ")}
+                        ? tr("Lịch học & Phòng học", "Schedule & Room", "授業日程・教室")
+                        : item.category === "Tài liệu học tập"
+                          ? tr("Tài liệu học tập", "Learning Materials", "教材資料")
+                          : tr("Thông báo chung", "General Notice", "一般お知らせ")}
                   </Badge>
                   <span className="rounded bg-shinme-bg px-2 py-0.5 font-mono text-xs font-bold text-shinme-muted">
                     {item.classId === "ALL"

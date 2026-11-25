@@ -201,7 +201,7 @@ export default function AssignmentsPage() {
       const studentScopeUid = role === "student" ? (firebaseUser?.uid || user.id) : undefined;
       const [asgList, classList, userList] = await Promise.all([
         getAssignments(role === "student" ? user.classId : undefined, studentScopeUid),
-        getClasses(),
+        role === "student" ? Promise.resolve([]) : getClasses(),
         role === "student" ? Promise.resolve([]) : getAllUsers(),
       ]);
       setAssignments(asgList);
@@ -225,13 +225,12 @@ export default function AssignmentsPage() {
       // Type filter
       if (filterType !== "ALL" && a.type !== filterType) return false;
 
-      // Class filter
-      if (filterClass !== "ALL" && a.classId !== "ALL" && a.classId !== filterClass) {
-        return false;
-      }
-
-      // If role is student, only show assignments for their class or "ALL"
-      if (role === "student" && user.classId && a.classId !== "ALL" && a.classId !== user.classId) {
+      // Role-scoped class isolation
+      if (role === "student") {
+        if (a.classId !== "ALL" && (!user.classId || a.classId !== user.classId)) {
+          return false;
+        }
+      } else if (filterClass !== "ALL" && a.classId !== "ALL" && a.classId !== filterClass) {
         return false;
       }
 

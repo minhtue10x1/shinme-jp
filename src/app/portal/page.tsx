@@ -33,6 +33,7 @@ import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import {
   getClasses,
+  getClassById,
   getAllUsers,
   getAllSubmissions,
   getSubmissionsByStudent,
@@ -155,9 +156,11 @@ function StudentDashboard() {
   useEffect(() => {
     const uid = firebaseUser?.uid || user.id;
     Promise.all([
-      getClasses(),
+      user.classId
+        ? getClassById(user.classId).then((c) => (c ? [c] : []))
+        : Promise.resolve([]),
       getSubmissionsByStudent(uid),
-      user.classId ? getTestsByClass(user.classId) : getAllTests(),
+      user.classId ? getTestsByClass(user.classId) : Promise.resolve([]),
     ])
       .then(([cList, sList, tList]) => {
         setClasses(cList);
@@ -166,18 +169,16 @@ function StudentDashboard() {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, [firebaseUser, user.id]);
+  }, [firebaseUser, user.id, user.classId]);
 
   const assignedClass =
-    classes.find((c) => c.id === user.classId) ||
-    classes.find((c) => c.name.includes("N3")) ||
-    classes[0] || {
-      id: "cls-n3-246",
-      shortName: "N3-Tối 246",
-      name: "N3-Tối 246 (Sensei Tanaka)",
-      completedSessions: 26,
+    (user.classId ? classes.find((c) => c.id === user.classId) : undefined) || {
+      id: user.classId || "",
+      shortName: user.className || tr("Chưa xếp lớp", "Unassigned", "未配属"),
+      name: user.className || tr("Chưa được xếp lớp", "Not assigned to a class yet", "クラス未配属"),
+      completedSessions: 0,
       totalSessions: 40,
-      currentLesson: "Bài 26: Ngữ pháp Soumatome",
+      currentLesson: "—",
     };
 
   // Student's test submissions

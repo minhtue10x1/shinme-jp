@@ -185,6 +185,12 @@ export async function getClasses(): Promise<ClassDoc[]> {
   return snap.docs.map((d) => d.data() as ClassDoc);
 }
 
+export async function getClassById(classId: string): Promise<ClassDoc | null> {
+  if (!classId) return null;
+  const snap = await getDoc(doc(db, "classes", classId));
+  return snap.exists() ? (snap.data() as ClassDoc) : null;
+}
+
 export async function saveClass(cls: ClassDoc): Promise<void> {
   const ref = doc(db, "classes", cls.id);
   await setDoc(ref, cls, { merge: true });

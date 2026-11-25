@@ -85,7 +85,7 @@ export default function MaterialsPage() {
     try {
       setIsLoading(true);
       const [classList, materialList] = await Promise.all([
-        getClasses(),
+        role === "student" ? Promise.resolve([]) : getClasses(),
         getMaterials(role === "student" ? user.classId : undefined),
       ]);
       setClasses(classList);
@@ -105,8 +105,12 @@ export default function MaterialsPage() {
   // Filtered Materials
   const filteredMaterials = useMemo(() => {
     return materials.filter((m) => {
-      // Filter by Class
-      if (selectedClassId !== "ALL" && m.classId !== "ALL" && m.classId !== selectedClassId) {
+      // Student isolation: only their own class or ALL
+      if (role === "student") {
+        if (m.classId !== "ALL" && (!user.classId || m.classId !== user.classId)) {
+          return false;
+        }
+      } else if (selectedClassId !== "ALL" && m.classId !== "ALL" && m.classId !== selectedClassId) {
         return false;
       }
       // Filter by Category
@@ -123,7 +127,7 @@ export default function MaterialsPage() {
       }
       return true;
     });
-  }, [materials, selectedClassId, selectedCategory, searchQuery]);
+  }, [materials, role, user.classId, selectedClassId, selectedCategory, searchQuery]);
 
   const getIcon = (format: string) => {
     switch (format) {
@@ -293,19 +297,21 @@ export default function MaterialsPage() {
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-shinme-border bg-shinme-surface p-4 shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Class Filter */}
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
-          >
-            <option value="ALL">{tr("Tất cả lớp học", "All Classes", "すべてのクラス")}</option>
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {tr(`Lớp: ${cls.shortName} (${cls.level})`, `Class: ${cls.shortName} (${cls.level})`, `クラス：${cls.shortName} (${cls.level})`)}
-              </option>
-            ))}
-          </select>
+          {/* Class Filter (Sensei & Admin only) */}
+          {role !== "student" && (
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+            >
+              <option value="ALL">{tr("Tất cả lớp học", "All Classes", "すべてのクラス")}</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {tr(`Lớp: ${cls.shortName} (${cls.level})`, `Class: ${cls.shortName} (${cls.level})`, `クラス：${cls.shortName} (${cls.level})`)}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Category Filter */}
           <select

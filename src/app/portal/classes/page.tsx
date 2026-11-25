@@ -25,6 +25,7 @@ import { useRole } from "@/lib/role-context";
 import { useTranslation } from "@/lib/i18n/context";
 import {
   getClasses,
+  getClassById,
   saveClass,
   deleteClass,
   getAllUsers,
@@ -69,7 +70,11 @@ export default function ClassesPage() {
     try {
       setIsLoading(true);
       const [classList, userList] = await Promise.all([
-        getClasses(),
+        role === "student"
+          ? user.classId
+            ? getClassById(user.classId).then((c) => (c ? [c] : []))
+            : Promise.resolve([])
+          : getClasses(),
         role === "student"
           ? user.classId
             ? getUsersByClass(user.classId)
@@ -223,19 +228,29 @@ export default function ClassesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-shinme-line pb-5">
         <div>
           <h1 className="text-2xl font-black text-shinme-ink sm:text-3xl">
-            {tr("Lớp học & Lịch đào tạo", "Classes & Training Schedule", "クラス・授業スケジュール")}
+            {role === "student"
+              ? tr("Lớp học của tôi & Lịch đào tạo", "My Class & Schedule", "所属クラス・授業スケジュール")
+              : tr("Lớp học & Lịch đào tạo", "Classes & Training Schedule", "クラス・授業スケジュール")}
           </h1>
           <p className="mt-1 text-sm font-semibold text-shinme-muted">
-            {tr(
-              "Quản lý danh sách lớp học, lịch giảng dạy và sĩ số học viên",
-              "Manage class directory, teaching schedules, and student enrollment",
-              "クラス一覧・授業スケジュール・受講生人数を管理します"
-            )}
+            {role === "student"
+              ? tr(
+                  "Thông tin lớp học, phòng học, lịch giảng dạy và danh sách bạn cùng lớp",
+                  "View your class details, schedule, room, and classmates",
+                  "所属クラスの時間割・教室・クラスメイトを確認できます"
+                )
+              : tr(
+                  "Quản lý danh sách lớp học, lịch giảng dạy và sĩ số học viên",
+                  "Manage class directory, teaching schedules, and student enrollment",
+                  "クラス一覧・授業スケジュール・受講生人数を管理します"
+                )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Badge tone="leaf">
-            {tr(`${classes.length} Lớp đang mở`, `${classes.length} Active Classes`, `開講中 ${classes.length}クラス`)}
+            {role === "student"
+              ? tr("Lớp chính khóa", "Enrolled Class", "正規クラス")
+              : tr(`${classes.length} Lớp đang mở`, `${classes.length} Active Classes`, `開講中 ${classes.length}クラス`)}
           </Badge>
           {role === "admin" && (
             <Button size="sm" onClick={handleOpenCreateModal}>

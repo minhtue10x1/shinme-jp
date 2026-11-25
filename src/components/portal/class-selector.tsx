@@ -9,7 +9,7 @@ import {
   subscribeActiveClass,
 } from "@/lib/classroom-store";
 import { useRole } from "@/lib/role-context";
-import { getClasses } from "@/lib/db/services";
+import { getClasses, getClassById } from "@/lib/db/services";
 import type { ClassDoc } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/context";
@@ -20,8 +20,20 @@ export function ClassSelector() {
   const [classes, setClasses] = useState<ClassDoc[]>([]);
 
   useEffect(() => {
-    getClasses().then(setClasses).catch(console.error);
-  }, []);
+    if (role === "student") {
+      if (user.classId) {
+        getClassById(user.classId)
+          .then((cls) => setClasses(cls ? [cls] : []))
+          .catch(console.error);
+      } else {
+        setClasses([]);
+      }
+      return;
+    }
+    if (role === "sensei" || role === "admin") {
+      getClasses().then(setClasses).catch(console.error);
+    }
+  }, [role, user.classId]);
 
   const activeClassId = useSyncExternalStore(
     subscribeActiveClass,
@@ -29,19 +41,17 @@ export function ClassSelector() {
     () => "cls-n3-246"
   );
 
-  // Student view: locked to their assigned class
+  // Student view: strictly locked to their assigned class (never show other classes)
   if (role === "student") {
     const studentClass =
-      classes.find((c) => c.id === user.classId) ||
-      classes.find((c) => c.name.includes("N3")) ||
-      classes[0] || {
-        id: "cls-n3-246",
-        level: "N3",
-        name: user.className || "N3-Tối 246 (Sensei Tanaka)",
-        schedule: "Thứ 2 · 4 · 6",
-        time: "19:00 – 21:00",
-        room: "Phòng 204",
-        senseiName: "Tanaka Yuki",
+      (user.classId ? classes.find((c) => c.id === user.classId) : undefined) || {
+        id: user.classId || "",
+        level: "JLPT",
+        name: user.className || tr("Chưa được xếp lớp", "Not assigned to a class yet", "クラス未配属"),
+        schedule: "—",
+        time: "—",
+        room: "—",
+        senseiName: "—",
       };
 
     return (

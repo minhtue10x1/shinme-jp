@@ -48,9 +48,13 @@ export default function TestsHubPage() {
       setIsLoading(true);
       const uid = firebaseUser?.uid || user.id;
       const [testList, subList, classList] = await Promise.all([
-        role === "student" && user.classId ? getTestsByClass(user.classId) : getAllTests(),
+        role === "student"
+          ? user.classId
+            ? getTestsByClass(user.classId)
+            : Promise.resolve([])
+          : getAllTests(),
         role === "student" ? getSubmissionsByStudent(uid) : getAllSubmissions(),
-        getClasses(),
+        role === "student" ? Promise.resolve([]) : getClasses(),
       ]);
       setTests(testList);
       setSubmissions(subList);
@@ -65,20 +69,20 @@ export default function TestsHubPage() {
 
   useEffect(() => {
     loadData();
-  }, [role, firebaseUser, user.id]);
+  }, [role, firebaseUser, user.id, user.classId]);
 
   // Filter tests based on user role and filters
   const filteredTests = useMemo(() => {
     return tests.filter((t) => {
-      // Role scope: if student, show their class tests or ALL
-      if (role === "student" && user.classId) {
-        if (t.classId !== user.classId && t.classId !== "ALL") return false;
+      // Role scope: if student, strictly show their class tests or ALL
+      if (role === "student") {
+        if (t.classId !== "ALL" && (!user.classId || t.classId !== user.classId)) return false;
       } else if (selectedClassId !== "ALL") {
         if (t.classId !== selectedClassId && t.classId !== "ALL") return false;
       }
 
-      // Filter level
-      if (selectedLevel !== "ALL" && t.level !== selectedLevel) {
+      // Filter level (Sensei/Admin only)
+      if (role !== "student" && selectedLevel !== "ALL" && t.level !== selectedLevel) {
         return false;
       }
 
@@ -169,19 +173,21 @@ export default function TestsHubPage() {
             </select>
           )}
 
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
-          >
-            <option value="ALL">{tr("Tất cả cấp độ", "All Levels", "すべてのレベル")}</option>
-            <option value="N5">JLPT N5</option>
-            <option value="N4">JLPT N4</option>
-            <option value="N3">JLPT N3</option>
-            <option value="N2">JLPT N2</option>
-            <option value="N1">JLPT N1</option>
-            <option value="KAIWA">{tr("Giao tiếp Kaiwa", "Kaiwa Communication", "会話（Kaiwa）")}</option>
-          </select>
+          {role !== "student" && (
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+            >
+              <option value="ALL">{tr("Tất cả cấp độ", "All Levels", "すべてのレベル")}</option>
+              <option value="N5">JLPT N5</option>
+              <option value="N4">JLPT N4</option>
+              <option value="N3">JLPT N3</option>
+              <option value="N2">JLPT N2</option>
+              <option value="N1">JLPT N1</option>
+              <option value="KAIWA">{tr("Giao tiếp Kaiwa", "Kaiwa Communication", "会話（Kaiwa）")}</option>
+            </select>
+          )}
         </div>
 
         <div className="relative min-w-[14rem] flex-1 sm:max-w-xs">

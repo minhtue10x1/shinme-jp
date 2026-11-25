@@ -82,7 +82,9 @@ service cloud.firestore {
     // 2. CLASSES (`classes`)
     // ===============================================================
     match /classes/{classId} {
-      allow read: if isSignedIn();
+      // Học viên chỉ đọc được đúng lớp mình đang theo học; Sensei/Admin đọc toàn bộ
+      allow read: if isTeacherOrAdmin()
+        || (isStudentOrAbove() && classId == getUserClassId());
       allow create, delete: if isAdmin();
 
       // Admin sửa toàn bộ; Sensei chỉ được cập nhật tiến độ buổi học / bài đang học

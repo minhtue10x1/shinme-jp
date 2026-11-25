@@ -37,6 +37,7 @@ import {
   uploadUserAvatarToStorage,
   getAllUsers,
   getClasses,
+  getClassById,
 } from "@/lib/db/services";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -73,8 +74,13 @@ export default function ProfilePage() {
       try {
         setIsLoading(true);
 
-        // 1. Load active classes
-        const classes = await getClasses();
+        // 1. Load active classes (Student only loads their own assigned class)
+        const classes =
+          role === "admin" || role === "sensei"
+            ? await getClasses()
+            : user.classId
+              ? await getClassById(user.classId).then((c) => (c ? [c] : []))
+              : [];
         setClassesList(classes);
         if (classes.length > 0) {
           setAdminTargetClassId(classes[0].id);
