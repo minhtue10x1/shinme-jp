@@ -393,7 +393,7 @@ export default function ClassesPage() {
        * MODAL 1: VIEW STUDENT ROSTER OF CLASS
        * ===================================================================== */}
       <Dialog open={!!selectedClass} onOpenChange={(open) => !open && setSelectedClass(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl p-6 sm:p-7">
           <DialogTitle className="flex items-center gap-2 text-lg font-black text-shinme-ink">
             <Users className="size-5 text-shinme-primary" />
             {tr(`Học viên lớp: ${selectedClass?.shortName}`, `Class Roster: ${selectedClass?.shortName}`, `受講生名簿：${selectedClass?.shortName}`)}
@@ -480,7 +480,7 @@ export default function ClassesPage() {
        * MODAL 2: CREATE / EDIT CLASS (ADMIN)
        * ===================================================================== */}
       <Dialog open={isClassModalOpen} onOpenChange={setIsClassModalOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl p-6 sm:p-7">
           <DialogTitle className="text-lg font-black text-shinme-ink">
             {editingClass ? tr("Chỉnh sửa lớp học", "Edit Class", "クラスを編集") : tr("Tạo lớp học mới", "Create New Class", "新規クラス作成")}
           </DialogTitle>

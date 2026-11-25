@@ -6,19 +6,13 @@ import {
   FileAudio,
   FileSpreadsheet,
   FileText,
-  Headphones,
   Presentation,
   Search,
   Upload,
-  Plus,
   Trash2,
   ExternalLink,
   BookOpen,
-  Filter,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  Link as LinkIcon,
+  X,
 } from "lucide-react";
 import { FuriganaText } from "@/components/furigana-text";
 import { Badge } from "@/components/ui/badge";
@@ -419,195 +413,233 @@ export default function MaterialsPage() {
       {/* =====================================================================
        * MODAL: UPLOAD NEW MATERIAL (SENSEI & ADMIN)
        * ===================================================================== */}
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+      <Dialog open={isUploadOpen} onOpenChange={(next) => !isUploading && setIsUploadOpen(next)}>
         <DialogContent className="max-w-xl">
-          <DialogTitle className="flex items-center gap-2 text-lg font-black text-shinme-ink">
-            <Upload className="size-5 text-shinme-primary" />
-            {tr("Tải lên tài liệu lớp học", "Upload Class Material", "クラス教材をアップロード")}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-shinme-muted">
-            {tr(
-              "Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học",
-              "Add new materials or share external links with students by class",
-              "クラス別に新しい教材を追加または外部リンクを共有します"
-            )}
-          </DialogDescription>
-
-          <form onSubmit={handleUploadSubmit} className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {tr("Tiêu đề tài liệu *", "Material Title *", "教材タイトル *")}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={tr("Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4", "e.g. Soumatome N3 Textbook — Grammar Week 1-4", "例：日本語総まとめ N3 文法 第1〜4週")}
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {tr("Lớp học áp dụng *", "Target Class *", "対象クラス *")}
-                </label>
-                <select
-                  value={formData.classId}
-                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
-                >
-                  <option value="ALL">{tr("Toàn bộ trung tâm (Chung)", "All Center (General)", "全校共通")}</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.shortName} ({cls.level})
-                    </option>
-                  ))}
-                </select>
+          <div className="space-y-5 p-6 sm:p-7">
+            <div className="flex items-start gap-3.5 pr-8">
+              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-shinme-primary text-white">
+                <Upload className="size-5 text-shinme-accent" />
               </div>
-
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {tr("Danh mục học liệu *", "Category *", "カテゴリー *")}
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as MaterialDoc["category"] })}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
-                >
-                  <option value="Giáo trình chính">{tr("Giáo trình chính", "Main Curriculum", "メイン教材")}</option>
-                  <option value="Kanji & Từ vựng">{tr("Kanji & Từ vựng", "Kanji & Vocabulary", "漢字・語彙")}</option>
-                  <option value="Nghe hiểu Chokai">{tr("Nghe hiểu Chokai", "Chokai Listening", "聴解練習")}</option>
-                  <option value="Ngữ pháp & Đề thi">{tr("Ngữ pháp & Đề thi", "Grammar & Exams", "文法・試験対策")}</option>
-                  <option value="Tài liệu bổ trợ">{tr("Tài liệu bổ trợ", "Supplementary Materials", "補助教材")}</option>
-                </select>
+                <DialogTitle className="text-lg font-black text-shinme-ink">
+                  {tr("Tải lên tài liệu lớp học", "Upload Class Material", "クラス教材をアップロード")}
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs leading-relaxed text-shinme-muted">
+                  {tr(
+                    "Thêm tài liệu mới hoặc chia sẻ link tài liệu cho học viên theo từng lớp học.",
+                    "Add new materials or share external links with students by class.",
+                    "クラス別に新しい教材を追加または外部リンクを共有します。"
+                  )}
+                </DialogDescription>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {tr("Định dạng file", "File Format", "ファイル形式")}
-                </label>
-                <select
-                  value={formData.format}
-                  onChange={(e) => setFormData({ ...formData, format: e.target.value as MaterialDoc["format"] })}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
-                >
-                  <option value="PDF">{tr("Tài liệu PDF", "PDF Document", "PDF資料")}</option>
-                  <option value="Audio">{tr("Audio / MP3 (Chokai)", "Audio / MP3 (Chokai)", "音声 / MP3（聴解）")}</option>
-                  <option value="Slide">{tr("Bài giảng Slide / PPTX", "Slide / PPTX", "スライド / PPTX")}</option>
-                  <option value="Doc">{tr("Văn bản Docx / Excel", "Docx / Excel", "Word / Excel")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                  {tr("Bài học tương ứng", "Lesson", "対応単元")}
+                <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                  {tr("Tiêu đề tài liệu *", "Material Title *", "教材タイトル *")}
                 </label>
                 <input
                   type="text"
-                  placeholder={tr("Ví dụ: Bài 26 hoặc Tuần 2", "e.g. Lesson 26 or Week 2", "例：第26課 または 第2週")}
-                  value={formData.lesson}
-                  onChange={(e) => setFormData({ ...formData, lesson: e.target.value })}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none"
+                  required
+                  disabled={isUploading}
+                  placeholder={tr("Ví dụ: Giáo trình Soumatome N3 — Ngữ pháp Tuần 1-4", "e.g. Soumatome N3 Textbook — Grammar Week 1-4", "例：日本語総まとめ N3 文法 第1〜4週")}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 text-sm font-medium text-shinme-ink placeholder:text-shinme-muted/70 focus:border-shinme-primary focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-bold text-shinme-ink">
-                {tr("Tiêu đề tiếng Nhật / Furigana (tùy chọn)", "Japanese Title / Furigana (optional)", "日本語タイトル・ふりがな（任意）")}
-              </label>
-              <input
-                type="text"
-                placeholder={tr("Ví dụ: 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "e.g. 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "例：第26課[だいにじゅうろっか] 文法[ぶんぽう]")}
-                value={formData.titleJa}
-                onChange={(e) => setFormData({ ...formData, titleJa: e.target.value })}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-shinme-primary focus:outline-none font-jp"
-              />
-            </div>
-
-            {/* File Picker */}
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-center">
-              <input
-                type="file"
-                id="material-file-input"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setSelectedFile(e.target.files[0]);
-                  }
-                }}
-                className="hidden"
-                accept=".pdf,.mp3,.wav,.m4a,.ppt,.pptx,.doc,.docx,.xlsx,.zip"
-              />
-              <label htmlFor="material-file-input" className="cursor-pointer block">
-                <div className="mx-auto grid size-10 place-items-center rounded-xl bg-shinme-leaf text-shinme-primary mb-2">
-                  <Upload className="size-5" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                    {tr("Lớp học áp dụng *", "Target Class *", "対象クラス *")}
+                  </label>
+                  <select
+                    disabled={isUploading}
+                    value={formData.classId}
+                    onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                    className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+                  >
+                    <option value="ALL">{tr("Toàn bộ trung tâm (Chung)", "All Center (General)", "全校共通")}</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.shortName} ({cls.level})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <p className="text-xs font-bold text-shinme-ink">
-                  {selectedFile ? (
-                    <span className="text-shinme-primary font-mono">{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
-                  ) : (
-                    tr(
-                      "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)",
-                      "Click to select a file from computer (PDF, MP3, PPTX, DOCX...)",
-                      "クリックしてファイルを選択（PDF, MP3, PPTX, DOCX...）"
-                    )
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-shinme-muted">
-                  {tr("Hỗ trợ file tối đa 50MB", "Supports files up to 50MB", "最大50MBまで対応")}
-                </p>
-              </label>
-            </div>
 
-            {/* External URL alternative */}
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-shinme-muted">
-                {tr(
-                  "Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)",
-                  "Or paste direct resource link (Google Drive / OneDrive / YouTube)",
-                  "または直接リンクを貼り付け（Google Drive / OneDrive / YouTube）"
-                )}
-              </label>
-              <input
-                type="url"
-                placeholder="https://drive.google.com/file/d/..."
-                value={formData.externalUrl}
-                onChange={(e) => setFormData({ ...formData, externalUrl: e.target.value })}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:border-shinme-primary focus:outline-none font-mono"
-              />
-            </div>
-
-            {/* Upload Progress Bar */}
-            {isUploading && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold text-shinme-primary">
-                  <span>{tr("Đang lưu tài liệu...", "Saving document...", "教材を保存中...")}</span>
-                  <span className="tabular">{uploadPercent}%</span>
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                    {tr("Danh mục học liệu *", "Category *", "カテゴリー *")}
+                  </label>
+                  <select
+                    disabled={isUploading}
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value as MaterialDoc["category"] })}
+                    className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+                  >
+                    <option value="Giáo trình chính">{tr("Giáo trình chính", "Main Curriculum", "メイン教材")}</option>
+                    <option value="Kanji & Từ vựng">{tr("Kanji & Từ vựng", "Kanji & Vocabulary", "漢字・語彙")}</option>
+                    <option value="Nghe hiểu Chokai">{tr("Nghe hiểu Chokai", "Chokai Listening", "聴解練習")}</option>
+                    <option value="Ngữ pháp & Đề thi">{tr("Ngữ pháp & Đề thi", "Grammar & Exams", "文法・試験対策")}</option>
+                    <option value="Tài liệu bổ trợ">{tr("Tài liệu bổ trợ", "Supplementary Materials", "補助教材")}</option>
+                  </select>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-shinme-line">
-                  <div
-                    className="h-full bg-shinme-primary transition-all duration-300"
-                    style={{ width: `${uploadPercent}%` }}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                    {tr("Định dạng file", "File Format", "ファイル形式")}
+                  </label>
+                  <select
+                    disabled={isUploading}
+                    value={formData.format}
+                    onChange={(e) => setFormData({ ...formData, format: e.target.value as MaterialDoc["format"] })}
+                    className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 text-xs font-bold text-shinme-ink focus:border-shinme-primary focus:outline-none"
+                  >
+                    <option value="PDF">{tr("Tài liệu PDF", "PDF Document", "PDF資料")}</option>
+                    <option value="Audio">{tr("Audio / MP3 (Chokai)", "Audio / MP3 (Chokai)", "音声 / MP3（聴解）")}</option>
+                    <option value="Slide">{tr("Bài giảng Slide / PPTX", "Slide / PPTX", "スライド / PPTX")}</option>
+                    <option value="Doc">{tr("Văn bản Docx / Excel", "Docx / Excel", "Word / Excel")}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                    {tr("Bài học tương ứng", "Lesson", "対応単元")}
+                  </label>
+                  <input
+                    type="text"
+                    disabled={isUploading}
+                    placeholder={tr("Ví dụ: Bài 26 hoặc Tuần 2", "e.g. Lesson 26 or Week 2", "例：第26課 または 第2週")}
+                    value={formData.lesson}
+                    onChange={(e) => setFormData({ ...formData, lesson: e.target.value })}
+                    className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 text-xs font-semibold text-shinme-ink placeholder:text-shinme-muted/70 focus:border-shinme-primary focus:outline-none"
                   />
                 </div>
               </div>
-            )}
 
-            <div className="flex justify-end gap-2 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsUploadOpen(false)} disabled={isUploading}>
-                {tr("Hủy", "Cancel", "キャンセル")}
-              </Button>
-              <Button type="submit" size="sm" disabled={isUploading}>
-                {isUploading
-                  ? tr(`Đang tải lên (${uploadPercent}%)...`, `Uploading (${uploadPercent}%)...`, `アップロード中 (${uploadPercent}%)...`)
-                  : tr("Lưu & Xuất bản", "Save & Publish", "保存して公開")}
-              </Button>
-            </div>
-          </form>
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-shinme-ink">
+                  {tr("Tiêu đề tiếng Nhật / Furigana (tùy chọn)", "Japanese Title / Furigana (optional)", "日本語タイトル・ふりがな（任意）")}
+                </label>
+                <input
+                  type="text"
+                  disabled={isUploading}
+                  placeholder={tr("Ví dụ: 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "e.g. 第26課[だいにじゅうろっか] 文法[ぶんぽう]", "例：第26課[だいにじゅうろっか] 文法[ぶんぽう]")}
+                  value={formData.titleJa}
+                  onChange={(e) => setFormData({ ...formData, titleJa: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 font-jp text-xs font-semibold text-shinme-ink placeholder:text-shinme-muted/70 focus:border-shinme-primary focus:outline-none"
+                />
+              </div>
+
+              {/* File Picker Dropzone */}
+              <div className="rounded-2xl border-2 border-dashed border-shinme-border bg-shinme-bg/60 p-5 text-center transition hover:border-shinme-primary hover:bg-shinme-leaf/30">
+                <input
+                  type="file"
+                  id="material-file-input"
+                  disabled={isUploading}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  accept=".pdf,.mp3,.wav,.m4a,.ppt,.pptx,.doc,.docx,.xlsx,.zip"
+                />
+                {selectedFile ? (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-shinme-border bg-white p-3 text-left">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-shinme-leaf text-shinme-primary">
+                        <FileText className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-shinme-ink">{selectedFile.name}</p>
+                        <p className="tabular text-xs text-shinme-muted">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    {!isUploading && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="rounded-lg p-1.5 text-shinme-muted hover:bg-slate-100 hover:text-shinme-ink"
+                        aria-label={tr("Bỏ chọn file", "Remove file", "ファイルを削除")}
+                      >
+                        <X className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <label htmlFor="material-file-input" className="block cursor-pointer space-y-2">
+                    <div className="mx-auto grid size-10 place-items-center rounded-xl bg-shinme-leaf text-shinme-primary">
+                      <Upload className="size-5" />
+                    </div>
+                    <p className="text-xs font-bold text-shinme-ink">
+                      {tr(
+                        "Nhấp để chọn file từ máy tính (PDF, MP3, PPTX, DOCX...)",
+                        "Click to select a file from computer (PDF, MP3, PPTX, DOCX...)",
+                        "クリックしてファイルを選択（PDF, MP3, PPTX, DOCX...）"
+                      )}
+                    </p>
+                    <p className="text-xs text-shinme-muted">
+                      {tr("Hỗ trợ file tối đa 50MB", "Supports files up to 50MB", "最大50MBまで対応")}
+                    </p>
+                  </label>
+                )}
+              </div>
+
+              {/* External URL alternative */}
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-shinme-muted">
+                  {tr(
+                    "Hoặc dán liên kết tài liệu trực tiếp (Google Drive / OneDrive / YouTube)",
+                    "Or paste direct resource link (Google Drive / OneDrive / YouTube)",
+                    "または直接リンクを貼り付け（Google Drive / OneDrive / YouTube）"
+                  )}
+                </label>
+                <input
+                  type="url"
+                  disabled={isUploading}
+                  placeholder="https://drive.google.com/file/d/..."
+                  value={formData.externalUrl}
+                  onChange={(e) => setFormData({ ...formData, externalUrl: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-shinme-border bg-white px-3.5 font-mono text-xs text-shinme-ink placeholder:text-shinme-muted/70 focus:border-shinme-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Upload Progress Bar */}
+              {isUploading && (
+                <div className="space-y-1.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-shinme-primary">
+                    <span>{tr("Đang lưu tài liệu...", "Saving document...", "教材を保存中...")}</span>
+                    <span className="tabular">{uploadPercent}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-200/70">
+                    <div
+                      className="h-full rounded-full bg-shinme-primary transition-all duration-300"
+                      style={{ width: `${uploadPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 border-t border-shinme-line pt-4">
+                <Button type="button" variant="outline" size="sm" onClick={() => setIsUploadOpen(false)} disabled={isUploading}>
+                  {tr("Hủy", "Cancel", "キャンセル")}
+                </Button>
+                <Button type="submit" size="sm" disabled={isUploading}>
+                  {isUploading
+                    ? tr(`Đang tải lên (${uploadPercent}%)...`, `Uploading (${uploadPercent}%)...`, `アップロード中 (${uploadPercent}%)...`)
+                    : tr("Lưu & Xuất bản", "Save & Publish", "保存して公開")}
+                </Button>
+              </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
